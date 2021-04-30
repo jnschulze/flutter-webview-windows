@@ -1,0 +1,3 @@
+[submodule "windows/third_party/fmt"]
+	path = windows/third_party/fmt
+	url = https://github.com/fmtlib/fmt
