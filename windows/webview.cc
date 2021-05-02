@@ -9,6 +9,7 @@
 #include <optional>
 
 #include "webview_host.h"
+
 auto CreateDesktopWindowTarget(
     winrt::Windows::UI::Composition::Compositor const& compositor,
     HWND window) {
@@ -118,8 +119,8 @@ void Webview::SetSurfaceSize(size_t width, size_t height) {
     RECT bounds;
     bounds.left = 0;
     bounds.top = 0;
-    bounds.right = (LONG)(width);
-    bounds.bottom = (LONG)(height);
+    bounds.right = static_cast<LONG>(width);
+    bounds.bottom = static_cast<LONG>(height);
 
     if (webview_controller_->put_Bounds(bounds) != S_OK) {
       std::cerr << "Setting webview bounds failed." << std::endl;
@@ -138,8 +139,8 @@ bool Webview::ClearCookies() {
 
 void Webview::SetCursorPos(double x, double y) {
   POINT p;
-  p.x = (LONG)x;
-  p.y = (LONG)y;
+  p.x = static_cast<LONG>(x);
+  p.y = static_cast<LONG>(y);
 
   last_cursor_pos_ = p;
 

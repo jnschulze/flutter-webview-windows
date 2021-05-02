@@ -18,7 +18,7 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
     opts->put_AdditionalBrowserArguments(warguments.c_str());
   }
 
-  CreateCoreWebView2EnvironmentWithOptions(
+  auto result = CreateCoreWebView2EnvironmentWithOptions(
       nullptr, nullptr, opts.get(),
       Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
           [&promise = result_promise, &ptr = env](
@@ -29,7 +29,7 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
           })
           .Get());
 
-  if (result_promise.get_future().get() != S_OK || !env) {
+  if (result != S_OK || result_promise.get_future().get() != S_OK || !env) {
     return {};
   }
 

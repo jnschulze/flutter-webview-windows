@@ -1,5 +1,6 @@
 
 #pragma once
+
 #include <inspectable.h>
 #include <winrt/windows.graphics.directx.direct3d11.h>
 

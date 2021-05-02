@@ -25,36 +25,36 @@ namespace {
 
 class WebviewWindowsPlugin : public flutter::Plugin {
  public:
-  static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
+  static void RegisterWithRegistrar(flutter::PluginRegistrarWindows* registrar);
 
-  WebviewWindowsPlugin(HWND hwnd, flutter::TextureRegistrar *textures,
-                       flutter::BinaryMessenger *messenger);
+  WebviewWindowsPlugin(HWND hwnd, flutter::TextureRegistrar* textures,
+                       flutter::BinaryMessenger* messenger);
 
   virtual ~WebviewWindowsPlugin();
 
  private:
   std::unordered_map<int64_t, std::unique_ptr<WebviewBridge>> instances_;
-  std::unique_ptr<WebviewHost> webviewHost_;
+  std::unique_ptr<WebviewHost> webview_host_;
   std::unique_ptr<GraphicsContext> graphics_context_;
 
-  winrt::Windows::System::DispatcherQueueController dispatcherQueueController_{
-      nullptr};
+  winrt::Windows::System::DispatcherQueueController
+      dispatcher_queue_controller_{nullptr};
 
   HWND hwnd_;
-  flutter::TextureRegistrar *textures_;
-  flutter::BinaryMessenger *messenger_;
+  flutter::TextureRegistrar* textures_;
+  flutter::BinaryMessenger* messenger_;
 
   void CreateWebviewInstance(
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>);
   // Called when a method is called on this plugin's channel from Dart.
   void HandleMethodCall(
-      const flutter::MethodCall<flutter::EncodableValue> &method_call,
+      const flutter::MethodCall<flutter::EncodableValue>& method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 };
 
 // static
 void WebviewWindowsPlugin::RegisterWithRegistrar(
-    flutter::PluginRegistrarWindows *registrar) {
+    flutter::PluginRegistrarWindows* registrar) {
   auto channel =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
           registrar->messenger(), "io.jns.webview.win",
@@ -66,7 +66,7 @@ void WebviewWindowsPlugin::RegisterWithRegistrar(
       hwnd, registrar->texture_registrar(), registrar->messenger());
 
   channel->SetMethodCallHandler(
-      [plugin_pointer = plugin.get()](const auto &call, auto result) {
+      [plugin_pointer = plugin.get()](const auto& call, auto result) {
         plugin_pointer->HandleMethodCall(call, std::move(result));
       });
 
@@ -74,19 +74,17 @@ void WebviewWindowsPlugin::RegisterWithRegistrar(
 }
 
 WebviewWindowsPlugin::WebviewWindowsPlugin(HWND hwnd,
-                                           flutter::TextureRegistrar *textures,
-                                           flutter::BinaryMessenger *messenger)
+                                           flutter::TextureRegistrar* textures,
+                                           flutter::BinaryMessenger* messenger)
     : textures_(textures), messenger_(messenger), hwnd_(hwnd) {
   winrt::init_apartment(winrt::apartment_type::single_threaded);
-  dispatcherQueueController_ = CreateDispatcherQueueController();
+  dispatcher_queue_controller_ = CreateDispatcherQueueController();
 }
 
-WebviewWindowsPlugin::~WebviewWindowsPlugin() {
-  instances_.clear();
-}
+WebviewWindowsPlugin::~WebviewWindowsPlugin() { instances_.clear(); }
 
 void WebviewWindowsPlugin::HandleMethodCall(
-    const flutter::MethodCall<flutter::EncodableValue> &method_call,
+    const flutter::MethodCall<flutter::EncodableValue>& method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   if (method_call.method_name().compare("initialize") == 0) {
     return CreateWebviewInstance(std::move(result));
@@ -104,13 +102,16 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
         "supported");
   }
 
-  if (!webviewHost_) {
-    // webviewHost_ = std::move(WebviewHost::Create("--show-fps-counter
+  if (!webview_host_) {
+    // webview_host_ = std::move(WebviewHost::Create("--show-fps-counter
     // --ui-show-fps-counter --enable-gpu-rasterization
     // --force-gpu-rasterization
     // --ignore-gpu-blocklist --enable-zero-copy
     // --enable-accelerated-video-decode"));
-    webviewHost_ = std::move(WebviewHost::Create());
+    webview_host_ = std::move(WebviewHost::Create());
+    if (!webview_host_) {
+      return result->Error("Creating Webview Host failed");
+    }
   }
 
   if (!graphics_context_) {
@@ -119,7 +120,7 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
 
   std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> holder =
       std::move(result);
-  webviewHost_->CreateWebview(
+  webview_host_->CreateWebview(
       hwnd_, true, [holder, this](std::unique_ptr<Webview> webview) {
         auto bridge = std::make_unique<WebviewBridge>(
             messenger_, textures_, graphics_context_.get(), std::move(webview));

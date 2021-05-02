@@ -22,12 +22,12 @@ class TextureBridge {
   typedef std::function<void()> FrameAvailableCallback;
   typedef std::function<void(Size size)> SurfaceSizeChangedCallback;
 
-  TextureBridge(GraphicsContext *graphics_context,
+  TextureBridge(GraphicsContext* graphics_context,
                 winrt::Windows::UI::Composition::Visual surface);
 
   bool Start();
 
-  const FlutterDesktopPixelBuffer *CopyPixelBuffer(size_t width, size_t height);
+  const FlutterDesktopPixelBuffer* CopyPixelBuffer(size_t width, size_t height);
 
   void SetOnFrameAvailable(FrameAvailableCallback callback) {
     frame_available_ = std::move(callback);
@@ -43,7 +43,7 @@ class TextureBridge {
   bool is_valid_ = false;
   bool is_running_ = false;
 
-  const GraphicsContext *graphics_context_;
+  const GraphicsContext* graphics_context_;
 
   FrameAvailableCallback frame_available_;
   SurfaceSizeChangedCallback surface_size_changed_;
@@ -66,11 +66,11 @@ class TextureBridge {
   std::unique_ptr<FlutterDesktopPixelBuffer> pixel_buffer_;
 
   void OnFrameArrived(
-      winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool const
-          &sender,
-      winrt::Windows::Foundation::IInspectable const &);
+      winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool const&
+          sender,
+      winrt::Windows::Foundation::IInspectable const&);
 
-  void CopyFrame(ID3D11Texture2D *src_texture);
+  void CopyFrame(ID3D11Texture2D* src_texture);
   void EnsureStagingTexture(uint32_t width, uint32_t height,
-                            bool &is_exact_size);
+                            bool& is_exact_size);
 };

@@ -12,7 +12,7 @@ CreateDispatcherQueueController() {
   winrt::Windows::System::DispatcherQueueController controller{nullptr};
   winrt::check_hresult(CreateDispatcherQueueController(
       options,
-      reinterpret_cast<ABI::Windows::System::IDispatcherQueueController **>(
+      reinterpret_cast<ABI::Windows::System::IDispatcherQueueController**>(
           winrt::put_abi(controller))));
   return controller;
 }

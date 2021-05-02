@@ -11,18 +11,9 @@
 
 class WebviewHost;
 
-enum class WebviewLoadingState {
-  None,
-  Loading,
-  NavigationCompleted
-};
+enum class WebviewLoadingState { None, Loading, NavigationCompleted };
 
-enum class WebviewPointerButton {
-  None,
-  Primary,
-  Secondary,
-  Tertiary
-};
+enum class WebviewPointerButton { None, Primary, Secondary, Tertiary };
 
 class Webview {
  public:
