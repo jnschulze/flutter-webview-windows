@@ -109,6 +109,10 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     _methodChannel.invokeMethod('loadStringContent', content);
   }
 
+  void reload() {
+    _methodChannel.invokeMethod('reload');
+  }
+
   void setCursorPos(Offset pos) {
     _methodChannel.invokeMethod('setCursorPos', [pos.dx, pos.dy]);
   }

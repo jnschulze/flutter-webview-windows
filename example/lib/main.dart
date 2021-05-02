@@ -43,34 +43,52 @@ class _MyAppState extends State<MyApp> {
       return const Text(
         'Not Initialized',
         style: TextStyle(
-          color: Colors.white,
           fontSize: 24.0,
           fontWeight: FontWeight.w900,
         ),
       );
     } else {
       return Container(
-        color: Colors.white,
+        padding: EdgeInsets.all(20),
         child: Column(
           children: [
-            TextField(
-              autofocus: true,
-              controller: textController,
-              onSubmitted: (val) {
-                _controller.loadUrl(val);
-              },
+            Card(
+              child: TextField(
+                decoration: InputDecoration(
+                    hintText: 'URL',
+                    contentPadding: EdgeInsets.all(10.0),
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.refresh),
+                      onPressed: () {
+                        _controller.reload();
+                      },
+                    )),
+                textAlignVertical: TextAlignVertical.center,
+                autofocus: true,
+                controller: textController,
+                onSubmitted: (val) {
+                  _controller.loadUrl(val);
+                },
+              ),
             ),
-            StreamBuilder<LoadingState>(
-                stream: _controller.loadingState,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData &&
-                      snapshot.data == LoadingState.Loading) {
-                    return LinearProgressIndicator();
-                  } else {
-                    return Container();
-                  }
-                }),
-            Expanded(child: Webview(_controller)),
+            Expanded(
+                child: Card(
+                    clipBehavior: Clip.antiAliasWithSaveLayer,
+                    child: Stack(
+                      children: [
+                        Webview(_controller),
+                        StreamBuilder<LoadingState>(
+                            stream: _controller.loadingState,
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData &&
+                                  snapshot.data == LoadingState.Loading) {
+                                return LinearProgressIndicator();
+                              } else {
+                                return Container();
+                              }
+                            }),
+                      ],
+                    ))),
           ],
         ),
       );
@@ -81,7 +99,6 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        backgroundColor: Colors.blue,
         appBar: AppBar(
           title: const Text('WebView (Windows) Example'),
         ),

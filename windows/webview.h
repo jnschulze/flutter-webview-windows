@@ -34,6 +34,7 @@ class Webview {
   void SetScrollDelta(double delta_x, double delta_y);
   void LoadUrl(const std::string& url);
   void LoadStringContent(const std::string& content);
+  void Reload();
   bool ClearCookies();
 
   void OnUrlChanged(UrlChangedCallback callback) {

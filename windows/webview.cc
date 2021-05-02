@@ -213,3 +213,7 @@ void Webview::LoadStringContent(const std::string& content) {
   std::wstring wcontent(content.begin(), content.end());
   webview_->NavigateToString(wcontent.c_str());
 }
+
+void Webview::Reload() {
+  webview_->Reload();
+}

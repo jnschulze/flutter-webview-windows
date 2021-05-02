@@ -10,6 +10,7 @@ const std::string kErrorInvalidArgs = "invalidArguments";
 
 const std::string kMethodLoadUrl = "loadUrl";
 const std::string kMethodLoadStringContent = "loadStringContent";
+const std::string kMethodReload = "reload";
 const std::string kMethodSetSize = "setSize";
 const std::string kMethodSetCursorPos = "setCursorPos";
 const std::string kMethodSetPointerButton = "setPointerButton";
@@ -184,6 +185,12 @@ void WebviewBridge::HandleMethodCall(
       return result->Success();
     }
     return result->Error(kErrorInvalidArgs);
+  }
+
+  // reload
+  if (method_name.compare(kMethodReload) == 0) {
+    webview_->Reload();
+    return result->Success();
   }
 
   result->NotImplemented();
