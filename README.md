@@ -1,5 +1,7 @@
 # webview_windows
 
+![image](https://img.shields.io/pub/v/webview_windows.svg)
+
 A flutter WebView plugin for Windows.
 
 
