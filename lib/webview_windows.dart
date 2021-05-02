@@ -148,19 +148,23 @@ class Webview extends StatefulWidget {
 
 class _WebviewState extends State<Webview> {
   GlobalKey _key = GlobalKey();
+  final Map<int, PointerButton> _downButtons = Map<int, PointerButton>();
 
   @override
   void initState() {
     super.initState();
-  }
 
-  final Map<int, PointerButton> _downButtons = Map<int, PointerButton>();
+    // Report initial surface size
+    WidgetsBinding.instance!.addPostFrameCallback((_) {
+      reportSurfaceSize();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return widget.controller.value.isInitialized
         ? Container(
-            color: Colors.pink,
+            color: Colors.transparent,
             child: NotificationListener<SizeChangedLayoutNotification>(
               onNotification: (notification) {
                 reportSurfaceSize();
