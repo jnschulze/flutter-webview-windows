@@ -208,3 +208,8 @@ void Webview::LoadUrl(const std::string& url) {
   std::wstring wurl(url.begin(), url.end());
   webview_->Navigate(wurl.c_str());
 }
+
+void Webview::LoadStringContent(const std::string& content) {
+  std::wstring wcontent(content.begin(), content.end());
+  webview_->NavigateToString(wcontent.c_str());
+}

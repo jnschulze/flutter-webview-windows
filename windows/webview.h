@@ -29,13 +29,11 @@ class Webview {
   }
 
   void SetSurfaceSize(size_t width, size_t height);
-
   void SetCursorPos(double x, double y);
-
   void SetPointerButtonState(WebviewPointerButton button, bool isDown);
-
   void SetScrollDelta(double delta_x, double delta_y);
   void LoadUrl(const std::string& url);
+  void LoadStringContent(const std::string& content);
   bool ClearCookies();
 
   void OnUrlChanged(UrlChangedCallback callback) {

@@ -9,6 +9,7 @@ namespace {
 const std::string kErrorInvalidArgs = "invalidArguments";
 
 const std::string kMethodLoadUrl = "loadUrl";
+const std::string kMethodLoadStringContent = "loadStringContent";
 const std::string kMethodSetSize = "setSize";
 const std::string kMethodSetCursorPos = "setCursorPos";
 const std::string kMethodSetPointerButton = "setPointerButton";
@@ -171,6 +172,15 @@ void WebviewBridge::HandleMethodCall(
   if (method_name.compare(kMethodLoadUrl) == 0) {
     if (auto url = std::get_if<std::string>(method_call.arguments())) {
       webview_->LoadUrl(*url);
+      return result->Success();
+    }
+    return result->Error(kErrorInvalidArgs);
+  }
+
+  // loadStringContent: string
+  if (method_name.compare(kMethodLoadStringContent) == 0) {
+    if (auto content = std::get_if<std::string>(method_call.arguments())) {
+      webview_->LoadStringContent(*content);
       return result->Success();
     }
     return result->Error(kErrorInvalidArgs);
