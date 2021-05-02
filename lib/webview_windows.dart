@@ -64,6 +64,10 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       StreamController<LoadingState>();
   Stream<LoadingState> get loadingState => _loadingStateStreamController.stream;
 
+  final StreamController<String> _titleStreamController =
+      StreamController<String>();
+  Stream<String> get title => _titleStreamController.stream;
+
   WebviewController() : super(WebviewValue.uninitialized());
 
   Future<void> initialize() async {
@@ -86,12 +90,14 @@ class WebviewController extends ValueNotifier<WebviewValue> {
           final map = event as Map<dynamic, dynamic>;
           switch (map['type']) {
             case 'urlChanged':
-              _urlStreamController.add(map['url']);
+              _urlStreamController.add(map['value']);
               break;
             case 'loadingStateChanged':
               final value = LoadingState.values[map['value']];
               _loadingStateStreamController.add(value);
               break;
+            case 'titleChanged':
+              _titleStreamController.add(map['value']);
           }
         });
       }

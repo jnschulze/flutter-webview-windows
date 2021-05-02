@@ -21,6 +21,7 @@ class Webview {
 
   typedef std::function<void(const std::string&)> UrlChangedCallback;
   typedef std::function<void(WebviewLoadingState)> LoadingStateChangedCallback;
+  typedef std::function<void(const std::string&)> DocumentTitleChangedCallback;
   typedef std::function<void(size_t width, size_t height)>
       SurfaceSizeChangedCallback;
 
@@ -49,6 +50,10 @@ class Webview {
     surface_size_changed_callback_ = std::move(callback);
   }
 
+  void OnDocumentTitleChanged(DocumentTitleChangedCallback callback) {
+    document_title_changed_callback_ = std::move(callback);
+  }
+
  private:
   wil::com_ptr<ICoreWebView2CompositionController> composition_controller_;
   wil::com_ptr<ICoreWebView2Controller3> webview_controller_;
@@ -68,9 +73,11 @@ class Webview {
   EventRegistrationToken source_changed_token_{};
   EventRegistrationToken content_loading_token_{};
   EventRegistrationToken navigation_completed_token_{};
+  EventRegistrationToken document_title_changed_token_{};
 
   UrlChangedCallback url_changed_callback_;
   LoadingStateChangedCallback loading_state_changed_callback_;
+  DocumentTitleChangedCallback document_title_changed_callback_;
   SurfaceSizeChangedCallback surface_size_changed_callback_;
 
   Webview(

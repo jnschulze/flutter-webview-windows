@@ -100,8 +100,14 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('WebView (Windows) Example'),
-        ),
+            title: StreamBuilder<String>(
+          stream: _controller.title,
+          builder: (context, snapshot) {
+            return Text(snapshot.hasData
+                ? snapshot.data!
+                : "WebView (Windows) Example");
+          },
+        )),
         body: Center(
           child: compositeView(),
         ),

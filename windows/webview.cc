@@ -97,17 +97,31 @@ void Webview::RegisterEventHandlers() {
   webview_->add_SourceChanged(
       Callback<ICoreWebView2SourceChangedEventHandler>(
           [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
-            if (url_changed_callback_) {
-              LPWSTR newUri{nullptr};
-              webview_->get_Source(&newUri);
-              std::string newUriString = CW2A(newUri);
-              url_changed_callback_(newUriString);
+            LPWSTR wurl;
+            if (url_changed_callback_ && webview_->get_Source(&wurl) == S_OK) {
+              std::string url = CW2A(wurl);
+              url_changed_callback_(url);
             }
 
             return S_OK;
           })
           .Get(),
       &source_changed_token_);
+
+  webview_->add_DocumentTitleChanged(
+      Callback<ICoreWebView2DocumentTitleChangedEventHandler>(
+          [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+            LPWSTR wtitle;
+            if (document_title_changed_callback_ &&
+                webview_->get_DocumentTitle(&wtitle) == S_OK) {
+              std::string title = CW2A(wtitle);
+              document_title_changed_callback_(title);
+            }
+
+            return S_OK;
+          })
+          .Get(),
+      &document_title_changed_token_);
 }
 
 void Webview::SetSurfaceSize(size_t width, size_t height) {
@@ -214,6 +228,4 @@ void Webview::LoadStringContent(const std::string& content) {
   webview_->NavigateToString(wcontent.c_str());
 }
 
-void Webview::Reload() {
-  webview_->Reload();
-}
+void Webview::Reload() { webview_->Reload(); }

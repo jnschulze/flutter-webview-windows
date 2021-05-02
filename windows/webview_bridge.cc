@@ -17,6 +17,7 @@ const std::string kMethodSetPointerButton = "setPointerButton";
 const std::string kMethodSetScrollDelta = "setScrollDelta";
 
 const std::string kEventType = "type";
+const std::string kEventValue = "value";
 
 static std::optional<std::pair<double, double>> GetPointFromArgs(
     const flutter::EncodableValue* args) {
@@ -94,7 +95,7 @@ void WebviewBridge::RegisterEventHandlers() {
     auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),
          flutter::EncodableValue("urlChanged")},
-        {flutter::EncodableValue("url"), flutter::EncodableValue(url)},
+        {flutter::EncodableValue(kEventValue), flutter::EncodableValue(url)},
     });
     event_sink_->Success(event);
   });
@@ -103,7 +104,17 @@ void WebviewBridge::RegisterEventHandlers() {
     auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),
          flutter::EncodableValue("loadingStateChanged")},
-        {flutter::EncodableValue("value"), flutter::EncodableValue((int)state)},
+        {flutter::EncodableValue(kEventValue),
+         flutter::EncodableValue((int)state)},
+    });
+    event_sink_->Success(event);
+  });
+
+  webview_->OnDocumentTitleChanged([this](const std::string& title) {
+    auto event = flutter::EncodableValue(flutter::EncodableMap{
+        {flutter::EncodableValue(kEventType),
+         flutter::EncodableValue("titleChanged")},
+        {flutter::EncodableValue(kEventValue), flutter::EncodableValue(title)},
     });
     event_sink_->Success(event);
   });
