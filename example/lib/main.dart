@@ -31,7 +31,7 @@ class _MyAppState extends State<MyApp> {
     _controller.url.listen((url) {
       textController.text = url;
     });
-    _controller.openUrl('https://flutter.dev');
+    _controller.loadUrl('https://flutter.dev');
 
     if (!mounted) return;
 
@@ -57,7 +57,7 @@ class _MyAppState extends State<MyApp> {
               autofocus: true,
               controller: textController,
               onSubmitted: (val) {
-                _controller.openUrl(val);
+                _controller.loadUrl(val);
               },
             ),
             StreamBuilder<LoadingState>(

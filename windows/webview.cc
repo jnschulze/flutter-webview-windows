@@ -204,7 +204,7 @@ void Webview::SetScrollDelta(double delta_x, double delta_y) {
   }
 }
 
-void Webview::Navigate(const std::string& url) {
+void Webview::LoadUrl(const std::string& url) {
   std::wstring wurl(url.begin(), url.end());
   webview_->Navigate(wurl.c_str());
 }

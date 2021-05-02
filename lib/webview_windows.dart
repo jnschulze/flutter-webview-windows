@@ -101,8 +101,8 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _creatingCompleter.future;
   }
 
-  void openUrl(String uri) {
-    _methodChannel.invokeMethod('openUrl', uri);
+  void loadUrl(String url) {
+    _methodChannel.invokeMethod('loadUrl', url);
   }
 
   void setCursorPos(Offset pos) {

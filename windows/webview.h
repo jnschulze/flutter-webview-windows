@@ -35,7 +35,7 @@ class Webview {
   void SetPointerButtonState(WebviewPointerButton button, bool isDown);
 
   void SetScrollDelta(double delta_x, double delta_y);
-  void Navigate(const std::string& url);
+  void LoadUrl(const std::string& url);
   bool ClearCookies();
 
   void OnUrlChanged(UrlChangedCallback callback) {
