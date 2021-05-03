@@ -24,6 +24,7 @@ class Webview {
   typedef std::function<void(const std::string&)> DocumentTitleChangedCallback;
   typedef std::function<void(size_t width, size_t height)>
       SurfaceSizeChangedCallback;
+  typedef std::function<void(const HCURSOR)> CursorChangedCallback;
 
   winrt::agile_ref<winrt::Windows::UI::Composition::Visual> const surface() {
     return surface_;
@@ -54,6 +55,10 @@ class Webview {
     document_title_changed_callback_ = std::move(callback);
   }
 
+  void OnCursorChanged(CursorChangedCallback callback) {
+    cursor_changed_callback_ = std::move(callback);
+  }
+
  private:
   wil::com_ptr<ICoreWebView2CompositionController> composition_controller_;
   wil::com_ptr<ICoreWebView2Controller3> webview_controller_;
@@ -70,15 +75,17 @@ class Webview {
 
   WebviewHost* host_;
 
-  EventRegistrationToken source_changed_token_{};
-  EventRegistrationToken content_loading_token_{};
-  EventRegistrationToken navigation_completed_token_{};
-  EventRegistrationToken document_title_changed_token_{};
+  EventRegistrationToken source_changed_token_ = {};
+  EventRegistrationToken content_loading_token_ = {};
+  EventRegistrationToken navigation_completed_token_ = {};
+  EventRegistrationToken document_title_changed_token_ = {};
+  EventRegistrationToken cursor_changed_token_ = {};
 
   UrlChangedCallback url_changed_callback_;
   LoadingStateChangedCallback loading_state_changed_callback_;
   DocumentTitleChangedCallback document_title_changed_callback_;
   SurfaceSizeChangedCallback surface_size_changed_callback_;
+  CursorChangedCallback cursor_changed_callback_;
 
   Webview(
       wil::com_ptr<ICoreWebView2CompositionController> composition_controller,

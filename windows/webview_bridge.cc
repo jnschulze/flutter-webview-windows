@@ -19,19 +19,72 @@ const std::string kMethodSetScrollDelta = "setScrollDelta";
 const std::string kEventType = "type";
 const std::string kEventValue = "value";
 
-static std::optional<std::pair<double, double>> GetPointFromArgs(
+static const std::optional<std::pair<double, double>> GetPointFromArgs(
     const flutter::EncodableValue* args) {
   const flutter::EncodableList* list =
       std::get_if<flutter::EncodableList>(args);
   if (!list || list->size() != 2) {
     return std::nullopt;
   }
-  auto x = std::get_if<double>(&(*list)[0]);
-  auto y = std::get_if<double>(&(*list)[1]);
+  const auto x = std::get_if<double>(&(*list)[0]);
+  const auto y = std::get_if<double>(&(*list)[1]);
   if (!x || !y) {
     return std::nullopt;
   }
   return std::make_pair(*x, *y);
+}
+
+static const std::string& GetCursorName(const HCURSOR cursor) {
+  // The cursor names correspond to the Flutter Engine names:
+  // in shell/platform/windows/flutter_window_win32.cc
+  static const std::string kDefaultCursorName = "basic";
+  static const std::pair<std::string, const wchar_t*> mappings[] = {
+      {"allScroll", IDC_SIZEALL},
+      {kDefaultCursorName, IDC_ARROW},
+      {"click", IDC_HAND},
+      {"forbidden", IDC_NO},
+      {"help", IDC_HELP},
+      {"move", IDC_SIZEALL},
+      {"none", nullptr},
+      {"noDrop", IDC_NO},
+      {"precise", IDC_CROSS},
+      {"progress", IDC_APPSTARTING},
+      {"text", IDC_IBEAM},
+      {"resizeColumn", IDC_SIZEWE},
+      {"resizeDown", IDC_SIZENS},
+      {"resizeDownLeft", IDC_SIZENESW},
+      {"resizeDownRight", IDC_SIZENWSE},
+      {"resizeLeft", IDC_SIZEWE},
+      {"resizeLeftRight", IDC_SIZEWE},
+      {"resizeRight", IDC_SIZEWE},
+      {"resizeRow", IDC_SIZENS},
+      {"resizeUp", IDC_SIZENS},
+      {"resizeUpDown", IDC_SIZENS},
+      {"resizeUpLeft", IDC_SIZENWSE},
+      {"resizeUpRight", IDC_SIZENESW},
+      {"resizeUpLeftDownRight", IDC_SIZENWSE},
+      {"resizeUpRightDownLeft", IDC_SIZENESW},
+      {"wait", IDC_WAIT},
+  };
+
+  static std::map<HCURSOR, std::string> cursors;
+  static bool initialized = false;
+
+  if (!initialized) {
+    initialized = true;
+    for (const auto& pair : mappings) {
+      HCURSOR cursor_handle = LoadCursor(nullptr, pair.second);
+      if (cursor_handle) {
+        cursors[cursor_handle] = pair.first;
+      }
+    }
+  }
+
+  const auto it = cursors.find(cursor);
+  if (it != cursors.end()) {
+    return it->second;
+  }
+  return kDefaultCursorName;
 }
 
 }  // namespace
@@ -59,17 +112,17 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
   //  webview_->SetSurfaceSize(size.width, size.height);
   //});
 
-  auto method_channel_name = fmt::format("io.jns.webview.win/{}", texture_id_);
+  const auto method_channel_name =
+      fmt::format("io.jns.webview.win/{}", texture_id_);
   method_channel_ =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
           messenger, method_channel_name,
           &flutter::StandardMethodCodec::GetInstance());
-
   method_channel_->SetMethodCallHandler([this](const auto& call, auto result) {
     HandleMethodCall(call, std::move(result));
   });
 
-  auto event_channel_name =
+  const auto event_channel_name =
       fmt::format("io.jns.webview.win/{}/events", texture_id_);
   event_channel_ =
       std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
@@ -92,7 +145,7 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
 
 void WebviewBridge::RegisterEventHandlers() {
   webview_->OnUrlChanged([this](const std::string& url) {
-    auto event = flutter::EncodableValue(flutter::EncodableMap{
+    const auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),
          flutter::EncodableValue("urlChanged")},
         {flutter::EncodableValue(kEventValue), flutter::EncodableValue(url)},
@@ -101,7 +154,7 @@ void WebviewBridge::RegisterEventHandlers() {
   });
 
   webview_->OnLoadingStateChanged([this](WebviewLoadingState state) {
-    auto event = flutter::EncodableValue(flutter::EncodableMap{
+    const auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),
          flutter::EncodableValue("loadingStateChanged")},
         {flutter::EncodableValue(kEventValue),
@@ -111,7 +164,7 @@ void WebviewBridge::RegisterEventHandlers() {
   });
 
   webview_->OnDocumentTitleChanged([this](const std::string& title) {
-    auto event = flutter::EncodableValue(flutter::EncodableMap{
+    const auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),
          flutter::EncodableValue("titleChanged")},
         {flutter::EncodableValue(kEventValue), flutter::EncodableValue(title)},
@@ -122,6 +175,15 @@ void WebviewBridge::RegisterEventHandlers() {
   webview_->OnSurfaceSizeChanged([this](size_t width, size_t height) {
     texture_bridge_->NotifySurfaceSizeChanged();
   });
+
+  webview_->OnCursorChanged([this](const HCURSOR cursor) {
+    const auto& name = GetCursorName(cursor);
+    const auto event = flutter::EncodableValue(
+        flutter::EncodableMap{{flutter::EncodableValue(kEventType),
+                               flutter::EncodableValue("cursorChanged")},
+                              {flutter::EncodableValue(kEventValue), name}});
+    event_sink_->Success(event);
+  });
 }
 
 void WebviewBridge::HandleMethodCall(
@@ -131,7 +193,7 @@ void WebviewBridge::HandleMethodCall(
 
   // setCursorPos: [double x, double y]
   if (method_name.compare(kMethodSetCursorPos) == 0) {
-    auto point = GetPointFromArgs(method_call.arguments());
+    const auto point = GetPointFromArgs(method_call.arguments());
     if (point) {
       webview_->SetCursorPos(point->first, point->second);
       return result->Success();
@@ -141,7 +203,7 @@ void WebviewBridge::HandleMethodCall(
 
   // setScrollDelta: [double dx, double dy]
   if (method_name.compare(kMethodSetScrollDelta) == 0) {
-    auto delta = GetPointFromArgs(method_call.arguments());
+    const auto delta = GetPointFromArgs(method_call.arguments());
     if (delta) {
       webview_->SetScrollDelta(delta->first, delta->second);
       return result->Success();
@@ -153,11 +215,11 @@ void WebviewBridge::HandleMethodCall(
   if (method_name.compare(kMethodSetPointerButton) == 0) {
     const auto& map = std::get<flutter::EncodableMap>(*method_call.arguments());
 
-    auto button = map.find(flutter::EncodableValue("button"));
-    auto isDown = map.find(flutter::EncodableValue("isDown"));
+    const auto button = map.find(flutter::EncodableValue("button"));
+    const auto isDown = map.find(flutter::EncodableValue("isDown"));
     if (button != map.end() && isDown != map.end()) {
-      auto buttonValue = std::get_if<int>(&button->second);
-      auto isDownValue = std::get_if<bool>(&isDown->second);
+      const auto buttonValue = std::get_if<int>(&button->second);
+      const auto isDownValue = std::get_if<bool>(&isDown->second);
       if (buttonValue && isDownValue) {
         webview_->SetPointerButtonState(
             static_cast<WebviewPointerButton>(*buttonValue), *isDownValue);
@@ -182,7 +244,7 @@ void WebviewBridge::HandleMethodCall(
 
   // loadUrl: string
   if (method_name.compare(kMethodLoadUrl) == 0) {
-    if (auto url = std::get_if<std::string>(method_call.arguments())) {
+    if (const auto url = std::get_if<std::string>(method_call.arguments())) {
       webview_->LoadUrl(*url);
       return result->Success();
     }
@@ -191,7 +253,8 @@ void WebviewBridge::HandleMethodCall(
 
   // loadStringContent: string
   if (method_name.compare(kMethodLoadStringContent) == 0) {
-    if (auto content = std::get_if<std::string>(method_call.arguments())) {
+    if (const auto content =
+            std::get_if<std::string>(method_call.arguments())) {
       webview_->LoadStringContent(*content);
       return result->Success();
     }

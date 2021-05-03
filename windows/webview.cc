@@ -122,6 +122,20 @@ void Webview::RegisterEventHandlers() {
           })
           .Get(),
       &document_title_changed_token_);
+
+  composition_controller_->add_CursorChanged(
+      Callback<ICoreWebView2CursorChangedEventHandler>(
+          [this](ICoreWebView2CompositionController* sender,
+                 IUnknown* args) -> HRESULT {
+            HCURSOR cursor;
+            if (cursor_changed_callback_ &&
+                sender->get_Cursor(&cursor) == S_OK) {
+              cursor_changed_callback_(cursor);
+            }
+            return S_OK;
+          })
+          .Get(),
+      &cursor_changed_token_);
 }
 
 void Webview::SetSurfaceSize(size_t width, size_t height) {

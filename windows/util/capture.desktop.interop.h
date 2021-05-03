@@ -1,4 +1,5 @@
 #pragma once
+
 #include <windows.graphics.capture.h>
 #include <windows.graphics.capture.interop.h>
 #include <winrt/Windows.Graphics.Capture.h>
