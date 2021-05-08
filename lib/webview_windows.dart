@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -26,7 +27,7 @@ PointerButton _getButton(int value) {
   }
 }
 
-const Map<String, SystemMouseCursor> _cursors = const {
+const Map<String, SystemMouseCursor> _cursors = {
   'none': SystemMouseCursors.none,
   'basic': SystemMouseCursors.basic,
   'click': SystemMouseCursors.click,
@@ -163,46 +164,81 @@ class WebviewController extends ValueNotifier<WebviewValue> {
           }
         });
       }
-    } on PlatformException catch (e) {}
+    } on PlatformException {
+      // TODO: handle PlatformException
+    }
 
     _creatingCompleter.complete();
     return _creatingCompleter.future;
   }
 
+  @override
+  Future<void> dispose() async {
+    await _creatingCompleter.future;
+    if (!_isDisposed) {
+      await _methodChannel.invokeMethod('dispose', _textureId);
+      _isDisposed = true;
+    }
+    _isDisposed = true;
+    super.dispose();
+  }
+
   /// Loads the given [url].
-  void loadUrl(String url) {
-    _methodChannel.invokeMethod('loadUrl', url);
+  Future<void> loadUrl(String url) async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel.invokeMethod('loadUrl', url);
   }
 
   /// Loads a document from the given string.
-  void loadStringContent(String content) {
-    _methodChannel.invokeMethod('loadStringContent', content);
+  Future<void> loadStringContent(String content) async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel.invokeMethod('loadStringContent', content);
   }
 
   /// Reloads the current document.
-  void reload() {
-    _methodChannel.invokeMethod('reload');
+  Future<void> reload() async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel.invokeMethod('reload');
   }
 
   /// Moves the virtual cursor to [position].
-  void _setCursorPos(Offset position) {
-    _methodChannel.invokeMethod('setCursorPos', [position.dx, position.dy]);
+  Future<void> _setCursorPos(Offset position) async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel
+        .invokeMethod('setCursorPos', [position.dx, position.dy]);
   }
 
   /// Indicates whether the specified [button] is currently down.
-  void _setPointerButtonState(PointerButton button, bool isDown) {
-    _methodChannel.invokeMethod('setPointerButton',
+  Future<void> _setPointerButtonState(PointerButton button, bool isDown) async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel.invokeMethod('setPointerButton',
         <String, dynamic>{'button': button.index, 'isDown': isDown});
   }
 
   /// Sets the horizontal and vertical scroll delta.
-  void _setScrollDelta(double dx, double dy) {
-    _methodChannel.invokeMethod('setScrollDelta', [dx, dy]);
+  Future<void> _setScrollDelta(double dx, double dy) async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel.invokeMethod('setScrollDelta', [dx, dy]);
   }
 
   /// Sets the surface size to the provided [size].
-  void _setSize(Size size) {
-    _methodChannel.invokeMethod('setSize', [size.width, size.height]);
+  Future<void> _setSize(Size size) async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel.invokeMethod('setSize', [size.width, size.height]);
   }
 }
 
@@ -216,8 +252,8 @@ class Webview extends StatefulWidget {
 }
 
 class _WebviewState extends State<Webview> {
-  GlobalKey _key = GlobalKey();
-  final Map<int, PointerButton> _downButtons = Map<int, PointerButton>();
+  final GlobalKey _key = GlobalKey();
+  final _downButtons = <int, PointerButton>{};
 
   MouseCursor _cursor = SystemMouseCursors.basic;
 

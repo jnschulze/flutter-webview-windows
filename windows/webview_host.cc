@@ -49,17 +49,13 @@ WebviewHost::WebviewHost() {
 }
 
 void WebviewHost::CreateWebview(HWND hwnd, bool offscreen_only,
+                                bool owns_window,
                                 WebviewCreationCallback callback) {
-  std::optional<HWND> view_hwnd;
-  if (!offscreen_only) {
-    view_hwnd = hwnd;
-  }
-
   CreateWebViewCompositionController(
-      hwnd, [callback, view_hwnd, self = this](
+      hwnd, [=, self = this](
                 wil::com_ptr<ICoreWebView2CompositionController> controller) {
-        std::unique_ptr<Webview> webview(
-            new Webview(std::move(controller), self, view_hwnd));
+        std::unique_ptr<Webview> webview(new Webview(
+            std::move(controller), self, hwnd, owns_window, offscreen_only));
         callback(std::move(webview));
       });
 }

@@ -31,7 +31,7 @@ class _MyAppState extends State<MyApp> {
     _controller.url.listen((url) {
       textController.text = url;
     });
-    _controller.loadUrl('https://flutter.dev');
+    await _controller.loadUrl('https://flutter.dev');
 
     if (!mounted) return;
 
@@ -64,7 +64,6 @@ class _MyAppState extends State<MyApp> {
                       },
                     )),
                 textAlignVertical: TextAlignVertical.center,
-                autofocus: true,
                 controller: textController,
                 onSubmitted: (val) {
                   _controller.loadUrl(val);
@@ -105,7 +104,7 @@ class _MyAppState extends State<MyApp> {
           builder: (context, snapshot) {
             return Text(snapshot.hasData
                 ? snapshot.data!
-                : "WebView (Windows) Example");
+                : 'WebView (Windows) Example');
           },
         )),
         body: Center(

@@ -7,7 +7,6 @@
 #include <wrl.h>
 
 #include <functional>
-#include <optional>
 
 #include "webview.h"
 
@@ -22,7 +21,7 @@ class WebviewHost {
   static std::unique_ptr<WebviewHost> Create(
       std::optional<std::string> arguments = std::nullopt);
 
-  void CreateWebview(HWND hwnd, bool offscreen_only,
+  void CreateWebview(HWND hwnd, bool offscreen_only, bool owns_window,
                      WebviewCreationCallback callback);
 
   winrt::Windows::UI::Composition::Compositor compositor() const {

@@ -6,7 +6,6 @@
 #include <winrt/Windows.UI.Core.h>
 
 #include <iostream>
-#include <optional>
 
 #include "webview_host.h"
 
@@ -25,8 +24,11 @@ auto CreateDesktopWindowTarget(
 
 Webview::Webview(
     wil::com_ptr<ICoreWebView2CompositionController> composition_controller,
-    WebviewHost* host, std::optional<HWND> hwnd)
-    : composition_controller_(std::move(composition_controller)), host_(host) {
+    WebviewHost* host, HWND hwnd, bool owns_window, bool offscreen_only)
+    : composition_controller_(std::move(composition_controller)),
+      host_(host),
+      hwnd_(hwnd),
+      owns_window_(owns_window) {
   webview_controller_ =
       composition_controller_.query<ICoreWebView2Controller3>();
   webview_controller_->get_CoreWebView2(webview_.put());
@@ -52,8 +54,8 @@ Webview::Webview(
   surface_ = root.as<winrt::Windows::UI::Composition::Visual>();
 
   // Create on-screen window for debugging purposes
-  if (hwnd) {
-    window_target_ = CreateDesktopWindowTarget(compositor, hwnd.value());
+  if (!offscreen_only) {
+    window_target_ = CreateDesktopWindowTarget(compositor, hwnd);
     window_target_.Root(root);
   }
 
@@ -66,6 +68,12 @@ Webview::Webview(
       webview_visual.as<IUnknown>().get());
 
   webview_controller_->put_IsVisible(true);
+}
+
+Webview::~Webview() {
+  if (owns_window_) {
+    DestroyWindow(hwnd_);
+  }
 }
 
 void Webview::RegisterEventHandlers() {
@@ -136,6 +144,28 @@ void Webview::RegisterEventHandlers() {
           })
           .Get(),
       &cursor_changed_token_);
+
+  webview_controller_->add_GotFocus(
+      Callback<ICoreWebView2FocusChangedEventHandler>(
+          [this](ICoreWebView2Controller* sender, IUnknown* args) -> HRESULT {
+            if (focus_changed_callback_) {
+              focus_changed_callback_(true);
+            }
+            return S_OK;
+          })
+          .Get(),
+      &got_focus_token_);
+
+  webview_controller_->add_LostFocus(
+      Callback<ICoreWebView2FocusChangedEventHandler>(
+          [this](ICoreWebView2Controller* sender, IUnknown* args) -> HRESULT {
+            if (focus_changed_callback_) {
+              focus_changed_callback_(false);
+            }
+            return S_OK;
+          })
+          .Get(),
+      &lost_focus_token_);
 }
 
 void Webview::SetSurfaceSize(size_t width, size_t height) {

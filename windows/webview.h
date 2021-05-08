@@ -25,6 +25,9 @@ class Webview {
   typedef std::function<void(size_t width, size_t height)>
       SurfaceSizeChangedCallback;
   typedef std::function<void(const HCURSOR)> CursorChangedCallback;
+  typedef std::function<void(bool)> FocusChangedCallback;
+
+  ~Webview();
 
   winrt::agile_ref<winrt::Windows::UI::Composition::Visual> const surface() {
     return surface_;
@@ -59,7 +62,13 @@ class Webview {
     cursor_changed_callback_ = std::move(callback);
   }
 
+  void OnFocusChanged(FocusChangedCallback callback) {
+    focus_changed_callback_ = std::move(callback);
+  }
+
  private:
+  HWND hwnd_;
+  bool owns_window_;
   wil::com_ptr<ICoreWebView2CompositionController> composition_controller_;
   wil::com_ptr<ICoreWebView2Controller3> webview_controller_;
   wil::com_ptr<ICoreWebView2> webview_;
@@ -80,16 +89,19 @@ class Webview {
   EventRegistrationToken navigation_completed_token_ = {};
   EventRegistrationToken document_title_changed_token_ = {};
   EventRegistrationToken cursor_changed_token_ = {};
+  EventRegistrationToken got_focus_token_ = {};
+  EventRegistrationToken lost_focus_token_ = {};
 
   UrlChangedCallback url_changed_callback_;
   LoadingStateChangedCallback loading_state_changed_callback_;
   DocumentTitleChangedCallback document_title_changed_callback_;
   SurfaceSizeChangedCallback surface_size_changed_callback_;
   CursorChangedCallback cursor_changed_callback_;
+  FocusChangedCallback focus_changed_callback_;
 
   Webview(
       wil::com_ptr<ICoreWebView2CompositionController> composition_controller,
-      WebviewHost* host, std::optional<HWND> hwnd);
+      WebviewHost* host, HWND hwnd, bool owns_window, bool offscreen_only);
 
   void RegisterEventHandlers();
 };

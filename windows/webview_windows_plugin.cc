@@ -27,7 +27,7 @@ class WebviewWindowsPlugin : public flutter::Plugin {
  public:
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows* registrar);
 
-  WebviewWindowsPlugin(HWND hwnd, flutter::TextureRegistrar* textures,
+  WebviewWindowsPlugin(flutter::TextureRegistrar* textures,
                        flutter::BinaryMessenger* messenger);
 
   virtual ~WebviewWindowsPlugin();
@@ -40,7 +40,7 @@ class WebviewWindowsPlugin : public flutter::Plugin {
   winrt::Windows::System::DispatcherQueueController
       dispatcher_queue_controller_{nullptr};
 
-  HWND hwnd_;
+  WNDCLASS window_class_ = {};
   flutter::TextureRegistrar* textures_;
   flutter::BinaryMessenger* messenger_;
 
@@ -60,10 +60,8 @@ void WebviewWindowsPlugin::RegisterWithRegistrar(
           registrar->messenger(), "io.jns.webview.win",
           &flutter::StandardMethodCodec::GetInstance());
 
-  auto hwnd = registrar->GetView()->GetNativeWindow();
-
   auto plugin = std::make_unique<WebviewWindowsPlugin>(
-      hwnd, registrar->texture_registrar(), registrar->messenger());
+      registrar->texture_registrar(), registrar->messenger());
 
   channel->SetMethodCallHandler(
       [plugin_pointer = plugin.get()](const auto& call, auto result) {
@@ -73,21 +71,38 @@ void WebviewWindowsPlugin::RegisterWithRegistrar(
   registrar->AddPlugin(std::move(plugin));
 }
 
-WebviewWindowsPlugin::WebviewWindowsPlugin(HWND hwnd,
-                                           flutter::TextureRegistrar* textures,
+WebviewWindowsPlugin::WebviewWindowsPlugin(flutter::TextureRegistrar* textures,
                                            flutter::BinaryMessenger* messenger)
-    : textures_(textures), messenger_(messenger), hwnd_(hwnd) {
+    : textures_(textures), messenger_(messenger) {
   winrt::init_apartment(winrt::apartment_type::single_threaded);
   dispatcher_queue_controller_ = CreateDispatcherQueueController();
+
+  window_class_.lpszClassName = L"FlutterWebviewMessage";
+  window_class_.lpfnWndProc = &DefWindowProc;
+  RegisterClass(&window_class_);
 }
 
-WebviewWindowsPlugin::~WebviewWindowsPlugin() { instances_.clear(); }
+WebviewWindowsPlugin::~WebviewWindowsPlugin() {
+  instances_.clear();
+  UnregisterClass(window_class_.lpszClassName, nullptr);
+}
 
 void WebviewWindowsPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue>& method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   if (method_call.method_name().compare("initialize") == 0) {
     return CreateWebviewInstance(std::move(result));
+  }
+
+  if (method_call.method_name().compare("dispose") == 0) {
+    if (const auto texture_id = std::get_if<int>(method_call.arguments())) {
+      const auto it = instances_.find(*texture_id);
+      if (it != instances_.end()) {
+        instances_.erase(it);
+        return result->Success();
+      }
+    }
+    return result->Error("No such instance");
   } else {
     result->NotImplemented();
   }
@@ -118,10 +133,14 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
     graphics_context_ = std::make_unique<GraphicsContext>();
   }
 
+  auto hwnd = CreateWindowEx(0, window_class_.lpszClassName, L"", 0, CW_DEFAULT,
+                             CW_DEFAULT, 0, 0, HWND_MESSAGE, nullptr,
+                             window_class_.hInstance, nullptr);
+
   std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> holder =
       std::move(result);
   webview_host_->CreateWebview(
-      hwnd_, true, [holder, this](std::unique_ptr<Webview> webview) {
+      hwnd, true, true, [holder, this](std::unique_ptr<Webview> webview) {
         auto bridge = std::make_unique<WebviewBridge>(
             messenger_, textures_, graphics_context_.get(), std::move(webview));
         auto texture_id = bridge->texture_id();
