@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.15)
 set(PROJECT_NAME "webview_windows")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
+set(WIL_VERSION "1.0.210204.1")
+set(WEBVIEW_VERSION "1.0.865-prerelease")
+
 # This value is used when generating builds using this plugin, so it must
 # not be changed
 set(PLUGIN_NAME "webview_windows_plugin")
@@ -15,9 +18,9 @@ if(NOT NUGET_EXE)
 endif()
 
 exec_program(${NUGET_EXE}
-    ARGS install "Microsoft.Web.WebView2" -Version 1.0.774.44 -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages)
+    ARGS install "Microsoft.Web.WebView2" -Version ${WEBVIEW_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages)
 exec_program(${NUGET_EXE}
-    ARGS install "Microsoft.Windows.ImplementationLibrary" -Version 1.0.210204.1 -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages)
+    ARGS install "Microsoft.Windows.ImplementationLibrary" -Version ${WIL_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages)
 
 add_library(${PLUGIN_NAME} SHARED
   "webview_windows_plugin.cc"
