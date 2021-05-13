@@ -1,3 +1,12 @@
+## 0.0.6
+
+* Fix mousewheel event handling
+* Make text selection work
+* Add method for setting the user agent
+* Add support for JavaScript injection
+* Add support for JSON message passing between Dart and JS
+* Fix WebView disposal
+
 ## 0.0.5
 
 * Fix input field focus issue
