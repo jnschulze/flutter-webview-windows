@@ -77,6 +77,7 @@ class Webview {
   void LoadStringContent(const std::string& content);
   void Reload();
   bool ClearCookies();
+  bool SetUserAgent(const std::string& user_agent);
 
   void OnUrlChanged(UrlChangedCallback callback) {
     url_changed_callback_ = std::move(callback);
@@ -108,6 +109,7 @@ class Webview {
   wil::com_ptr<ICoreWebView2CompositionController> composition_controller_;
   wil::com_ptr<ICoreWebView2Controller3> webview_controller_;
   wil::com_ptr<ICoreWebView2> webview_;
+  wil::com_ptr<ICoreWebView2Settings2> settings2_;
   POINT last_cursor_pos_ = {0, 0};
   VirtualKeyState virtual_keys_;
 

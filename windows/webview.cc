@@ -23,6 +23,10 @@ auto CreateDesktopWindowTarget(
   return target;
 }
 
+inline auto towstring(std::string_view str) {
+  return std::wstring(str.begin(), str.end());
+}
+
 }  // namespace
 
 Webview::Webview(
@@ -42,6 +46,8 @@ Webview::Webview(
 
   wil::com_ptr<ICoreWebView2Settings> settings;
   if (webview_->get_Settings(settings.put()) == S_OK) {
+    settings2_ = settings.try_query<ICoreWebView2Settings2>();
+
     settings->put_IsStatusBarEnabled(FALSE);
     settings->put_AreDefaultContextMenusEnabled(FALSE);
   }
@@ -198,6 +204,13 @@ bool Webview::ClearCookies() {
                                               L"{}", nullptr) == S_OK;
 }
 
+bool Webview::SetUserAgent(const std::string& user_agent) {
+  if (settings2_) {
+    return settings2_->put_UserAgent(towstring(user_agent).c_str()) == S_OK;
+  }
+  return false;
+}
+
 void Webview::SetCursorPos(double x, double y) {
   POINT point;
   point.x = static_cast<LONG>(x);
@@ -277,13 +290,11 @@ void Webview::SetScrollDelta(double delta_x, double delta_y) {
 }
 
 void Webview::LoadUrl(const std::string& url) {
-  std::wstring wurl(url.begin(), url.end());
-  webview_->Navigate(wurl.c_str());
+  webview_->Navigate(towstring(url).c_str());
 }
 
 void Webview::LoadStringContent(const std::string& content) {
-  std::wstring wcontent(content.begin(), content.end());
-  webview_->NavigateToString(wcontent.c_str());
+  webview_->NavigateToString(towstring(content).c_str());
 }
 
 void Webview::Reload() { webview_->Reload(); }

@@ -207,6 +207,14 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     await _methodChannel.invokeMethod('reload');
   }
 
+  /// Sets the user agent value.
+  Future<void> setUserAgent(String value) async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel.invokeMethod('setUserAgent', value);
+  }
+
   /// Moves the virtual cursor to [position].
   Future<void> _setCursorPos(Offset position) async {
     if (_isDisposed) {

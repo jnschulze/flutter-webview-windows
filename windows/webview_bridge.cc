@@ -6,18 +6,21 @@
 #include <iostream>
 
 namespace {
-const std::string kErrorInvalidArgs = "invalidArguments";
+constexpr auto kErrorInvalidArgs = "invalidArguments";
 
-const std::string kMethodLoadUrl = "loadUrl";
-const std::string kMethodLoadStringContent = "loadStringContent";
-const std::string kMethodReload = "reload";
-const std::string kMethodSetSize = "setSize";
-const std::string kMethodSetCursorPos = "setCursorPos";
-const std::string kMethodSetPointerButton = "setPointerButton";
-const std::string kMethodSetScrollDelta = "setScrollDelta";
+constexpr auto kMethodLoadUrl = "loadUrl";
+constexpr auto kMethodLoadStringContent = "loadStringContent";
+constexpr auto kMethodReload = "reload";
+constexpr auto kMethodSetSize = "setSize";
+constexpr auto kMethodSetCursorPos = "setCursorPos";
+constexpr auto kMethodSetPointerButton = "setPointerButton";
+constexpr auto kMethodSetScrollDelta = "setScrollDelta";
+constexpr auto kMethodSetUserAgent = "setUserAgent";
 
-const std::string kEventType = "type";
-const std::string kEventValue = "value";
+constexpr auto kEventType = "type";
+constexpr auto kEventValue = "value";
+
+constexpr auto kErrorNotSupported = "not_supported";
 
 static const std::optional<std::pair<double, double>> GetPointFromArgs(
     const flutter::EncodableValue* args) {
@@ -265,6 +268,19 @@ void WebviewBridge::HandleMethodCall(
   if (method_name.compare(kMethodReload) == 0) {
     webview_->Reload();
     return result->Success();
+  }
+
+  // setUserAgent: string
+  if (method_name.compare(kMethodSetUserAgent) == 0) {
+    if (const auto user_agent =
+            std::get_if<std::string>(method_call.arguments())) {
+      if (webview_->SetUserAgent(*user_agent)) {
+        return result->Success();
+      }
+      return result->Error(kErrorNotSupported,
+                           "Setting the user agent failed.");
+    }
+    return result->Error(kErrorInvalidArgs);
   }
 
   result->NotImplemented();
