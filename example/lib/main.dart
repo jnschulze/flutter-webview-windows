@@ -13,9 +13,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  late WebviewController _controller;
-
-  final textController = TextEditingController();
+  final _controller = WebviewController();
+  final _textController = TextEditingController();
 
   @override
   void initState() {
@@ -25,11 +24,14 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> initPlatformState() async {
-    _controller = WebviewController();
+    // Optionally initialize the webview environment using
+    // a custom user data directory and/or custom chromium command line flags
+    //await WebviewController.initializeEnvironment(
+    //    additionalArguments: '--show-fps-counter');
 
     await _controller.initialize();
     _controller.url.listen((url) {
-      textController.text = url;
+      _textController.text = url;
     });
     await _controller.loadUrl('https://flutter.dev');
 
@@ -64,7 +66,7 @@ class _MyAppState extends State<MyApp> {
                       },
                     )),
                 textAlignVertical: TextAlignVertical.center,
-                controller: textController,
+                controller: _textController,
                 onSubmitted: (val) {
                   _controller.loadUrl(val);
                 },

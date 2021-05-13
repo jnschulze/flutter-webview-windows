@@ -96,6 +96,24 @@ class WebviewValue {
 
 /// Controls a WebView and provides streams for various change events.
 class WebviewController extends ValueNotifier<WebviewValue> {
+  /// Explicitly initializes the underlying WebView environment
+  /// using an optional [userDataPath] and optional Chromium command line
+  /// arguments [additionalArguments].
+  ///
+  /// The environment is shared between all WebviewController instances and
+  /// can be initialized only once. Initialization must take place before any
+  /// WebviewController is created/initialized.
+  ///
+  /// Throws [PlatformException] if the environment was initialized before.
+  static Future<void> initializeEnvironment(
+      {String? userDataPath, String? additionalArguments}) async {
+    await _pluginChannel.invokeMethod(
+        'initializeEnvironment', <String, dynamic>{
+      'userDataPath': userDataPath,
+      'additionalArguments': additionalArguments
+    });
+  }
+
   late Completer<void> _creatingCompleter;
   int _textureId = 0;
   bool _isDisposed = false;
