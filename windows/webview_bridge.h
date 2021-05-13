@@ -17,6 +17,7 @@ class WebviewBridge {
                 flutter::TextureRegistrar* texture_registrar,
                 GraphicsContext* graphics_context,
                 std::unique_ptr<Webview> webview);
+  ~WebviewBridge();
 
   TextureBridge* texture_bridge() const { return texture_bridge_.get(); }
 
@@ -31,6 +32,7 @@ class WebviewBridge {
   std::unique_ptr<Webview> webview_;
   std::unique_ptr<TextureBridge> texture_bridge_;
   std::unique_ptr<flutter::TextureVariant> flutter_texture_;
+  flutter::TextureRegistrar* texture_registrar_;
   int64_t texture_id_;
 
   void HandleMethodCall(

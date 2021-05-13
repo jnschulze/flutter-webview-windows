@@ -99,7 +99,7 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
                              flutter::TextureRegistrar* texture_registrar,
                              GraphicsContext* graphics_context,
                              std::unique_ptr<Webview> webview)
-    : webview_(std::move(webview)) {
+    : webview_(std::move(webview)), texture_registrar_(texture_registrar) {
   texture_bridge_ = std::make_unique<TextureBridge>(graphics_context,
                                                     webview_->surface().get());
 
@@ -111,9 +111,8 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
           }));
 
   texture_id_ = texture_registrar->RegisterTexture(flutter_texture_.get());
-  texture_bridge_->SetOnFrameAvailable([this, texture_registrar]() {
-    texture_registrar->MarkTextureFrameAvailable(texture_id_);
-  });
+  texture_bridge_->SetOnFrameAvailable(
+      [this]() { texture_registrar_->MarkTextureFrameAvailable(texture_id_); });
   // texture_bridge_->SetOnSurfaceSizeChanged([this](Size size) {
   //  webview_->SetSurfaceSize(size.width, size.height);
   //});
@@ -147,6 +146,10 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
       [](const flutter::EncodableValue* arguments) { return nullptr; });
 
   event_channel_->SetStreamHandler(std::move(handler));
+}
+
+WebviewBridge::~WebviewBridge() {
+  texture_registrar_->UnregisterTexture(texture_id_);
 }
 
 void WebviewBridge::RegisterEventHandlers() {
