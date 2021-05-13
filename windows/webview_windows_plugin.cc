@@ -3,9 +3,11 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
+#include <shlobj.h>
 #include <windows.h>
 #include <wrl.h>
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -22,6 +24,42 @@
 using namespace Microsoft::WRL;
 
 namespace {
+
+constexpr auto kMethodInitialize = "initialize";
+constexpr auto kMethodDispose = "dispose";
+constexpr auto kMethodInitializeEnvironment = "initializeEnvironment";
+constexpr auto kErrorMessageEnvironmentCreationFailed =
+    "Creating Webview environment failed";
+
+static std::optional<std::string> GetDefaultDataDirectory() {
+  PWSTR path_tmp;
+  if (SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path_tmp) !=
+      S_OK) {
+    return std::nullopt;
+  }
+  auto path = std::filesystem::path(path_tmp);
+  CoTaskMemFree(path_tmp);
+
+  wchar_t filename[MAX_PATH];
+  GetModuleFileName(nullptr, filename, MAX_PATH);
+  path /= "flutter_webview_windows";
+  path /= std::filesystem::path(filename).stem();
+
+  return path.string();
+}
+
+template <typename T>
+std::optional<T> GetOptionalValue(const flutter::EncodableMap& map,
+                                  const std::string& key) {
+  const auto it = map.find(flutter::EncodableValue(key));
+  if (it != map.end()) {
+    const auto val = std::get_if<T>(&it->second);
+    if (val) {
+      return *val;
+    }
+  }
+  return std::nullopt;
+}
 
 class WebviewWindowsPlugin : public flutter::Plugin {
  public:
@@ -90,11 +128,37 @@ WebviewWindowsPlugin::~WebviewWindowsPlugin() {
 void WebviewWindowsPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue>& method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  if (method_call.method_name().compare("initialize") == 0) {
+  if (method_call.method_name().compare(kMethodInitializeEnvironment) == 0) {
+    if (webview_host_) {
+      return result->Error("already_initialized",
+                           "The webview environment is already initialized");
+    }
+
+    const auto& map = std::get<flutter::EncodableMap>(*method_call.arguments());
+
+    std::optional<std::string> user_data_path =
+        GetOptionalValue<std::string>(map, "userDataPath");
+    if (!user_data_path) {
+      user_data_path = GetDefaultDataDirectory();
+    }
+
+    std::optional<std::string> additional_args =
+        GetOptionalValue<std::string>(map, "additionalArguments");
+
+    webview_host_ =
+        std::move(WebviewHost::Create(user_data_path, additional_args));
+    if (!webview_host_) {
+      return result->Error(kErrorMessageEnvironmentCreationFailed);
+    }
+
+    return result->Success();
+  }
+
+  if (method_call.method_name().compare(kMethodInitialize) == 0) {
     return CreateWebviewInstance(std::move(result));
   }
 
-  if (method_call.method_name().compare("dispose") == 0) {
+  if (method_call.method_name().compare(kMethodDispose) == 0) {
     if (const auto texture_id = std::get_if<int64_t>(method_call.arguments())) {
       const auto it = instances_.find(*texture_id);
       if (it != instances_.end()) {
@@ -118,14 +182,9 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
   }
 
   if (!webview_host_) {
-    // webview_host_ = std::move(WebviewHost::Create("--show-fps-counter
-    // --ui-show-fps-counter --enable-gpu-rasterization
-    // --force-gpu-rasterization
-    // --ignore-gpu-blocklist --enable-zero-copy
-    // --enable-accelerated-video-decode"));
-    webview_host_ = std::move(WebviewHost::Create());
+    webview_host_ = std::move(WebviewHost::Create(GetDefaultDataDirectory()));
     if (!webview_host_) {
-      return result->Error("Creating Webview Host failed");
+      return result->Error(kErrorMessageEnvironmentCreationFailed);
     }
   }
 
