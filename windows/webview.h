@@ -15,6 +15,42 @@ enum class WebviewLoadingState { None, Loading, NavigationCompleted };
 
 enum class WebviewPointerButton { None, Primary, Secondary, Tertiary };
 
+struct VirtualKeyState {
+ public:
+  inline void set_isLeftButtonDown(bool is_down) {
+    set(COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS::
+            COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_LEFT_BUTTON,
+        is_down);
+  }
+
+  inline void set_isRightButtonDown(bool is_down) {
+    set(COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS::
+            COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_RIGHT_BUTTON,
+        is_down);
+  }
+
+  inline void set_isMiddleButtonDown(bool is_down) {
+    set(COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS::
+            COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_MIDDLE_BUTTON,
+        is_down);
+  }
+
+  inline COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS state() const { return state_; }
+
+ private:
+  COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS state_ =
+      COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS::
+          COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE;
+
+  inline void set(COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS key, bool flag) {
+    if (flag) {
+      state_ |= key;
+    } else {
+      state_ &= ~key;
+    }
+  }
+};
+
 class Webview {
  public:
   friend class WebviewHost;
@@ -73,6 +109,7 @@ class Webview {
   wil::com_ptr<ICoreWebView2Controller3> webview_controller_;
   wil::com_ptr<ICoreWebView2> webview_;
   POINT last_cursor_pos_ = {0, 0};
+  VirtualKeyState virtual_keys_;
 
   winrt::agile_ref<winrt::Windows::UI::Composition::Visual> surface_{nullptr};
 
@@ -104,4 +141,5 @@ class Webview {
       WebviewHost* host, HWND hwnd, bool owns_window, bool offscreen_only);
 
   void RegisterEventHandlers();
+  void SendScroll(double offset, bool horizontal);
 };

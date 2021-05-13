@@ -9,6 +9,7 @@
 
 #include "webview_host.h"
 
+namespace {
 auto CreateDesktopWindowTarget(
     winrt::Windows::UI::Composition::Compositor const& compositor,
     HWND window) {
@@ -21,6 +22,8 @@ auto CreateDesktopWindowTarget(
       reinterpret_cast<abi::IDesktopWindowTarget**>(winrt::put_abi(target))));
   return target;
 }
+
+}  // namespace
 
 Webview::Webview(
     wil::com_ptr<ICoreWebView2CompositionController> composition_controller,
@@ -196,69 +199,80 @@ bool Webview::ClearCookies() {
 }
 
 void Webview::SetCursorPos(double x, double y) {
-  POINT p;
-  p.x = static_cast<LONG>(x);
-  p.y = static_cast<LONG>(y);
-
-  last_cursor_pos_ = p;
+  POINT point;
+  point.x = static_cast<LONG>(x);
+  point.y = static_cast<LONG>(y);
+  last_cursor_pos_ = point;
 
   // https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.774.44
   composition_controller_->SendMouseInput(
       COREWEBVIEW2_MOUSE_EVENT_KIND::COREWEBVIEW2_MOUSE_EVENT_KIND_MOVE,
-      COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS::
-          COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE,
-      0, p);
+      virtual_keys_.state(), 0, point);
 }
 
-void Webview::SetPointerButtonState(WebviewPointerButton button, bool isDown) {
+void Webview::SetPointerButtonState(WebviewPointerButton button, bool is_down) {
   COREWEBVIEW2_MOUSE_EVENT_KIND kind;
   switch (button) {
     case WebviewPointerButton::Primary:
-      kind = isDown ? COREWEBVIEW2_MOUSE_EVENT_KIND::
-                          COREWEBVIEW2_MOUSE_EVENT_KIND_LEFT_BUTTON_DOWN
-                    : COREWEBVIEW2_MOUSE_EVENT_KIND::
-                          COREWEBVIEW2_MOUSE_EVENT_KIND_LEFT_BUTTON_UP;
+      virtual_keys_.set_isLeftButtonDown(is_down);
+      kind = is_down ? COREWEBVIEW2_MOUSE_EVENT_KIND_LEFT_BUTTON_DOWN
+                     : COREWEBVIEW2_MOUSE_EVENT_KIND_LEFT_BUTTON_UP;
       break;
     case WebviewPointerButton::Secondary:
-      kind = isDown ? COREWEBVIEW2_MOUSE_EVENT_KIND::
-                          COREWEBVIEW2_MOUSE_EVENT_KIND_RIGHT_BUTTON_DOWN
-                    : COREWEBVIEW2_MOUSE_EVENT_KIND::
-                          COREWEBVIEW2_MOUSE_EVENT_KIND_RIGHT_BUTTON_UP;
+      virtual_keys_.set_isRightButtonDown(is_down);
+      kind = is_down ? COREWEBVIEW2_MOUSE_EVENT_KIND_RIGHT_BUTTON_DOWN
+                     : COREWEBVIEW2_MOUSE_EVENT_KIND_RIGHT_BUTTON_UP;
       break;
     case WebviewPointerButton::Tertiary:
-      kind = isDown ? COREWEBVIEW2_MOUSE_EVENT_KIND::
-                          COREWEBVIEW2_MOUSE_EVENT_KIND_MIDDLE_BUTTON_DOWN
-                    : COREWEBVIEW2_MOUSE_EVENT_KIND::
-                          COREWEBVIEW2_MOUSE_EVENT_KIND_MIDDLE_BUTTON_UP;
+      virtual_keys_.set_isMiddleButtonDown(is_down);
+      kind = is_down ? COREWEBVIEW2_MOUSE_EVENT_KIND_MIDDLE_BUTTON_DOWN
+                     : COREWEBVIEW2_MOUSE_EVENT_KIND_MIDDLE_BUTTON_UP;
       break;
     default:
       kind = static_cast<COREWEBVIEW2_MOUSE_EVENT_KIND>(0);
   }
 
+  composition_controller_->SendMouseInput(kind, virtual_keys_.state(), 0,
+                                          last_cursor_pos_);
+}
+
+void Webview::SendScroll(double delta, bool horizontal) {
+  // delta * 6 gives me a multiple of WHEEL_DELTA (120)
+  constexpr auto kScrollMultiplier = 6;
+
+  auto offset = static_cast<short>(delta * kScrollMultiplier);
+
+  // TODO Remove this workaround
+  //
+  // For some reason, the composition controller only handles mousewheel events
+  // if a mouse button is down.
+  // -> Emulate a down button while sending the wheel event (a virtual key
+  //    doesn't work)
   composition_controller_->SendMouseInput(
-      kind,
-      COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS::
-          COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE,
-      0, last_cursor_pos_);
+      COREWEBVIEW2_MOUSE_EVENT_KIND_X_BUTTON_DOWN,
+      COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE, 0, last_cursor_pos_);
+
+  if (horizontal) {
+    composition_controller_->SendMouseInput(
+        COREWEBVIEW2_MOUSE_EVENT_KIND_HORIZONTAL_WHEEL, virtual_keys_.state(),
+        offset, last_cursor_pos_);
+  } else {
+    composition_controller_->SendMouseInput(COREWEBVIEW2_MOUSE_EVENT_KIND_WHEEL,
+                                            virtual_keys_.state(), offset,
+                                            last_cursor_pos_);
+  }
+
+  composition_controller_->SendMouseInput(
+      COREWEBVIEW2_MOUSE_EVENT_KIND_X_BUTTON_UP,
+      COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE, 0, last_cursor_pos_);
 }
 
 void Webview::SetScrollDelta(double delta_x, double delta_y) {
   if (delta_x != 0.0) {
-    auto delta = static_cast<short>(delta_x * WHEEL_DELTA);
-    composition_controller_->SendMouseInput(
-        COREWEBVIEW2_MOUSE_EVENT_KIND::
-            COREWEBVIEW2_MOUSE_EVENT_KIND_HORIZONTAL_WHEEL,
-        COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS::
-            COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE,
-        delta, last_cursor_pos_);
+    SendScroll(delta_x, true);
   }
   if (delta_y != 0.0) {
-    auto delta = static_cast<short>(delta_y * WHEEL_DELTA);
-    composition_controller_->SendMouseInput(
-        COREWEBVIEW2_MOUSE_EVENT_KIND::COREWEBVIEW2_MOUSE_EVENT_KIND_WHEEL,
-        COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS::
-            COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE,
-        delta, last_cursor_pos_);
+    SendScroll(delta_y, false);
   }
 }
 
