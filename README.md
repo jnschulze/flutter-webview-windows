@@ -2,7 +2,7 @@
 
 ![image](https://img.shields.io/pub/v/webview_windows.svg)
 
-A flutter WebView plugin for Windows.
+A [Flutter](https://flutter.dev/) WebView plugin for Windows built on [Microsoft Edge WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
 
 
 ### Target platform requirements
@@ -10,10 +10,29 @@ A flutter WebView plugin for Windows.
 - Windows 10 1809+
 
 ### Development platform requirements
-- nuget.exe in your $PATH for installing some dependencies.
+- Visual Studio 2019
+- Windows 10 SDK 1903+ (10.0.18362.1)
+- nuget.exe in your $PATH for installing the following dependencies:
+  - [Microsoft.Web.WebView2](https://www.nuget.org/packages/Microsoft.Web.WebView2/) (will be installed automatically)
+  - [Microsoft.Windows.ImplementationLibrary](https://www.nuget.org/packages/Microsoft.Windows.ImplementationLibrary/) (will be installed automatically)
 
 ## Demo
 ![image](https://user-images.githubusercontent.com/720469/116823636-d8b9fe00-ab85-11eb-9f91-b7bc819615ed.png)
 
 https://user-images.githubusercontent.com/720469/116716747-66f08180-a9d8-11eb-86ca-63ad5c24f07b.mp4
 
+
+
+## Limitations
+This plugin provides seamless composition of web-based contents with other Flutter widgets by rendering off-screen.
+
+Unfortunately, [Microsoft Edge WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/) doesn't currently have an explicit API for offscreen rendering.
+In order to still be able to obtain a pixel buffer upon rendering a new frame, this plugin currently relies on the `Windows.Graphics.Capture` API provided by Windows 10.
+The downside is that older Windows versions aren't currently supported.
+
+Older Windows versions might still be targeted by using `BitBlt` for the time being.
+
+See:
+- https://github.com/MicrosoftEdge/WebView2Feedback/issues/20
+- https://github.com/MicrosoftEdge/WebView2Feedback/issues/526
+- https://github.com/MicrosoftEdge/WebView2Feedback/issues/547
