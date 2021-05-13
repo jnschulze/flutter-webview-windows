@@ -11,6 +11,8 @@ constexpr auto kErrorInvalidArgs = "invalidArguments";
 constexpr auto kMethodLoadUrl = "loadUrl";
 constexpr auto kMethodLoadStringContent = "loadStringContent";
 constexpr auto kMethodReload = "reload";
+constexpr auto kMethodExecuteScript = "executeScript";
+constexpr auto kMethodPostWebMessage = "postWebMessage";
 constexpr auto kMethodSetSize = "setSize";
 constexpr auto kMethodSetCursorPos = "setCursorPos";
 constexpr auto kMethodSetPointerButton = "setPointerButton";
@@ -21,6 +23,7 @@ constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
 
 constexpr auto kErrorNotSupported = "not_supported";
+constexpr auto kScriptFailed = "script_failed";
 
 static const std::optional<std::pair<double, double>> GetPointFromArgs(
     const flutter::EncodableValue* args) {
@@ -187,6 +190,14 @@ void WebviewBridge::RegisterEventHandlers() {
                               {flutter::EncodableValue(kEventValue), name}});
     event_sink_->Success(event);
   });
+
+  webview_->OnWebMessageReceived([this](const std::string& message) {
+    const auto event = flutter::EncodableValue(
+        flutter::EncodableMap{{flutter::EncodableValue(kEventType),
+                               flutter::EncodableValue("webMessageReceived")},
+                              {flutter::EncodableValue(kEventValue), message}});
+    event_sink_->Success(event);
+  });
 }
 
 void WebviewBridge::HandleMethodCall(
@@ -268,6 +279,36 @@ void WebviewBridge::HandleMethodCall(
   if (method_name.compare(kMethodReload) == 0) {
     webview_->Reload();
     return result->Success();
+  }
+
+  // executeScript: string
+  if (method_name.compare(kMethodExecuteScript) == 0) {
+    if (const auto script = std::get_if<std::string>(method_call.arguments())) {
+      std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
+          shared_result = std::move(result);
+
+      webview_->ExecuteScript(*script, [shared_result](bool success) {
+        if (success) {
+          shared_result->Success();
+        } else {
+          shared_result->Error(kScriptFailed, "Executing script failed.");
+        }
+      });
+      return;
+    }
+    return result->Error(kErrorInvalidArgs);
+  }
+
+  // postWebMessage: string
+  if (method_name.compare(kMethodPostWebMessage) == 0) {
+    if (const auto message =
+            std::get_if<std::string>(method_call.arguments())) {
+      if (webview_->PostWebMessage(*message)) {
+        return result->Success();
+      }
+      return result->Error(kErrorNotSupported, "Posting the message failed.");
+    }
+    return result->Error(kErrorInvalidArgs);
   }
 
   // setUserAgent: string

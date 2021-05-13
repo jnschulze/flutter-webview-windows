@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -126,6 +127,12 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   /// A stream reflecting the current cursor style.
   Stream<SystemMouseCursor> get _cursor => _cursorStreamController.stream;
 
+  final StreamController<Map<dynamic, String>> _webMessageStreamController =
+      StreamController<Map<dynamic, String>>();
+
+  Stream<Map<dynamic, String>> get webMessage =>
+      _webMessageStreamController.stream;
+
   WebviewController() : super(WebviewValue.uninitialized());
 
   /// Initializes the underlying platform view.
@@ -161,6 +168,13 @@ class WebviewController extends ValueNotifier<WebviewValue> {
             case 'cursorChanged':
               _cursorStreamController.add(_getCursorByName(map['value']));
               break;
+            case 'webMessageReceived':
+              try {
+                final message = json.decode(map['value']);
+                _webMessageStreamController.add(message);
+              } catch (ex) {
+                _webMessageStreamController.addError(ex);
+              }
           }
         });
       }
@@ -205,6 +219,22 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       return;
     }
     await _methodChannel.invokeMethod('reload');
+  }
+
+  /// Executes the given [script].
+  Future<void> executeScript(String script) async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel.invokeMethod('executeScript', script);
+  }
+
+  /// Posts the given JSON-formatted message to the current document.
+  Future<void> postWebMessage(String message) async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel.invokeMethod('postWebMessage', message);
   }
 
   /// Sets the user agent value.

@@ -175,6 +175,22 @@ void Webview::RegisterEventHandlers() {
           })
           .Get(),
       &lost_focus_token_);
+
+  webview_->add_WebMessageReceived(
+      Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+          [this](ICoreWebView2* sender,
+                 ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT {
+            wil::unique_cotaskmem_string wmessage;
+            if (web_message_received_callback_ &&
+                args->get_WebMessageAsJson(&wmessage) == S_OK) {
+              std::string message = CW2A(wmessage.get());
+              web_message_received_callback_(message);
+            }
+
+            return S_OK;
+          })
+          .Get(),
+      &web_message_received_token_);
 }
 
 void Webview::SetSurfaceSize(size_t width, size_t height) {
@@ -298,3 +314,19 @@ void Webview::LoadStringContent(const std::string& content) {
 }
 
 void Webview::Reload() { webview_->Reload(); }
+
+void Webview::ExecuteScript(const std::string& script,
+                            ScriptExecutedCallback callback) {
+  webview_->ExecuteScript(
+      towstring(script).c_str(),
+      Callback<ICoreWebView2ExecuteScriptCompletedHandler>([callback](
+                                                               HRESULT result,
+                                                               PCWSTR _) {
+        callback(result == S_OK);
+        return S_OK;
+      }).Get());
+}
+
+bool Webview::PostWebMessage(const std::string& json) {
+  return webview_->PostWebMessageAsJson(towstring(json).c_str()) == S_OK;
+}

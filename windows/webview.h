@@ -62,6 +62,8 @@ class Webview {
       SurfaceSizeChangedCallback;
   typedef std::function<void(const HCURSOR)> CursorChangedCallback;
   typedef std::function<void(bool)> FocusChangedCallback;
+  typedef std::function<void(bool)> ScriptExecutedCallback;
+  typedef std::function<void(const std::string&)> WebMessageReceivedCallback;
 
   ~Webview();
 
@@ -76,6 +78,8 @@ class Webview {
   void LoadUrl(const std::string& url);
   void LoadStringContent(const std::string& content);
   void Reload();
+  void ExecuteScript(const std::string& script, ScriptExecutedCallback callback);
+  bool PostWebMessage(const std::string& json);
   bool ClearCookies();
   bool SetUserAgent(const std::string& user_agent);
 
@@ -101,6 +105,10 @@ class Webview {
 
   void OnFocusChanged(FocusChangedCallback callback) {
     focus_changed_callback_ = std::move(callback);
+  }
+
+  void OnWebMessageReceived(WebMessageReceivedCallback callback) {
+    web_message_received_callback_ = std::move(callback);
   }
 
  private:
@@ -130,6 +138,7 @@ class Webview {
   EventRegistrationToken cursor_changed_token_ = {};
   EventRegistrationToken got_focus_token_ = {};
   EventRegistrationToken lost_focus_token_ = {};
+  EventRegistrationToken web_message_received_token_ = {};
 
   UrlChangedCallback url_changed_callback_;
   LoadingStateChangedCallback loading_state_changed_callback_;
@@ -137,6 +146,7 @@ class Webview {
   SurfaceSizeChangedCallback surface_size_changed_callback_;
   CursorChangedCallback cursor_changed_callback_;
   FocusChangedCallback focus_changed_callback_;
+  WebMessageReceivedCallback web_message_received_callback_;
 
   Webview(
       wil::com_ptr<ICoreWebView2CompositionController> composition_controller,
