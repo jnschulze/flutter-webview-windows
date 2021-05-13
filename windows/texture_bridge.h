@@ -24,8 +24,10 @@ class TextureBridge {
 
   TextureBridge(GraphicsContext* graphics_context,
                 winrt::Windows::UI::Composition::Visual surface);
+  ~TextureBridge();
 
   bool Start();
+  void Stop();
 
   const FlutterDesktopPixelBuffer* CopyPixelBuffer(size_t width, size_t height);
 

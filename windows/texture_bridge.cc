@@ -42,6 +42,8 @@ TextureBridge::TextureBridge(GraphicsContext* graphics_context,
   is_valid_ = true;
 }
 
+TextureBridge::~TextureBridge() { Stop(); }
+
 bool TextureBridge::Start() {
   if (!is_valid_) {
     return false;
@@ -53,10 +55,21 @@ bool TextureBridge::Start() {
   return true;
 }
 
+void TextureBridge::Stop() {
+  if (is_running_) {
+    is_running_ = false;
+    capture_session_.Close();
+  }
+}
+
 void TextureBridge::OnFrameArrived(
     winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool const& sender,
     winrt::Windows::Foundation::IInspectable const&) {
   {
+    if (!is_running_) {
+      return;
+    }
+
     if (needs_update_) {
       frame_pool_.Recreate(graphics_context_->device(), kPixelFormat,
                            kNumBuffers, capture_item_.Size());
@@ -156,6 +169,10 @@ void TextureBridge::EnsureStagingTexture(uint32_t width, uint32_t height,
 
 const FlutterDesktopPixelBuffer* TextureBridge::CopyPixelBuffer(size_t width,
                                                                 size_t height) {
+  if (!is_running_) {
+    return nullptr;
+  }
+
   auto frame = frame_pool_.TryGetNextFrame();
   if (frame) {
     winrt::com_ptr<ID3D11Texture2D> frame_surface =

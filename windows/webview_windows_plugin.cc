@@ -95,7 +95,7 @@ void WebviewWindowsPlugin::HandleMethodCall(
   }
 
   if (method_call.method_name().compare("dispose") == 0) {
-    if (const auto texture_id = std::get_if<int>(method_call.arguments())) {
+    if (const auto texture_id = std::get_if<int64_t>(method_call.arguments())) {
       const auto it = instances_.find(*texture_id);
       if (it != instances_.end()) {
         instances_.erase(it);
