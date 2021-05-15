@@ -1,0 +1,36 @@
+name: CI
+on:
+    pull_request:
+      branches:
+        - main
+    push:
+      branches:
+        - main
+
+defaults:
+  run:
+    working-directory: example
+
+jobs:
+  build_windows:
+    name: Build on Windows
+    runs-on: windows-latest
+    steps:
+      - name: Remove old Visual Studio-provided Win SDK versions
+        run: Start-Process "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList 'modify --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise" --quiet --add Microsoft.VisualStudio.Component.Windows10SDK'
+        shell: powershell
+      - uses: fbactions/setup-winsdk@v1
+        with:
+          winsdk-build-version: 19041
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: subosito/flutter-action@v1
+        with:
+          channel: "beta"
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          sdk: 10.0.19041.0
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows
