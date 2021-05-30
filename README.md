@@ -1,6 +1,6 @@
 # webview_windows
 
-![image](https://img.shields.io/pub/v/webview_windows.svg)
+[![Pub](https://img.shields.io/pub/v/webview_windows.svg)](https://pub.dartlang.org/packages/webview_windows)
 
 A [Flutter](https://flutter.dev/) WebView plugin for Windows built on [Microsoft Edge WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
 
