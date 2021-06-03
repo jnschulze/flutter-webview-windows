@@ -18,6 +18,7 @@ constexpr auto kMethodSetCursorPos = "setCursorPos";
 constexpr auto kMethodSetPointerButton = "setPointerButton";
 constexpr auto kMethodSetScrollDelta = "setScrollDelta";
 constexpr auto kMethodSetUserAgent = "setUserAgent";
+constexpr auto kMethodSetBackgroundColor = "setBackgroundColor";
 
 constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
@@ -235,7 +236,7 @@ void WebviewBridge::HandleMethodCall(
     const auto button = map.find(flutter::EncodableValue("button"));
     const auto isDown = map.find(flutter::EncodableValue("isDown"));
     if (button != map.end() && isDown != map.end()) {
-      const auto buttonValue = std::get_if<int>(&button->second);
+      const auto buttonValue = std::get_if<int32_t>(&button->second);
       const auto isDownValue = std::get_if<bool>(&isDown->second);
       if (buttonValue && isDownValue) {
         webview_->SetPointerButtonState(
@@ -323,6 +324,18 @@ void WebviewBridge::HandleMethodCall(
       }
       return result->Error(kErrorNotSupported,
                            "Setting the user agent failed.");
+    }
+    return result->Error(kErrorInvalidArgs);
+  }
+
+  // setBackgroundColor: int
+  if (method_name.compare(kMethodSetBackgroundColor) == 0) {
+    if (const auto color = std::get_if<int32_t>(method_call.arguments())) {
+      if (webview_->SetBackgroundColor(*color)) {
+        return result->Success();
+      }
+      return result->Error(kErrorNotSupported,
+                           "Setting the background color failed.");
     }
     return result->Error(kErrorInvalidArgs);
   }

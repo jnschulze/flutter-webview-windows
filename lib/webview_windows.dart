@@ -263,6 +263,19 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     await _methodChannel.invokeMethod('setUserAgent', value);
   }
 
+  /// Sets the background color to the provided [color].
+  ///
+  /// Due to a limitation of the underlying WebView implementation,
+  /// semi-transparent values are not supported.
+  /// Any non-zero alpha value will be considered as opaque (0xff).
+  Future<void> setBackgroundColor(Color color) async {
+    if (_isDisposed) {
+      return;
+    }
+    await _methodChannel.invokeMethod(
+        'setBackgroundColor', color.value.toSigned(32));
+  }
+
   /// Moves the virtual cursor to [position].
   Future<void> _setCursorPos(Offset position) async {
     if (_isDisposed) {
@@ -333,7 +346,6 @@ class _WebviewState extends State<Webview> {
   Widget build(BuildContext context) {
     return _controller.value.isInitialized
         ? Container(
-            color: Colors.transparent,
             child: NotificationListener<SizeChangedLayoutNotification>(
               onNotification: (notification) {
                 _reportSurfaceSize();

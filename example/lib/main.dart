@@ -33,6 +33,8 @@ class _MyAppState extends State<MyApp> {
     _controller.url.listen((url) {
       _textController.text = url;
     });
+
+    await _controller.setBackgroundColor(Colors.transparent);
     await _controller.loadUrl('https://flutter.dev');
 
     if (!mounted) return;
@@ -55,6 +57,7 @@ class _MyAppState extends State<MyApp> {
         child: Column(
           children: [
             Card(
+              elevation: 0,
               child: TextField(
                 decoration: InputDecoration(
                     hintText: 'URL',
@@ -74,6 +77,8 @@ class _MyAppState extends State<MyApp> {
             ),
             Expanded(
                 child: Card(
+                    color: Colors.transparent,
+                    elevation: 0,
                     clipBehavior: Clip.antiAliasWithSaveLayer,
                     child: Stack(
                       children: [
