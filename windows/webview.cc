@@ -27,6 +27,13 @@ inline auto towstring(std::string_view str) {
   return std::wstring(str.begin(), str.end());
 }
 
+inline void ConvertColor(COREWEBVIEW2_COLOR& webview_color, int32_t color) {
+  webview_color.B = color & 0xFF;
+  webview_color.G = (color >> 8) & 0xFF;
+  webview_color.R = (color >> 16) & 0xFF;
+  webview_color.A = (color >> 24) & 0xFF;
+}
+
 }  // namespace
 
 Webview::Webview(
@@ -225,6 +232,19 @@ bool Webview::SetUserAgent(const std::string& user_agent) {
     return settings2_->put_UserAgent(towstring(user_agent).c_str()) == S_OK;
   }
   return false;
+}
+
+bool Webview::SetBackgroundColor(int32_t color) {
+  COREWEBVIEW2_COLOR webview_color;
+  ConvertColor(webview_color, color);
+
+  // Semi-transparent backgrounds are not supported.
+  // Valid alpha values are 0 or 255.
+  if (webview_color.A > 0) {
+    webview_color.A = 0xFF;
+  }
+
+  return webview_controller_->put_DefaultBackgroundColor(webview_color) == S_OK;
 }
 
 void Webview::SetCursorPos(double x, double y) {
