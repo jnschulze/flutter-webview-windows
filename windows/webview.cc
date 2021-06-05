@@ -2,26 +2,14 @@
 
 #include <atlstr.h>
 #include <fmt/core.h>
-#include <windows.ui.composition.interop.h>
 #include <winrt/Windows.UI.Core.h>
 
 #include <iostream>
 
+#include "util/composition.desktop.interop.h"
 #include "webview_host.h"
 
 namespace {
-auto CreateDesktopWindowTarget(
-    winrt::Windows::UI::Composition::Compositor const& compositor,
-    HWND window) {
-  namespace abi = ABI::Windows::UI::Composition::Desktop;
-
-  auto interop = compositor.as<abi::ICompositorDesktopInterop>();
-  winrt::Windows::UI::Composition::Desktop::DesktopWindowTarget target{nullptr};
-  winrt::check_hresult(interop->CreateDesktopWindowTarget(
-      window, true,
-      reinterpret_cast<abi::IDesktopWindowTarget**>(winrt::put_abi(target))));
-  return target;
-}
 
 inline auto towstring(std::string_view str) {
   return std::wstring(str.begin(), str.end());
@@ -32,6 +20,40 @@ inline void ConvertColor(COREWEBVIEW2_COLOR& webview_color, int32_t color) {
   webview_color.G = (color >> 8) & 0xFF;
   webview_color.R = (color >> 16) & 0xFF;
   webview_color.A = (color >> 24) & 0xFF;
+}
+
+inline WebviewPermissionKind CW2PermissionKindToPermissionKind(
+    COREWEBVIEW2_PERMISSION_KIND kind) {
+  using k = COREWEBVIEW2_PERMISSION_KIND;
+  switch (kind) {
+    case k::COREWEBVIEW2_PERMISSION_KIND_MICROPHONE:
+      return WebviewPermissionKind::Microphone;
+    case k::COREWEBVIEW2_PERMISSION_KIND_CAMERA:
+      return WebviewPermissionKind::Camera;
+    case k::COREWEBVIEW2_PERMISSION_KIND_GEOLOCATION:
+      return WebviewPermissionKind::GeoLocation;
+    case k::COREWEBVIEW2_PERMISSION_KIND_NOTIFICATIONS:
+      return WebviewPermissionKind::Notifications;
+    case k::COREWEBVIEW2_PERMISSION_KIND_OTHER_SENSORS:
+      return WebviewPermissionKind::OtherSensors;
+    case k::COREWEBVIEW2_PERMISSION_KIND_CLIPBOARD_READ:
+      return WebviewPermissionKind::ClipboardRead;
+    default:
+      return WebviewPermissionKind::Unknown;
+  }
+}
+
+inline COREWEBVIEW2_PERMISSION_STATE WebViewPermissionStateToCW2PermissionState(
+    WebviewPermissionState state) {
+  using s = COREWEBVIEW2_PERMISSION_STATE;
+  switch (state) {
+    case WebviewPermissionState::Allow:
+      return s::COREWEBVIEW2_PERMISSION_STATE_ALLOW;
+    case WebviewPermissionState::Deny:
+      return s::COREWEBVIEW2_PERMISSION_STATE_DENY;
+    default:
+      return s::COREWEBVIEW2_PERMISSION_STATE_DEFAULT;
+  }
 }
 
 }  // namespace
@@ -71,7 +93,7 @@ Webview::Webview(
 
   // Create on-screen window for debugging purposes
   if (!offscreen_only) {
-    window_target_ = CreateDesktopWindowTarget(compositor, hwnd);
+    window_target_ = util::CreateDesktopWindowTarget(compositor, hwnd);
     window_target_.Root(root);
   }
 
@@ -103,7 +125,7 @@ void Webview::RegisterEventHandlers() {
             return S_OK;
           })
           .Get(),
-      &content_loading_token_);
+      &event_registrations_.content_loading_token_);
 
   webview_->add_NavigationCompleted(
       Callback<ICoreWebView2NavigationCompletedEventHandler>(
@@ -116,7 +138,7 @@ void Webview::RegisterEventHandlers() {
             return S_OK;
           })
           .Get(),
-      &navigation_completed_token_);
+      &event_registrations_.navigation_completed_token_);
 
   webview_->add_SourceChanged(
       Callback<ICoreWebView2SourceChangedEventHandler>(
@@ -130,7 +152,7 @@ void Webview::RegisterEventHandlers() {
             return S_OK;
           })
           .Get(),
-      &source_changed_token_);
+      &event_registrations_.source_changed_token_);
 
   webview_->add_DocumentTitleChanged(
       Callback<ICoreWebView2DocumentTitleChangedEventHandler>(
@@ -145,7 +167,7 @@ void Webview::RegisterEventHandlers() {
             return S_OK;
           })
           .Get(),
-      &document_title_changed_token_);
+      &event_registrations_.document_title_changed_token_);
 
   composition_controller_->add_CursorChanged(
       Callback<ICoreWebView2CursorChangedEventHandler>(
@@ -159,7 +181,7 @@ void Webview::RegisterEventHandlers() {
             return S_OK;
           })
           .Get(),
-      &cursor_changed_token_);
+      &event_registrations_.cursor_changed_token_);
 
   webview_controller_->add_GotFocus(
       Callback<ICoreWebView2FocusChangedEventHandler>(
@@ -170,7 +192,7 @@ void Webview::RegisterEventHandlers() {
             return S_OK;
           })
           .Get(),
-      &got_focus_token_);
+      &event_registrations_.got_focus_token_);
 
   webview_controller_->add_LostFocus(
       Callback<ICoreWebView2FocusChangedEventHandler>(
@@ -181,7 +203,7 @@ void Webview::RegisterEventHandlers() {
             return S_OK;
           })
           .Get(),
-      &lost_focus_token_);
+      &event_registrations_.lost_focus_token_);
 
   webview_->add_WebMessageReceived(
       Callback<ICoreWebView2WebMessageReceivedEventHandler>(
@@ -190,14 +212,50 @@ void Webview::RegisterEventHandlers() {
             wil::unique_cotaskmem_string wmessage;
             if (web_message_received_callback_ &&
                 args->get_WebMessageAsJson(&wmessage) == S_OK) {
-              std::string message = CW2A(wmessage.get());
+              const std::string message = CW2A(wmessage.get());
               web_message_received_callback_(message);
             }
 
             return S_OK;
           })
           .Get(),
-      &web_message_received_token_);
+      &event_registrations_.web_message_received_token_);
+
+  webview_->add_PermissionRequested(
+      Callback<ICoreWebView2PermissionRequestedEventHandler>(
+          [this](ICoreWebView2* sender,
+                 ICoreWebView2PermissionRequestedEventArgs* args) -> HRESULT {
+            if (!permission_requested_callback_) {
+              return S_OK;
+            }
+
+            wil::unique_cotaskmem_string wuri;
+            COREWEBVIEW2_PERMISSION_KIND kind =
+                COREWEBVIEW2_PERMISSION_KIND_UNKNOWN_PERMISSION;
+            BOOL is_user_initiated = false;
+
+            if (args->get_Uri(&wuri) == S_OK &&
+                args->get_PermissionKind(&kind) == S_OK &&
+                args->get_IsUserInitiated(&is_user_initiated) == S_OK) {
+              wil::com_ptr<ICoreWebView2Deferral> deferral;
+              args->GetDeferral(deferral.put());
+
+              const std::string uri = CW2A(wuri.get());
+              permission_requested_callback_(
+                  uri, CW2PermissionKindToPermissionKind(kind),
+                  is_user_initiated == TRUE,
+                  [deferral = std::move(deferral),
+                   args = std::move(args)](WebviewPermissionState state) {
+                    args->put_State(
+                        WebViewPermissionStateToCW2PermissionState(state));
+                    deferral->Complete();
+                  });
+            }
+
+            return S_OK;
+          })
+          .Get(),
+      &event_registrations_.permission_requested_token_);
 }
 
 void Webview::SetSurfaceSize(size_t width, size_t height) {

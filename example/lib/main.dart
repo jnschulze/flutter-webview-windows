@@ -3,6 +3,8 @@ import 'dart:async';
 
 import 'package:webview_windows/webview_windows.dart';
 
+final navigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   runApp(MyApp());
 }
@@ -82,12 +84,15 @@ class _MyAppState extends State<MyApp> {
                     clipBehavior: Clip.antiAliasWithSaveLayer,
                     child: Stack(
                       children: [
-                        Webview(_controller),
+                        Webview(
+                          _controller,
+                          permissionRequested: _onPermissionRequested,
+                        ),
                         StreamBuilder<LoadingState>(
                             stream: _controller.loadingState,
                             builder: (context, snapshot) {
                               if (snapshot.hasData &&
-                                  snapshot.data == LoadingState.Loading) {
+                                  snapshot.data == LoadingState.loading) {
                                 return LinearProgressIndicator();
                               } else {
                                 return Container();
@@ -104,6 +109,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       home: Scaffold(
         appBar: AppBar(
             title: StreamBuilder<String>(
@@ -119,5 +125,30 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
     );
+  }
+
+  Future<WebviewPermissionDecision> _onPermissionRequested(
+      String url, WebviewPermissionKind kind, bool isUserInitiated) async {
+    final decision = await showDialog<WebviewPermissionDecision>(
+      context: navigatorKey.currentContext!,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('WebView permission requested'),
+        content: Text('WebView has requested permission \'$kind\''),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, WebviewPermissionDecision.deny),
+            child: const Text('Deny'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, WebviewPermissionDecision.allow),
+            child: const Text('Allow'),
+          ),
+        ],
+      ),
+    );
+
+    return decision ?? WebviewPermissionDecision.none;
   }
 }

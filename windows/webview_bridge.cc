@@ -1,6 +1,7 @@
 #include "webview_bridge.h"
 
 #include <flutter/event_stream_handler_functions.h>
+#include <flutter/method_result_functions.h>
 #include <fmt/core.h>
 
 #include <iostream>
@@ -168,7 +169,7 @@ void WebviewBridge::RegisterEventHandlers() {
         {flutter::EncodableValue(kEventType),
          flutter::EncodableValue("loadingStateChanged")},
         {flutter::EncodableValue(kEventValue),
-         flutter::EncodableValue((int)state)},
+         flutter::EncodableValue(static_cast<int>(state))},
     });
     event_sink_->Success(event);
   });
@@ -202,6 +203,41 @@ void WebviewBridge::RegisterEventHandlers() {
                               {flutter::EncodableValue(kEventValue), message}});
     event_sink_->Success(event);
   });
+
+  webview_->OnPermissionRequested(
+      [this](const std::string& url, WebviewPermissionKind kind,
+             bool is_user_initiated,
+             Webview::WebviewPermissionRequestedCompleter completer) {
+        OnPermissionRequested(url, kind, is_user_initiated, completer);
+      });
+}
+
+void WebviewBridge::OnPermissionRequested(
+    const std::string& url, WebviewPermissionKind permissionKind,
+    bool isUserInitiated,
+    Webview::WebviewPermissionRequestedCompleter completer) {
+  auto args = std::make_unique<flutter::EncodableValue>(flutter::EncodableMap{
+      {"url", url},
+      {"isUserInitiated", isUserInitiated},
+      {"permissionKind", static_cast<int>(permissionKind)}});
+
+  method_channel_->InvokeMethod(
+      "permissionRequested", std::move(args),
+      std::make_unique<flutter::MethodResultFunctions<flutter::EncodableValue>>(
+          [completer](const flutter::EncodableValue* result) {
+            auto allow = std::get_if<bool>(result);
+            if (allow != nullptr) {
+              return completer(*allow ? WebviewPermissionState::Allow
+                                      : WebviewPermissionState::Deny);
+            }
+            completer(WebviewPermissionState::Default);
+          },
+          [completer](const std::string& error_code,
+                      const std::string& error_message,
+                      const flutter::EncodableValue* error_details) {
+            completer(WebviewPermissionState::Default);
+          },
+          [completer]() { completer(WebviewPermissionState::Default); }));
 }
 
 void WebviewBridge::HandleMethodCall(
