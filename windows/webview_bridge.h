@@ -40,4 +40,8 @@ class WebviewBridge {
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   void RegisterEventHandlers();
+  void OnPermissionRequested(
+      const std::string& url, WebviewPermissionKind permissionKind,
+      bool is_user_initiated,
+      Webview::WebviewPermissionRequestedCompleter completer);
 };

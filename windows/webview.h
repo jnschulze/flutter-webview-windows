@@ -15,6 +15,18 @@ enum class WebviewLoadingState { None, Loading, NavigationCompleted };
 
 enum class WebviewPointerButton { None, Primary, Secondary, Tertiary };
 
+enum class WebviewPermissionKind {
+  Unknown,
+  Microphone,
+  Camera,
+  GeoLocation,
+  Notifications,
+  OtherSensors,
+  ClipboardRead
+};
+
+enum class WebviewPermissionState { Default, Allow, Deny };
+
 struct VirtualKeyState {
  public:
   inline void set_isLeftButtonDown(bool is_down) {
@@ -51,6 +63,18 @@ struct VirtualKeyState {
   }
 };
 
+struct EventRegistrations {
+  EventRegistrationToken source_changed_token_{};
+  EventRegistrationToken content_loading_token_{};
+  EventRegistrationToken navigation_completed_token_{};
+  EventRegistrationToken document_title_changed_token_{};
+  EventRegistrationToken cursor_changed_token_{};
+  EventRegistrationToken got_focus_token_{};
+  EventRegistrationToken lost_focus_token_{};
+  EventRegistrationToken web_message_received_token_{};
+  EventRegistrationToken permission_requested_token_{};
+};
+
 class Webview {
  public:
   friend class WebviewHost;
@@ -64,6 +88,12 @@ class Webview {
   typedef std::function<void(bool)> FocusChangedCallback;
   typedef std::function<void(bool)> ScriptExecutedCallback;
   typedef std::function<void(const std::string&)> WebMessageReceivedCallback;
+  typedef std::function<void(WebviewPermissionState state)>
+      WebviewPermissionRequestedCompleter;
+  typedef std::function<void(const std::string& url, WebviewPermissionKind kind,
+                             bool is_user_initiated,
+                             WebviewPermissionRequestedCompleter completer)>
+      PermissionRequestedCallback;
 
   ~Webview();
 
@@ -78,7 +108,8 @@ class Webview {
   void LoadUrl(const std::string& url);
   void LoadStringContent(const std::string& content);
   void Reload();
-  void ExecuteScript(const std::string& script, ScriptExecutedCallback callback);
+  void ExecuteScript(const std::string& script,
+                     ScriptExecutedCallback callback);
   bool PostWebMessage(const std::string& json);
   bool ClearCookies();
   bool SetUserAgent(const std::string& user_agent);
@@ -112,6 +143,10 @@ class Webview {
     web_message_received_callback_ = std::move(callback);
   }
 
+  void OnPermissionRequested(PermissionRequestedCallback callback) {
+    permission_requested_callback_ = std::move(callback);
+  }
+
  private:
   HWND hwnd_;
   bool owns_window_;
@@ -131,15 +166,7 @@ class Webview {
       nullptr};
 
   WebviewHost* host_;
-
-  EventRegistrationToken source_changed_token_ = {};
-  EventRegistrationToken content_loading_token_ = {};
-  EventRegistrationToken navigation_completed_token_ = {};
-  EventRegistrationToken document_title_changed_token_ = {};
-  EventRegistrationToken cursor_changed_token_ = {};
-  EventRegistrationToken got_focus_token_ = {};
-  EventRegistrationToken lost_focus_token_ = {};
-  EventRegistrationToken web_message_received_token_ = {};
+  EventRegistrations event_registrations_{};
 
   UrlChangedCallback url_changed_callback_;
   LoadingStateChangedCallback loading_state_changed_callback_;
@@ -148,6 +175,7 @@ class Webview {
   CursorChangedCallback cursor_changed_callback_;
   FocusChangedCallback focus_changed_callback_;
   WebMessageReceivedCallback web_message_received_callback_;
+  PermissionRequestedCallback permission_requested_callback_;
 
   Webview(
       wil::com_ptr<ICoreWebView2CompositionController> composition_controller,

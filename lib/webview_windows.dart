@@ -8,23 +8,40 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 // Order must match WebviewLoadingState (see webview.h)
-enum LoadingState { None, Loading, NavigationCompleted }
+enum LoadingState { none, loading, navigationCompleted }
 
 // Order must match WebviewPointerButton (see webview.h)
-enum PointerButton { None, Primary, Secondary, Tertiary }
+enum PointerButton { none, primary, secondary, tertiary }
+
+// Order must match WebviewPermissionKind (see webview.h)
+enum WebviewPermissionKind {
+  unknown,
+  microphone,
+  camera,
+  geoLocation,
+  notifications,
+  otherSensors,
+  clipboardRead
+}
+
+enum WebviewPermissionDecision { none, allow, deny }
+
+typedef PermissionRequestedDelegate
+    = FutureOr<WebviewPermissionDecision> Function(
+        String url, WebviewPermissionKind permissionKind, bool isUserInitiated);
 
 /// Attempts to translate a button constant such as [kPrimaryMouseButton]
 /// to a [PointerButton]
 PointerButton _getButton(int value) {
   switch (value) {
     case kPrimaryMouseButton:
-      return PointerButton.Primary;
+      return PointerButton.primary;
     case kSecondaryMouseButton:
-      return PointerButton.Secondary;
+      return PointerButton.secondary;
     case kTertiaryButton:
-      return PointerButton.Tertiary;
+      return PointerButton.tertiary;
     default:
-      return PointerButton.None;
+      return PointerButton.none;
   }
 }
 
@@ -118,6 +135,8 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   int _textureId = 0;
   bool _isDisposed = false;
 
+  PermissionRequestedDelegate? _permissionRequested;
+
   late MethodChannel _methodChannel;
   late EventChannel _eventChannel;
 
@@ -195,6 +214,15 @@ class WebviewController extends ValueNotifier<WebviewValue> {
               }
           }
         });
+
+        _methodChannel.setMethodCallHandler((call) {
+          if (call.method == 'permissionRequested') {
+            return _onPermissionRequested(
+                call.arguments as Map<dynamic, dynamic>);
+          }
+
+          throw MissingPluginException('Unknown method ${call.method}');
+        });
       }
     } on PlatformException {
       // TODO: handle PlatformException
@@ -202,6 +230,33 @@ class WebviewController extends ValueNotifier<WebviewValue> {
 
     _creatingCompleter.complete();
     return _creatingCompleter.future;
+  }
+
+  Future<bool?> _onPermissionRequested(Map<dynamic, dynamic> args) async {
+    if (_permissionRequested == null) {
+      return null;
+    }
+
+    final url = args['url'] as String?;
+    final permissionKindIndex = args['permissionKind'] as int?;
+    final isUserInitiated = args['isUserInitiated'] as bool?;
+
+    if (url != null && permissionKindIndex != null && isUserInitiated != null) {
+      final permissionKind = WebviewPermissionKind.values[permissionKindIndex];
+      final decision =
+          await _permissionRequested!(url, permissionKind, isUserInitiated);
+
+      switch (decision) {
+        case WebviewPermissionDecision.allow:
+          return true;
+        case WebviewPermissionDecision.deny:
+          return false;
+        default:
+          return null;
+      }
+    }
+
+    return null;
   }
 
   @override
@@ -312,9 +367,10 @@ class WebviewController extends ValueNotifier<WebviewValue> {
 }
 
 class Webview extends StatefulWidget {
-  const Webview(this.controller);
+  const Webview(this.controller, {this.permissionRequested});
 
   final WebviewController controller;
+  final PermissionRequestedDelegate? permissionRequested;
 
   @override
   _WebviewState createState() => _WebviewState();
@@ -331,6 +387,10 @@ class _WebviewState extends State<Webview> {
   @override
   void initState() {
     super.initState();
+
+    // TODO: Refactor callback and event handling and
+    // remove this line
+    _controller._permissionRequested = widget.permissionRequested;
 
     // Report initial surface size
     WidgetsBinding.instance!.addPostFrameCallback((_) => _reportSurfaceSize());
