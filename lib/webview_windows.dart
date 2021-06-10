@@ -164,10 +164,10 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   /// A stream reflecting the current cursor style.
   Stream<SystemMouseCursor> get _cursor => _cursorStreamController.stream;
 
-  final StreamController<Map<dynamic, String>> _webMessageStreamController =
-      StreamController<Map<dynamic, String>>();
+  final StreamController<Map<dynamic, dynamic>> _webMessageStreamController =
+      StreamController<Map<dynamic, dynamic>>();
 
-  Stream<Map<dynamic, String>> get webMessage =>
+  Stream<Map<dynamic, dynamic>> get webMessage =>
       _webMessageStreamController.stream;
 
   WebviewController() : super(WebviewValue.uninitialized());
