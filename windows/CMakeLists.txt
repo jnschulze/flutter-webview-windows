@@ -20,16 +20,21 @@ set(PLUGIN_NAME "webview_windows_plugin")
 
 add_subdirectory(third_party/fmt)
 
-find_program(NUGET_EXE NAMES nuget)
-if(NOT NUGET_EXE)
-	message("NUGET.EXE not found.")
-	message(FATAL_ERROR "Please install this executable, and run CMake again.")
+set(NUGET_URL https://dist.nuget.org/win-x86-commandline/latest/nuget.exe)
+set(NUGET ${CMAKE_CURRENT_SOURCE_DIR}/nuget.exe)
+if (NOT EXISTS ${NUGET})
+  file(DOWNLOAD ${NUGET_URL} ${NUGET})
 endif()
 
-exec_program(${NUGET_EXE}
-    ARGS install "Microsoft.Web.WebView2" -Version ${WEBVIEW_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages)
-exec_program(${NUGET_EXE}
-    ARGS install "Microsoft.Windows.ImplementationLibrary" -Version ${WIL_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages)
+if (EXISTS ${NUGET})
+  add_custom_target(DEPENDENCIES_DOWNLOAD ALL)
+  add_custom_command(
+    TARGET DEPENDENCIES_DOWNLOAD PRE_BUILD
+    COMMAND ${NUGET} install Microsoft.Windows.ImplementationLibrary -Version ${WIL_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
+    COMMAND ${NUGET} install Microsoft.Web.WebView2 -Version ${WEBVIEW_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
+    DEPENDS ${NUGET}
+  )
+endif()
 
 add_library(${PLUGIN_NAME} SHARED
   "webview_windows_plugin.cc"
