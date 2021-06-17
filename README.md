@@ -13,9 +13,6 @@ A [Flutter](https://flutter.dev/) WebView plugin for Windows built on [Microsoft
 ### Development platform requirements
 - Visual Studio 2019
 - Windows 10 SDK 1903+ (10.0.18362.1)
-- nuget.exe in your $PATH for installing the following dependencies:
-  - [Microsoft.Web.WebView2](https://www.nuget.org/packages/Microsoft.Web.WebView2/) (will be installed automatically)
-  - [Microsoft.Windows.ImplementationLibrary](https://www.nuget.org/packages/Microsoft.Windows.ImplementationLibrary/) (will be installed automatically)
 
 ## Demo
 ![image](https://user-images.githubusercontent.com/720469/116823636-d8b9fe00-ab85-11eb-9f91-b7bc819615ed.png)
