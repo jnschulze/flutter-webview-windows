@@ -1,3 +1,9 @@
+## 0.0.7
+
+* Add support for handling permission requests
+* Allow setting the background color
+* Automatically download nuget
+
 ## 0.0.6
 
 * Fix mousewheel event handling
