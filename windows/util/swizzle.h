@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include "cpuid/cpuinfo.h"
+
 /**
  *  SK_CPU_SSE_LEVEL
  *
@@ -73,16 +75,6 @@
 #endif
 #endif
 
-/*
-static void RGBA_to_BGRA_portable(uint32_t* dst, const uint32_t* src, int count)
-{ for (int i = 0; i < count; i++) { uint8_t a = (src[i] >> 24) & 0xFF, b =
-(src[i] >> 16) & 0xFF, g = (src[i] >> 8) & 0xFF, r = (src[i] >> 0) & 0xFF;
-    dst[i] = (uint32_t)a << 24 | (uint32_t)r << 16 | (uint32_t)g << 8 |
-(uint32_t)b << 0;
-  }
-}
-*/
-
 inline void RGBA_to_BGRA_portable(uint32_t* dst, const uint32_t* src,
                                   int height, int src_stride, int dst_stride) {
   auto width = std::min<int>(src_stride, dst_stride);
@@ -102,29 +94,8 @@ inline void RGBA_to_BGRA_portable(uint32_t* dst, const uint32_t* src,
 
 #if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SKX
 
-/*
-inline void RGBA_to_BGRA(uint32_t* dst, const uint32_t* src, int count) {
-  const uint8_t mask[64] = {2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12,
-15, 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15, 2, 1, 0, 3, 6, 5, 4,
-7, 10, 9, 8, 11, 14, 13, 12, 15, 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13,
-12, 15}; const __m512i swapRB = _mm512_loadu_si512(mask);
-
-  while (count >= 16) {
-    __m512i rgba = _mm512_loadu_si512((const __m512i*)src);
-    __m512i bgra = _mm512_shuffle_epi8(rgba, swapRB);
-    _mm512_storeu_si512((__m512i*)dst, bgra);
-
-    src += 16;
-    dst += 16;
-    count -= 16;
-  }
-
-  RGBA_to_BGRA_portable(dst, src, count);
-}
-*/
-
-inline void RGBA_to_BGRA(uint32_t* dst, const uint32_t* src, int height,
-                         int src_stride, int dst_stride) {
+inline void RGBA_to_BGRA_SKX(uint32_t* dst, const uint32_t* src, int height,
+                             int src_stride, int dst_stride) {
   const uint8_t mask[64] = {2,  1,  0,  3,  6,  5,  4,  7,  10, 9,  8,  11, 14,
                             13, 12, 15, 2,  1,  0,  3,  6,  5,  4,  7,  10, 9,
                             8,  11, 14, 13, 12, 15, 2,  1,  0,  3,  6,  5,  4,
@@ -139,8 +110,8 @@ inline void RGBA_to_BGRA(uint32_t* dst, const uint32_t* src, int height,
     auto rptr = src;
     auto dptr = dst;
     while (cw >= 16) {
-      __m512i rgba = _mm256_loadu_si256((const __m256i*)rptr);
-      __m512i bgra = _mm256_shuffle_epi8(rgba, swapRB);
+      __m512i rgba = _mm512_loadu_si512((const __m512i*)rptr);
+      __m512i bgra = _mm512_shuffle_epi8(rgba, swapRB);
       _mm512_storeu_si512((__m512i*)dptr, bgra);
 
       rptr += 16;
@@ -160,29 +131,12 @@ inline void RGBA_to_BGRA(uint32_t* dst, const uint32_t* src, int height,
   }
 }
 
-#elif SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_AVX2
+#endif
 
-/*
-inline void RGBA_to_BGRA(uint32_t* dst, const uint32_t* src, int count) {
-  const __m256i swapRB = _mm256_setr_epi8(2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11,
-14, 13, 12, 15, 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15);
+#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_AVX2
 
-  while (count >= 8) {
-    __m256i rgba = _mm256_loadu_si256((const __m256i*)src);
-    __m256i bgra = _mm256_shuffle_epi8(rgba, swapRB);
-    _mm256_storeu_si256((__m256i*)dst, bgra);
-
-    src += 8;
-    dst += 8;
-    count -= 8;
-  }
-
-  RGBA_to_BGRA_portable(dst, src, count);
-}
-*/
-
-inline void RGBA_to_BGRA(uint32_t* dst, const uint32_t* src, int height,
-                         int src_stride, int dst_stride) {
+inline void RGBA_to_BGRA_AVX2(uint32_t* dst, const uint32_t* src, int height,
+                              int src_stride, int dst_stride) {
   const __m256i swapRB =
       _mm256_setr_epi8(2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15, 2,
                        1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15);
@@ -215,11 +169,24 @@ inline void RGBA_to_BGRA(uint32_t* dst, const uint32_t* src, int height,
   }
 }
 
-#else
+#endif
 
 inline void RGBA_to_BGRA(uint32_t* dst, const uint32_t* src, int height,
                          int src_stride, int dst_stride) {
+  static cpuid::cpuinfo info;
+
+#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SKX
+  if (info.has_avx512_f() && info.has_avx512_dq() && info.has_avx512_cd() &&
+      info.has_avx512_bw() && info.has_avx512_vl()) {
+    return RGBA_to_BGRA_SKX(dst, src, height, src_stride, dst_stride);
+  }
+#endif
+
+#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_AVX2
+  if (info.has_avx2()) {
+    return RGBA_to_BGRA_AVX2(dst, src, height, src_stride, dst_stride);
+  }
+#endif
+
   RGBA_to_BGRA_portable(dst, src, height, src_stride, dst_stride);
 }
-
-#endif
