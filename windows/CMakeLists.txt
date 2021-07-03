@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 set(PROJECT_NAME "webview_windows")
 
 set(WIL_VERSION "1.0.210204.1")
-set(WEBVIEW_VERSION "1.0.865-prerelease")
+set(WEBVIEW_VERSION "1.0.902-prerelease")
 
 project(${PROJECT_NAME} LANGUAGES CXX)
 
