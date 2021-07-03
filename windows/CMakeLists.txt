@@ -39,6 +39,7 @@ add_library(${PLUGIN_NAME} SHARED
   "webview_bridge.cc"
   "texture_bridge.cc"
   "graphics_context.cc"
+  "util/cpuid/cpuinfo.cc"
 )
 
 # Enable AVX2 for pixel buffer conversions
