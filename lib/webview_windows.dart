@@ -124,11 +124,11 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   /// Throws [PlatformException] if the environment was initialized before.
   static Future<void> initializeEnvironment(
       {String? userDataPath, String? additionalArguments}) async {
-    await _pluginChannel.invokeMethod(
+    return _pluginChannel.invokeMethod(
         'initializeEnvironment', <String, dynamic>{
-      'userDataPath': userDataPath,
-      'additionalArguments': additionalArguments
-    });
+        'userDataPath': userDataPath,
+        'additionalArguments': additionalArguments
+      });
   }
 
   late Completer<void> _creatingCompleter;
@@ -275,7 +275,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel.invokeMethod('loadUrl', url);
+    return _methodChannel.invokeMethod('loadUrl', url);
   }
 
   /// Loads a document from the given string.
@@ -283,7 +283,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel.invokeMethod('loadStringContent', content);
+    return _methodChannel.invokeMethod('loadStringContent', content);
   }
 
   /// Reloads the current document.
@@ -291,7 +291,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel.invokeMethod('reload');
+    return _methodChannel.invokeMethod('reload');
   }
 
   /// Executes the given [script].
@@ -299,7 +299,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel.invokeMethod('executeScript', script);
+    return _methodChannel.invokeMethod('executeScript', script);
   }
 
   /// Posts the given JSON-formatted message to the current document.
@@ -307,7 +307,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel.invokeMethod('postWebMessage', message);
+    return _methodChannel.invokeMethod('postWebMessage', message);
   }
 
   /// Sets the user agent value.
@@ -315,7 +315,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel.invokeMethod('setUserAgent', value);
+    return _methodChannel.invokeMethod('setUserAgent', value);
   }
 
   /// Sets the background color to the provided [color].
@@ -327,7 +327,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel.invokeMethod(
+    return _methodChannel.invokeMethod(
         'setBackgroundColor', color.value.toSigned(32));
   }
 
@@ -336,7 +336,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel
+    return _methodChannel
         .invokeMethod('setCursorPos', [position.dx, position.dy]);
   }
 
@@ -345,7 +345,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel.invokeMethod('setPointerButton',
+    return _methodChannel.invokeMethod('setPointerButton',
         <String, dynamic>{'button': button.index, 'isDown': isDown});
   }
 
@@ -354,7 +354,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel.invokeMethod('setScrollDelta', [dx, dy]);
+    return _methodChannel.invokeMethod('setScrollDelta', [dx, dy]);
   }
 
   /// Sets the surface size to the provided [size].
@@ -362,7 +362,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-    await _methodChannel.invokeMethod('setSize', [size.width, size.height]);
+    return _methodChannel.invokeMethod('setSize', [size.width, size.height]);
   }
 }
 
