@@ -261,7 +261,7 @@ void Webview::RegisterEventHandlers() {
 void Webview::SetSurfaceSize(size_t width, size_t height) {
   auto surface = surface_.get();
 
-  if (surface) {
+  if (surface && width > 0 && height > 0) {
     surface.Size({(float)width, (float)height});
 
     RECT bounds;
