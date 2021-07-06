@@ -407,6 +407,11 @@ void Webview::LoadStringContent(const std::string& content) {
   webview_->NavigateToString(towstring(content).c_str());
 }
 
+bool Webview::Stop() {
+  return webview_->CallDevToolsProtocolMethod(L"Page.stopLoading",
+                                              L"{}", nullptr) == S_OK;
+}
+
 void Webview::Reload() { webview_->Reload(); }
 void Webview::GoBack() { webview_->GoBack(); }
 void Webview::GoForward() { webview_->GoForward(); }

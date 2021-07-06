@@ -12,6 +12,7 @@ constexpr auto kErrorInvalidArgs = "invalidArguments";
 constexpr auto kMethodLoadUrl = "loadUrl";
 constexpr auto kMethodLoadStringContent = "loadStringContent";
 constexpr auto kMethodReload = "reload";
+constexpr auto kMethodStop = "stop";
 constexpr auto kMethodGoBack = "goBack";
 constexpr auto kMethodGoForward = "goForward";
 constexpr auto kMethodExecuteScript = "executeScript";
@@ -338,6 +339,12 @@ void WebviewBridge::HandleMethodCall(
   // reload
   if (method_name.compare(kMethodReload) == 0) {
     webview_->Reload();
+    return result->Success();
+  }
+
+  // stop
+  if (method_name.compare(kMethodStop) == 0) {
+    webview_->Stop();
     return result->Success();
   }
 
