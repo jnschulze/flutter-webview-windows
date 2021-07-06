@@ -26,6 +26,12 @@ enum WebviewPermissionKind {
 
 enum WebviewPermissionDecision { none, allow, deny }
 
+class HistoryChanged {
+  bool canGoBack;
+  bool canGoForward;
+  HistoryChanged(this.canGoBack, this.canGoForward);
+}
+
 typedef PermissionRequestedDelegate
     = FutureOr<WebviewPermissionDecision> Function(
         String url, WebviewPermissionKind permissionKind, bool isUserInitiated);
@@ -152,6 +158,12 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   /// A stream reflecting the current loading state.
   Stream<LoadingState> get loadingState => _loadingStateStreamController.stream;
 
+  final StreamController<HistoryChanged> _historyChangedStreamController =
+      StreamController<HistoryChanged>();
+
+  /// A stream reflecting the current history state.
+  Stream<HistoryChanged> get historyChanged => _historyChangedStreamController.stream;
+
   final StreamController<String> _titleStreamController =
       StreamController<String>();
 
@@ -198,6 +210,13 @@ class WebviewController extends ValueNotifier<WebviewValue> {
             case 'loadingStateChanged':
               final value = LoadingState.values[map['value']];
               _loadingStateStreamController.add(value);
+              break;
+            case 'historyChanged':
+              final value = HistoryChanged(
+                map['value']['canGoBack'],
+                map['value']['canGoForward']
+              );
+              _historyChangedStreamController.add(value);
               break;
             case 'titleChanged':
               _titleStreamController.add(map['value']);
@@ -292,6 +311,22 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       return;
     }
     return _methodChannel.invokeMethod('reload');
+  }
+
+  /// Navigates the WebView to the previous page in the navigation history.
+  Future<void> goBack() async {
+    if (_isDisposed) {
+      return;
+    }
+    return _methodChannel.invokeMethod('goBack');
+  }
+
+  /// Navigates the WebView to the next page in the navigation history.
+  Future<void> goForward() async {
+    if (_isDisposed) {
+      return;
+    }
+    return _methodChannel.invokeMethod('goForward');
   }
 
   /// Executes the given [script].
