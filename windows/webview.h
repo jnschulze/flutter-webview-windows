@@ -27,6 +27,11 @@ enum class WebviewPermissionKind {
 
 enum class WebviewPermissionState { Default, Allow, Deny };
 
+struct WebviewHistoryChanged {
+  BOOL can_go_back;
+  BOOL can_go_forward;
+};
+
 struct VirtualKeyState {
  public:
   inline void set_isLeftButtonDown(bool is_down) {
@@ -67,6 +72,7 @@ struct EventRegistrations {
   EventRegistrationToken source_changed_token_{};
   EventRegistrationToken content_loading_token_{};
   EventRegistrationToken navigation_completed_token_{};
+  EventRegistrationToken history_changed_token_{};
   EventRegistrationToken document_title_changed_token_{};
   EventRegistrationToken cursor_changed_token_{};
   EventRegistrationToken got_focus_token_{};
@@ -81,6 +87,7 @@ class Webview {
 
   typedef std::function<void(const std::string&)> UrlChangedCallback;
   typedef std::function<void(WebviewLoadingState)> LoadingStateChangedCallback;
+  typedef std::function<void(WebviewHistoryChanged)> HistoryChangedCallback;
   typedef std::function<void(const std::string&)> DocumentTitleChangedCallback;
   typedef std::function<void(size_t width, size_t height)>
       SurfaceSizeChangedCallback;
@@ -108,6 +115,8 @@ class Webview {
   void LoadUrl(const std::string& url);
   void LoadStringContent(const std::string& content);
   void Reload();
+  void GoBack();
+  void GoForward();
   void ExecuteScript(const std::string& script,
                      ScriptExecutedCallback callback);
   bool PostWebMessage(const std::string& json);
@@ -121,6 +130,10 @@ class Webview {
 
   void OnLoadingStateChanged(LoadingStateChangedCallback callback) {
     loading_state_changed_callback_ = std::move(callback);
+  }
+
+  void OnHistoryChanged(HistoryChangedCallback callback) {
+    history_changed_callback_ = std::move(callback);
   }
 
   void OnSurfaceSizeChanged(SurfaceSizeChangedCallback callback) {
@@ -170,6 +183,7 @@ class Webview {
 
   UrlChangedCallback url_changed_callback_;
   LoadingStateChangedCallback loading_state_changed_callback_;
+  HistoryChangedCallback history_changed_callback_;
   DocumentTitleChangedCallback document_title_changed_callback_;
   SurfaceSizeChangedCallback surface_size_changed_callback_;
   CursorChangedCallback cursor_changed_callback_;

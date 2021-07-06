@@ -140,6 +140,22 @@ void Webview::RegisterEventHandlers() {
           .Get(),
       &event_registrations_.navigation_completed_token_);
 
+  webview_->add_HistoryChanged(
+      Callback<ICoreWebView2HistoryChangedEventHandler>(
+          [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+            if (history_changed_callback_) {
+              BOOL can_go_back;
+              BOOL can_go_forward;
+              sender->get_CanGoBack(&can_go_back);
+              sender->get_CanGoForward(&can_go_forward);
+              history_changed_callback_({can_go_back, can_go_forward});
+            }
+
+            return S_OK;
+          })
+          .Get(),
+      &event_registrations_.history_changed_token_);
+
   webview_->add_SourceChanged(
       Callback<ICoreWebView2SourceChangedEventHandler>(
           [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
@@ -392,6 +408,8 @@ void Webview::LoadStringContent(const std::string& content) {
 }
 
 void Webview::Reload() { webview_->Reload(); }
+void Webview::GoBack() { webview_->GoBack(); }
+void Webview::GoForward() { webview_->GoForward(); }
 
 void Webview::ExecuteScript(const std::string& script,
                             ScriptExecutedCallback callback) {

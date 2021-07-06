@@ -12,6 +12,8 @@ constexpr auto kErrorInvalidArgs = "invalidArguments";
 constexpr auto kMethodLoadUrl = "loadUrl";
 constexpr auto kMethodLoadStringContent = "loadStringContent";
 constexpr auto kMethodReload = "reload";
+constexpr auto kMethodGoBack = "goBack";
+constexpr auto kMethodGoForward = "goForward";
 constexpr auto kMethodExecuteScript = "executeScript";
 constexpr auto kMethodPostWebMessage = "postWebMessage";
 constexpr auto kMethodSetSize = "setSize";
@@ -174,6 +176,24 @@ void WebviewBridge::RegisterEventHandlers() {
     event_sink_->Success(event);
   });
 
+  webview_->OnHistoryChanged([this](WebviewHistoryChanged historyChanged) {
+    const auto event = flutter::EncodableValue(flutter::EncodableMap{
+        {flutter::EncodableValue(kEventType),
+         flutter::EncodableValue("historyChanged")},
+        {flutter::EncodableValue(kEventValue),
+         flutter::EncodableValue(
+          flutter::EncodableMap{
+           {flutter::EncodableValue("canGoBack"),
+           flutter::EncodableValue(static_cast<bool>(historyChanged.can_go_back))},
+           {flutter::EncodableValue("canGoForward"),
+           flutter::EncodableValue(static_cast<bool>(historyChanged.can_go_forward))},
+          }
+         )
+         },
+    });
+    event_sink_->Success(event);
+  });
+
   webview_->OnDocumentTitleChanged([this](const std::string& title) {
     const auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),
@@ -318,6 +338,18 @@ void WebviewBridge::HandleMethodCall(
   // reload
   if (method_name.compare(kMethodReload) == 0) {
     webview_->Reload();
+    return result->Success();
+  }
+
+  // goBack
+  if (method_name.compare(kMethodGoBack) == 0) {
+    webview_->GoBack();
+    return result->Success();
+  }
+
+  // goForward
+  if (method_name.compare(kMethodGoForward) == 0) {
+    webview_->GoForward();
     return result->Success();
   }
 
