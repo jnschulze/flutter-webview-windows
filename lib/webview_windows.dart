@@ -314,9 +314,9 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   }
 
   /// Stops all navigations and pending resource fetches.
-  Future<bool?> stop() async {
+  Future<void> stop() async {
     if (_isDisposed) {
-      return false;
+      return;
     }
     return _methodChannel.invokeMethod('stop');
   }
