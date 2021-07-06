@@ -412,9 +412,17 @@ bool Webview::Stop() {
                                               L"{}", nullptr) == S_OK;
 }
 
-void Webview::Reload() { webview_->Reload(); }
-void Webview::GoBack() { webview_->GoBack(); }
-void Webview::GoForward() { webview_->GoForward(); }
+bool Webview::Reload() {
+  return webview_->Reload() == S_OK;
+}
+
+bool Webview::GoBack() {
+  return webview_->GoBack() == S_OK;
+}
+
+bool Webview::GoForward() {
+  return webview_->GoForward() == S_OK;
+}
 
 void Webview::ExecuteScript(const std::string& script,
                             ScriptExecutedCallback callback) {

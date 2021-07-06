@@ -115,9 +115,9 @@ class Webview {
   void LoadUrl(const std::string& url);
   void LoadStringContent(const std::string& content);
   bool Stop();
-  void Reload();
-  void GoBack();
-  void GoForward();
+  bool Reload();
+  bool GoBack();
+  bool GoForward();
   void ExecuteScript(const std::string& script,
                      ScriptExecutedCallback callback);
   bool PostWebMessage(const std::string& json);
