@@ -313,6 +313,14 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('reload');
   }
 
+  /// Stops all navigations and pending resource fetches.
+  Future<void> stop() async {
+    if (_isDisposed) {
+      return;
+    }
+    return _methodChannel.invokeMethod('stop');
+  }
+
   /// Navigates the WebView to the previous page in the navigation history.
   Future<void> goBack() async {
     if (_isDisposed) {

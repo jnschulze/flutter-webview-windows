@@ -12,6 +12,7 @@ constexpr auto kErrorInvalidArgs = "invalidArguments";
 constexpr auto kMethodLoadUrl = "loadUrl";
 constexpr auto kMethodLoadStringContent = "loadStringContent";
 constexpr auto kMethodReload = "reload";
+constexpr auto kMethodStop = "stop";
 constexpr auto kMethodGoBack = "goBack";
 constexpr auto kMethodGoForward = "goForward";
 constexpr auto kMethodExecuteScript = "executeScript";
@@ -28,6 +29,7 @@ constexpr auto kEventValue = "value";
 
 constexpr auto kErrorNotSupported = "not_supported";
 constexpr auto kScriptFailed = "script_failed";
+constexpr auto kMethodFailed = "method_failed";
 
 static const std::optional<std::pair<double, double>> GetPointFromArgs(
     const flutter::EncodableValue* args) {
@@ -337,20 +339,34 @@ void WebviewBridge::HandleMethodCall(
 
   // reload
   if (method_name.compare(kMethodReload) == 0) {
-    webview_->Reload();
-    return result->Success();
+    if (webview_->Reload()) {
+      return result->Success();
+    }
+    return result->Error(kMethodFailed);
+  }
+
+  // stop
+  if (method_name.compare(kMethodStop) == 0) {
+    if (webview_->Stop()) {
+      return result->Success();
+    }
+    return result->Error(kMethodFailed);
   }
 
   // goBack
   if (method_name.compare(kMethodGoBack) == 0) {
-    webview_->GoBack();
-    return result->Success();
+    if (webview_->GoBack()) {
+      return result->Success();
+    }
+    return result->Error(kMethodFailed);
   }
 
   // goForward
   if (method_name.compare(kMethodGoForward) == 0) {
-    webview_->GoForward();
-    return result->Success();
+    if (webview_->GoForward()) {
+      return result->Success();
+    }
+    return result->Error(kMethodFailed);
   }
 
   // executeScript: string

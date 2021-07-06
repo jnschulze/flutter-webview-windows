@@ -407,9 +407,22 @@ void Webview::LoadStringContent(const std::string& content) {
   webview_->NavigateToString(towstring(content).c_str());
 }
 
-void Webview::Reload() { webview_->Reload(); }
-void Webview::GoBack() { webview_->GoBack(); }
-void Webview::GoForward() { webview_->GoForward(); }
+bool Webview::Stop() {
+  return webview_->CallDevToolsProtocolMethod(L"Page.stopLoading",
+                                              L"{}", nullptr) == S_OK;
+}
+
+bool Webview::Reload() {
+  return webview_->Reload() == S_OK;
+}
+
+bool Webview::GoBack() {
+  return webview_->GoBack() == S_OK;
+}
+
+bool Webview::GoForward() {
+  return webview_->GoForward() == S_OK;
+}
 
 void Webview::ExecuteScript(const std::string& script,
                             ScriptExecutedCallback callback) {
