@@ -28,8 +28,8 @@ enum class WebviewPermissionKind {
 enum class WebviewPermissionState { Default, Allow, Deny };
 
 struct WebviewHistoryChanged {
-  BOOL canGoBack;
-  BOOL canGoForward;
+  BOOL can_go_back;
+  BOOL can_go_forward;
 };
 
 struct VirtualKeyState {

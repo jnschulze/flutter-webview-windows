@@ -144,11 +144,11 @@ void Webview::RegisterEventHandlers() {
       Callback<ICoreWebView2HistoryChangedEventHandler>(
           [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
             if (history_changed_callback_) {
-              BOOL canGoBack;
-              BOOL canGoForward;
-              sender->get_CanGoBack(&canGoBack);
-              sender->get_CanGoForward(&canGoForward);
-              history_changed_callback_({canGoBack, canGoForward});
+              BOOL can_go_back;
+              BOOL can_go_forward;
+              sender->get_CanGoBack(&can_go_back);
+              sender->get_CanGoForward(&can_go_forward);
+              history_changed_callback_({can_go_back, can_go_forward});
             }
 
             return S_OK;

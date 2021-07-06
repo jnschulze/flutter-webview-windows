@@ -27,8 +27,8 @@ enum WebviewPermissionKind {
 enum WebviewPermissionDecision { none, allow, deny }
 
 class HistoryChanged {
-  bool canGoBack;
-  bool canGoForward;
+  final bool canGoBack;
+  final bool canGoForward;
   HistoryChanged(this.canGoBack, this.canGoForward);
 }
 

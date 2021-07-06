@@ -184,9 +184,9 @@ void WebviewBridge::RegisterEventHandlers() {
          flutter::EncodableValue(
           flutter::EncodableMap{
            {flutter::EncodableValue("canGoBack"),
-           flutter::EncodableValue(static_cast<bool>(historyChanged.canGoBack))},
+           flutter::EncodableValue(static_cast<bool>(historyChanged.can_go_back))},
            {flutter::EncodableValue("canGoForward"),
-           flutter::EncodableValue(static_cast<bool>(historyChanged.canGoForward))},
+           flutter::EncodableValue(static_cast<bool>(historyChanged.can_go_forward))},
           }
          )
          },
