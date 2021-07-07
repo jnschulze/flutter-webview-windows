@@ -408,21 +408,15 @@ void Webview::LoadStringContent(const std::string& content) {
 }
 
 bool Webview::Stop() {
-  return webview_->CallDevToolsProtocolMethod(L"Page.stopLoading",
-                                              L"{}", nullptr) == S_OK;
+  return webview_->CallDevToolsProtocolMethod(L"Page.stopLoading", L"{}",
+                                              nullptr) == S_OK;
 }
 
-bool Webview::Reload() {
-  return webview_->Reload() == S_OK;
-}
+bool Webview::Reload() { return webview_->Reload() == S_OK; }
 
-bool Webview::GoBack() {
-  return webview_->GoBack() == S_OK;
-}
+bool Webview::GoBack() { return webview_->GoBack() == S_OK; }
 
-bool Webview::GoForward() {
-  return webview_->GoForward() == S_OK;
-}
+bool Webview::GoForward() { return webview_->GoForward() == S_OK; }
 
 void Webview::ExecuteScript(const std::string& script,
                             ScriptExecutedCallback callback) {
@@ -438,4 +432,30 @@ void Webview::ExecuteScript(const std::string& script,
 
 bool Webview::PostWebMessage(const std::string& json) {
   return webview_->PostWebMessageAsJson(towstring(json).c_str()) == S_OK;
+}
+
+bool Webview::Suspend() {
+  wil::com_ptr<ICoreWebView2_3> webview;
+  webview = webview_.query<ICoreWebView2_3>();
+  if (!webview) {
+    return false;
+  }
+
+  webview_controller_->put_IsVisible(false);
+  return webview->TrySuspend(
+             Callback<ICoreWebView2TrySuspendCompletedHandler>(
+                 [](HRESULT error_code, BOOL is_successful) -> HRESULT {
+                   return S_OK;
+                 })
+                 .Get()) == S_OK;
+}
+
+bool Webview::Resume() {
+  wil::com_ptr<ICoreWebView2_3> webview;
+  webview = webview_.query<ICoreWebView2_3>();
+  if (!webview) {
+    return false;
+  }
+  return webview->Resume() == S_OK &&
+         webview_controller_->put_IsVisible(true) == S_OK;
 }

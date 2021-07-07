@@ -124,6 +124,8 @@ class Webview {
   bool ClearCookies();
   bool SetUserAgent(const std::string& user_agent);
   bool SetBackgroundColor(int32_t color);
+  bool Suspend();
+  bool Resume();
 
   void OnUrlChanged(UrlChangedCallback callback) {
     url_changed_callback_ = std::move(callback);

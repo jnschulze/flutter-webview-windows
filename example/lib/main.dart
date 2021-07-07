@@ -17,6 +17,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final _controller = WebviewController();
   final _textController = TextEditingController();
+  bool _isWebviewSuspended = false;
 
   @override
   void initState() {
@@ -111,6 +112,20 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       navigatorKey: navigatorKey,
       home: Scaffold(
+        floatingActionButton: FloatingActionButton(
+          tooltip: _isWebviewSuspended ? 'Resume webview' : 'Suspend webview',
+          onPressed: () async {
+            if (_isWebviewSuspended) {
+              await _controller.resume();
+            } else {
+              await _controller.suspend();
+            }
+            setState(() {
+              _isWebviewSuspended = !_isWebviewSuspended;
+            });
+          },
+          child: Icon(_isWebviewSuspended ? Icons.play_arrow : Icons.pause),
+        ),
         appBar: AppBar(
             title: StreamBuilder<String>(
           stream: _controller.title,

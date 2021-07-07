@@ -23,35 +23,26 @@ TextureBridge::TextureBridge(GraphicsContext* graphics_context,
   capture_item_ =
       winrt::Windows::Graphics::Capture::GraphicsCaptureItem::CreateFromVisual(
           surface);
-  if (!capture_item_) {
-    return;
-  }
-
-  frame_pool_ = Direct3D11CaptureFramePool::CreateFreeThreaded(
-      graphics_context->device(), kPixelFormat, kNumBuffers,
-      capture_item_.Size());
-
-  if (!frame_pool_) {
-    return;
-  }
-
-  capture_session_ = frame_pool_.CreateCaptureSession(capture_item_);
-  frame_arrived_ = frame_pool_.FrameArrived(
-      winrt::auto_revoke, {this, &TextureBridge::OnFrameArrived});
-
-  is_valid_ = true;
 }
 
 TextureBridge::~TextureBridge() { Stop(); }
 
 bool TextureBridge::Start() {
-  if (!is_valid_) {
+  if (is_running_ || !capture_item_) {
     return false;
   }
-  if (!is_running_) {
-    is_running_ = true;
-    capture_session_.StartCapture();
-  }
+
+  frame_pool_ = Direct3D11CaptureFramePool::CreateFreeThreaded(
+      graphics_context_->device(), kPixelFormat, kNumBuffers,
+      capture_item_.Size());
+
+  frame_arrived_ = frame_pool_.FrameArrived(
+      winrt::auto_revoke, {this, &TextureBridge::OnFrameArrived});
+
+  capture_session_ = frame_pool_.CreateCaptureSession(capture_item_);
+  capture_session_.StartCapture();
+  is_running_ = true;
+
   return true;
 }
 
@@ -59,6 +50,7 @@ void TextureBridge::Stop() {
   if (is_running_) {
     is_running_ = false;
     capture_session_.Close();
+    capture_session_ = nullptr;
   }
 }
 

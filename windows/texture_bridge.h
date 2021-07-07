@@ -42,7 +42,6 @@ class TextureBridge {
   void NotifySurfaceSizeChanged();
 
  private:
-  bool is_valid_ = false;
   bool is_running_ = false;
 
   const GraphicsContext* graphics_context_;
