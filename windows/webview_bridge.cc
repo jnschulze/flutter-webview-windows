@@ -23,6 +23,8 @@ constexpr auto kMethodSetPointerButton = "setPointerButton";
 constexpr auto kMethodSetScrollDelta = "setScrollDelta";
 constexpr auto kMethodSetUserAgent = "setUserAgent";
 constexpr auto kMethodSetBackgroundColor = "setBackgroundColor";
+constexpr auto kMethodSuspend = "suspend";
+constexpr auto kMethodResume = "resume";
 
 constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
@@ -367,6 +369,20 @@ void WebviewBridge::HandleMethodCall(
       return result->Success();
     }
     return result->Error(kMethodFailed);
+  }
+
+  // suspend
+  if(method_name.compare(kMethodSuspend) == 0) {
+    texture_bridge_->Stop();
+    webview_->Suspend();
+    return result->Success();
+  }
+
+  // resume
+  if(method_name.compare(kMethodResume) == 0) {
+    webview_->Resume();
+    texture_bridge_->Start();
+    return result->Success();
   }
 
   // executeScript: string

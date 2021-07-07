@@ -132,9 +132,9 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       {String? userDataPath, String? additionalArguments}) async {
     return _pluginChannel.invokeMethod(
         'initializeEnvironment', <String, dynamic>{
-        'userDataPath': userDataPath,
-        'additionalArguments': additionalArguments
-      });
+      'userDataPath': userDataPath,
+      'additionalArguments': additionalArguments
+    });
   }
 
   late Completer<void> _creatingCompleter;
@@ -162,7 +162,8 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       StreamController<HistoryChanged>();
 
   /// A stream reflecting the current history state.
-  Stream<HistoryChanged> get historyChanged => _historyChangedStreamController.stream;
+  Stream<HistoryChanged> get historyChanged =>
+      _historyChangedStreamController.stream;
 
   final StreamController<String> _titleStreamController =
       StreamController<String>();
@@ -171,7 +172,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   Stream<String> get title => _titleStreamController.stream;
 
   final StreamController<SystemMouseCursor> _cursorStreamController =
-      StreamController<SystemMouseCursor>();
+      StreamController<SystemMouseCursor>.broadcast();
 
   /// A stream reflecting the current cursor style.
   Stream<SystemMouseCursor> get _cursor => _cursorStreamController.stream;
@@ -213,9 +214,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
               break;
             case 'historyChanged':
               final value = HistoryChanged(
-                map['value']['canGoBack'],
-                map['value']['canGoForward']
-              );
+                  map['value']['canGoBack'], map['value']['canGoForward']);
               _historyChangedStreamController.add(value);
               break;
             case 'titleChanged':
@@ -374,6 +373,24 @@ class WebviewController extends ValueNotifier<WebviewValue> {
         'setBackgroundColor', color.value.toSigned(32));
   }
 
+  /// Suspends the web view.
+  Future<void> suspend() async {
+    if (_isDisposed) {
+      return;
+    }
+
+    return _methodChannel.invokeMethod('suspend');
+  }
+
+  /// Resumes the web view.
+  Future<void> resume() async {
+    if (_isDisposed) {
+      return;
+    }
+
+    return _methodChannel.invokeMethod('resume');
+  }
+
   /// Moves the virtual cursor to [position].
   Future<void> _setCursorPos(Offset position) async {
     if (_isDisposed) {
@@ -427,6 +444,8 @@ class _WebviewState extends State<Webview> {
 
   WebviewController get _controller => widget.controller;
 
+  StreamSubscription? _cursorSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -438,7 +457,7 @@ class _WebviewState extends State<Webview> {
     // Report initial surface size
     WidgetsBinding.instance!.addPostFrameCallback((_) => _reportSurfaceSize());
 
-    _controller._cursor.listen((cursor) {
+    _cursorSubscription = _controller._cursor.listen((cursor) {
       setState(() {
         _cursor = cursor;
       });
@@ -503,5 +522,11 @@ class _WebviewState extends State<Webview> {
     if (box != null) {
       _controller._setSize(box.size);
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _cursorSubscription?.cancel();
   }
 }
