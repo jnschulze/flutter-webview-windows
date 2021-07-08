@@ -301,6 +301,17 @@ bool Webview::ClearCookies() {
                                               L"{}", nullptr) == S_OK;
 }
 
+bool Webview::ClearCache() {
+  return webview_->CallDevToolsProtocolMethod(L"Network.clearBrowserCache",
+                                              L"{}", nullptr) == S_OK;
+}
+
+bool Webview::SetCacheDisabled(bool disabled) {
+  std::string json = fmt::format("{{\"disableCache\":{}}}", disabled);
+  return webview_->CallDevToolsProtocolMethod(L"Network.setCacheDisabled",
+                                towstring(json).c_str(), nullptr) == S_OK;
+}
+
 bool Webview::SetUserAgent(const std::string& user_agent) {
   if (settings2_) {
     return settings2_->put_UserAgent(towstring(user_agent).c_str()) == S_OK;

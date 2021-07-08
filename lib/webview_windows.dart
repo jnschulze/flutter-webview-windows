@@ -360,6 +360,30 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('setUserAgent', value);
   }
 
+  /// Clears browser cookies.
+  Future<void> clearCookies() async {
+    if (_isDisposed) {
+      return;
+    }
+    return _methodChannel.invokeMethod('clearCookies');
+  }
+
+  /// Clears browser cache.
+  Future<void> clearCache() async {
+    if (_isDisposed) {
+      return;
+    }
+    return _methodChannel.invokeMethod('clearCache');
+  }
+
+  /// Toggles ignoring cache for each request. If true, cache will not be used.
+  Future<void> setCacheDisabled(bool disabled) async {
+    if (_isDisposed) {
+      return;
+    }
+    return _methodChannel.invokeMethod('setCacheDisabled', disabled);
+  }
+
   /// Sets the background color to the provided [color].
   ///
   /// Due to a limitation of the underlying WebView implementation,

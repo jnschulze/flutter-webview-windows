@@ -122,6 +122,8 @@ class Webview {
                      ScriptExecutedCallback callback);
   bool PostWebMessage(const std::string& json);
   bool ClearCookies();
+  bool ClearCache();
+  bool SetCacheDisabled(bool disabled);
   bool SetUserAgent(const std::string& user_agent);
   bool SetBackgroundColor(int32_t color);
   bool Suspend();
