@@ -79,6 +79,7 @@ struct EventRegistrations {
   EventRegistrationToken lost_focus_token_{};
   EventRegistrationToken web_message_received_token_{};
   EventRegistrationToken permission_requested_token_{};
+  EventRegistrationToken devtools_protocol_event_token_{};
 };
 
 class Webview {
@@ -88,6 +89,7 @@ class Webview {
   typedef std::function<void(const std::string&)> UrlChangedCallback;
   typedef std::function<void(WebviewLoadingState)> LoadingStateChangedCallback;
   typedef std::function<void(WebviewHistoryChanged)> HistoryChangedCallback;
+  typedef std::function<void(const std::string&)> DevtoolsProtocolEventCallback;
   typedef std::function<void(const std::string&)> DocumentTitleChangedCallback;
   typedef std::function<void(size_t width, size_t height)>
       SurfaceSizeChangedCallback;
@@ -122,6 +124,8 @@ class Webview {
                      ScriptExecutedCallback callback);
   bool PostWebMessage(const std::string& json);
   bool ClearCookies();
+  bool ClearCache();
+  bool SetCacheDisabled(bool disabled);
   bool SetUserAgent(const std::string& user_agent);
   bool SetBackgroundColor(int32_t color);
   bool Suspend();
@@ -163,12 +167,17 @@ class Webview {
     permission_requested_callback_ = std::move(callback);
   }
 
+  void OnDevtoolsProtocolEvent(DevtoolsProtocolEventCallback callback) {
+    devtools_protocol_event_callback_ = std::move(callback);
+  }
+
  private:
   HWND hwnd_;
   bool owns_window_;
   wil::com_ptr<ICoreWebView2CompositionController> composition_controller_;
   wil::com_ptr<ICoreWebView2Controller3> webview_controller_;
   wil::com_ptr<ICoreWebView2> webview_;
+  wil::com_ptr<ICoreWebView2DevToolsProtocolEventReceiver> devtools_protocol_event_receiver_;
   wil::com_ptr<ICoreWebView2Settings2> settings2_;
   POINT last_cursor_pos_ = {0, 0};
   VirtualKeyState virtual_keys_;
@@ -193,11 +202,13 @@ class Webview {
   FocusChangedCallback focus_changed_callback_;
   WebMessageReceivedCallback web_message_received_callback_;
   PermissionRequestedCallback permission_requested_callback_;
+  DevtoolsProtocolEventCallback devtools_protocol_event_callback_;
 
   Webview(
       wil::com_ptr<ICoreWebView2CompositionController> composition_controller,
       WebviewHost* host, HWND hwnd, bool owns_window, bool offscreen_only);
 
   void RegisterEventHandlers();
+  void EnableSecurityUpdates();
   void SendScroll(double offset, bool horizontal);
 };

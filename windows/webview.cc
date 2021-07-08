@@ -81,6 +81,7 @@ Webview::Webview(
     settings->put_AreDefaultContextMenusEnabled(FALSE);
   }
 
+  EnableSecurityUpdates();
   RegisterEventHandlers();
 
   auto compositor = host->compositor();
@@ -111,6 +112,30 @@ Webview::Webview(
 Webview::~Webview() {
   if (owns_window_) {
     DestroyWindow(hwnd_);
+  }
+}
+
+void Webview::EnableSecurityUpdates() {
+  if (webview_->CallDevToolsProtocolMethod(L"Security.enable", L"{}",nullptr) == S_OK) {
+    if (webview_->GetDevToolsProtocolEventReceiver(L"Security.securityStateChanged",
+      &devtools_protocol_event_receiver_) == S_OK) {
+      devtools_protocol_event_receiver_->add_DevToolsProtocolEventReceived(
+          Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
+              [this](ICoreWebView2* sender,
+                  ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT {
+                if (devtools_protocol_event_callback_) {
+                  wil::unique_cotaskmem_string jsonArgs;
+                  if (args->get_ParameterObjectAsJson(&jsonArgs) == S_OK) {
+                    std::string json = CW2A(jsonArgs.get());
+                    devtools_protocol_event_callback_(json.c_str());
+                  }
+                }
+
+                return S_OK;
+              })
+              .Get(),
+          &event_registrations_.devtools_protocol_event_token_);
+    }
   }
 }
 
@@ -299,6 +324,17 @@ void Webview::SetSurfaceSize(size_t width, size_t height) {
 bool Webview::ClearCookies() {
   return webview_->CallDevToolsProtocolMethod(L"Network.clearBrowserCookies",
                                               L"{}", nullptr) == S_OK;
+}
+
+bool Webview::ClearCache() {
+  return webview_->CallDevToolsProtocolMethod(L"Network.clearBrowserCache",
+                                              L"{}", nullptr) == S_OK;
+}
+
+bool Webview::SetCacheDisabled(bool disabled) {
+  std::string json = fmt::format("{{\"disableCache\":{}}}", disabled);
+  return webview_->CallDevToolsProtocolMethod(L"Network.setCacheDisabled",
+                                towstring(json).c_str(), nullptr) == S_OK;
 }
 
 bool Webview::SetUserAgent(const std::string& user_agent) {

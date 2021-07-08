@@ -165,6 +165,13 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   Stream<HistoryChanged> get historyChanged =>
       _historyChangedStreamController.stream;
 
+  final StreamController<String> _securityStateChangedStreamController =
+      StreamController<String>();
+
+  /// A stream reflecting the current security state.
+  Stream<String> get securityStateChanged =>
+      _securityStateChangedStreamController.stream;
+
   final StreamController<String> _titleStreamController =
       StreamController<String>();
 
@@ -216,6 +223,9 @@ class WebviewController extends ValueNotifier<WebviewValue> {
               final value = HistoryChanged(
                   map['value']['canGoBack'], map['value']['canGoForward']);
               _historyChangedStreamController.add(value);
+              break;
+            case 'securityStateChanged':
+              _securityStateChangedStreamController.add(map['value']);
               break;
             case 'titleChanged':
               _titleStreamController.add(map['value']);
@@ -358,6 +368,30 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       return;
     }
     return _methodChannel.invokeMethod('setUserAgent', value);
+  }
+
+  /// Clears browser cookies.
+  Future<void> clearCookies() async {
+    if (_isDisposed) {
+      return;
+    }
+    return _methodChannel.invokeMethod('clearCookies');
+  }
+
+  /// Clears browser cache.
+  Future<void> clearCache() async {
+    if (_isDisposed) {
+      return;
+    }
+    return _methodChannel.invokeMethod('clearCache');
+  }
+
+  /// Toggles ignoring cache for each request. If true, cache will not be used.
+  Future<void> setCacheDisabled(bool disabled) async {
+    if (_isDisposed) {
+      return;
+    }
+    return _methodChannel.invokeMethod('setCacheDisabled', disabled);
   }
 
   /// Sets the background color to the provided [color].

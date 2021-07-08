@@ -25,6 +25,9 @@ constexpr auto kMethodSetUserAgent = "setUserAgent";
 constexpr auto kMethodSetBackgroundColor = "setBackgroundColor";
 constexpr auto kMethodSuspend = "suspend";
 constexpr auto kMethodResume = "resume";
+constexpr auto kMethodClearCookies = "clearCookies";
+constexpr auto kMethodClearCache = "clearCache";
+constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
 
 constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
@@ -194,6 +197,16 @@ void WebviewBridge::RegisterEventHandlers() {
           }
          )
          },
+    });
+    event_sink_->Success(event);
+  });
+
+  webview_->OnDevtoolsProtocolEvent([this](const std::string& json) {
+    const auto event = flutter::EncodableValue(flutter::EncodableMap{
+        {flutter::EncodableValue(kEventType),
+         flutter::EncodableValue("securityStateChanged")},
+        {flutter::EncodableValue(kEventValue),
+         flutter::EncodableValue(json)}
     });
     event_sink_->Success(event);
   });
@@ -438,6 +451,32 @@ void WebviewBridge::HandleMethodCall(
                            "Setting the background color failed.");
     }
     return result->Error(kErrorInvalidArgs);
+  }
+
+  // clearCookies
+  if (method_name.compare(kMethodClearCookies) == 0) {
+    if (webview_->ClearCookies()) {
+      return result->Success();
+    }
+    return result->Error(kMethodFailed);
+  }
+
+  // clearCache
+  if (method_name.compare(kMethodClearCache) == 0) {
+    if (webview_->ClearCache()) {
+      return result->Success();
+    }
+    return result->Error(kMethodFailed);
+  }
+
+  // setCacheDisabled: bool
+  if (method_name.compare(kMethodSetCacheDisabled) == 0) {
+    if (const auto disabled = std::get_if<bool>(method_call.arguments())) {
+      if (webview_->SetCacheDisabled(*disabled)) {
+        return result->Success();
+      }
+    }
+    return result->Error(kMethodFailed);
   }
 
   result->NotImplemented();
