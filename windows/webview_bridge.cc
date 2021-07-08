@@ -201,6 +201,16 @@ void WebviewBridge::RegisterEventHandlers() {
     event_sink_->Success(event);
   });
 
+  webview_->OnDevtoolsProtocolEvent([this](const std::string& json) {
+    const auto event = flutter::EncodableValue(flutter::EncodableMap{
+        {flutter::EncodableValue(kEventType),
+         flutter::EncodableValue("securityStateChanged")},
+        {flutter::EncodableValue(kEventValue),
+         flutter::EncodableValue(json)}
+    });
+    event_sink_->Success(event);
+  });
+
   webview_->OnDocumentTitleChanged([this](const std::string& title) {
     const auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),

@@ -165,6 +165,13 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   Stream<HistoryChanged> get historyChanged =>
       _historyChangedStreamController.stream;
 
+  final StreamController<String> _securityStateChangedStreamController =
+      StreamController<String>();
+
+  /// A stream reflecting the current security state.
+  Stream<String> get securityStateChanged =>
+      _securityStateChangedStreamController.stream;
+
   final StreamController<String> _titleStreamController =
       StreamController<String>();
 
@@ -216,6 +223,9 @@ class WebviewController extends ValueNotifier<WebviewValue> {
               final value = HistoryChanged(
                   map['value']['canGoBack'], map['value']['canGoForward']);
               _historyChangedStreamController.add(value);
+              break;
+            case 'securityStateChanged':
+              _securityStateChangedStreamController.add(map['value']);
               break;
             case 'titleChanged':
               _titleStreamController.add(map['value']);
