@@ -1,3 +1,10 @@
+## 0.0.8
+
+* Don't rely on AVX2 support
+* Add history controls
+* Add suspend/resume support
+* Add support for disabling cache, clearing cookies etc.
+
 ## 0.0.7
 
 * Add support for handling permission requests
