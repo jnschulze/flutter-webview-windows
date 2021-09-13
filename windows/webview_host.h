@@ -20,6 +20,7 @@ class WebviewHost {
 
   static std::unique_ptr<WebviewHost> Create(
       std::optional<std::string> user_data_directory = std::nullopt,
+      std::optional<std::string> browser_exe_path = std::nullopt,
       std::optional<std::string> arguments = std::nullopt);
 
   void CreateWebview(HWND hwnd, bool offscreen_only, bool owns_window,

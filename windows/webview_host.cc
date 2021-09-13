@@ -8,6 +8,7 @@
 
 std::unique_ptr<WebviewHost> WebviewHost::Create(
     std::optional<std::string> user_data_directory,
+    std::optional<std::string> browser_exe_path,
     std::optional<std::string> arguments) {
   std::promise<HRESULT> result_promise;
   wil::com_ptr<ICoreWebView2Environment> env;
@@ -25,8 +26,16 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
         std::wstring(user_data_directory->begin(), user_data_directory->end());
   }
 
+  std::optional<std::wstring> browser_path;
+  if (browser_exe_path.has_value()) {
+    browser_path =
+        std::wstring(browser_exe_path->begin(), browser_exe_path->end());
+  }
+
+
   auto result = CreateCoreWebView2EnvironmentWithOptions(
-      nullptr, user_data_dir.has_value() ? user_data_dir->c_str() : nullptr,
+      browser_path.has_value() ? browser_path->c_str() : nullptr,
+      user_data_dir.has_value() ? user_data_dir->c_str() : nullptr,
       opts.get(),
       Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
           [&promise = result_promise, &ptr = env](
