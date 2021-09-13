@@ -28,7 +28,9 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> initPlatformState() async {
     // Optionally initialize the webview environment using
-    // a custom user data directory and/or custom chromium command line flags
+    // a custom user data directory 
+    // and/or a custom browser executable directory
+    // and/or custom chromium command line flags
     //await WebviewController.initializeEnvironment(
     //    additionalArguments: '--show-fps-counter');
 
