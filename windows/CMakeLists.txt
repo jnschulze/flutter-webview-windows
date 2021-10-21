@@ -38,6 +38,8 @@ add_library(${PLUGIN_NAME} SHARED
   "webview_host.cc"
   "webview_bridge.cc"
   "texture_bridge.cc"
+  "texture_bridge_gpu.cc"
+  "texture_bridge_fallback.cc"
   "graphics_context.cc"
   "util/cpuid/cpuinfo.cc"
 )
