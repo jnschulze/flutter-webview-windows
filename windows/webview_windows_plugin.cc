@@ -148,8 +148,8 @@ void WebviewWindowsPlugin::HandleMethodCall(
     std::optional<std::string> additional_args =
         GetOptionalValue<std::string>(map, "additionalArguments");
 
-    webview_host_ =
-        std::move(WebviewHost::Create(user_data_path, browser_exe_path, additional_args));
+    webview_host_ = std::move(
+        WebviewHost::Create(user_data_path, browser_exe_path, additional_args));
     if (!webview_host_) {
       return result->Error(kErrorMessageEnvironmentCreationFailed);
     }
@@ -204,7 +204,7 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
   webview_host_->CreateWebview(
       hwnd, true, true, [holder, this](std::unique_ptr<Webview> webview) {
         auto bridge = std::make_unique<WebviewBridge>(
-            messenger_, textures_, graphics_context_.get(), std::move(webview), true);
+            messenger_, textures_, graphics_context_.get(), std::move(webview));
         auto texture_id = bridge->texture_id();
         instances_[texture_id] = std::move(bridge);
 

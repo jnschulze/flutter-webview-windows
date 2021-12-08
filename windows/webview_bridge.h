@@ -16,7 +16,7 @@ class WebviewBridge {
   WebviewBridge(flutter::BinaryMessenger* messenger,
                 flutter::TextureRegistrar* texture_registrar,
                 GraphicsContext* graphics_context,
-                std::unique_ptr<Webview> webview, bool use_gpu_surface = false);
+                std::unique_ptr<Webview> webview);
   ~WebviewBridge();
 
   TextureBridge* texture_bridge() const { return texture_bridge_.get(); }

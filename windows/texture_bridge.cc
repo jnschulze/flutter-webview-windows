@@ -6,7 +6,6 @@
 #include <iostream>
 
 #include "util/direct3d11.interop.h"
-#include "util/swizzle.h"
 
 using namespace winrt::Windows::Graphics::Capture;
 
