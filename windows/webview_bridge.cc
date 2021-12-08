@@ -34,6 +34,7 @@ constexpr auto kMethodResume = "resume";
 constexpr auto kMethodClearCookies = "clearCookies";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
+constexpr auto kMethodSetPopupWindowsDisabled = "setPopupWindowsDisabled";
 
 constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
@@ -493,7 +494,16 @@ void WebviewBridge::HandleMethodCall(
         return result->Success();
       }
     }
-    return result->Error(kMethodFailed);
+    return result->Error(kErrorInvalidArgs);
+  }
+
+  // setPopupWindowsDisabled: bool
+  if (method_name.compare(kMethodSetPopupWindowsDisabled) == 0) {
+    if (const auto disabled = std::get_if<bool>(method_call.arguments())) {
+      webview_->SetPopupWindowsDisabled(*disabled);
+      return result->Success();
+    }
+    return result->Error(kErrorInvalidArgs);
   }
 
   result->NotImplemented();
