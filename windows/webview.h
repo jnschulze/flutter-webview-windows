@@ -80,6 +80,7 @@ struct EventRegistrations {
   EventRegistrationToken web_message_received_token_{};
   EventRegistrationToken permission_requested_token_{};
   EventRegistrationToken devtools_protocol_event_token_{};
+  EventRegistrationToken new_windows_requested_token_{};
 };
 
 class Webview {
@@ -126,6 +127,7 @@ class Webview {
   bool ClearCookies();
   bool ClearCache();
   bool SetCacheDisabled(bool disabled);
+  void SetPopupWindowsDisabled(bool disabled);
   bool SetUserAgent(const std::string& user_agent);
   bool SetBackgroundColor(int32_t color);
   bool Suspend();
@@ -177,10 +179,12 @@ class Webview {
   wil::com_ptr<ICoreWebView2CompositionController> composition_controller_;
   wil::com_ptr<ICoreWebView2Controller3> webview_controller_;
   wil::com_ptr<ICoreWebView2> webview_;
-  wil::com_ptr<ICoreWebView2DevToolsProtocolEventReceiver> devtools_protocol_event_receiver_;
+  wil::com_ptr<ICoreWebView2DevToolsProtocolEventReceiver>
+      devtools_protocol_event_receiver_;
   wil::com_ptr<ICoreWebView2Settings2> settings2_;
   POINT last_cursor_pos_ = {0, 0};
   VirtualKeyState virtual_keys_;
+  bool disable_popup_windows_ = false;
 
   winrt::agile_ref<winrt::Windows::UI::Composition::Visual> surface_{nullptr};
 

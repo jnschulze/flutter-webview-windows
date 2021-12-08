@@ -300,6 +300,18 @@ void Webview::RegisterEventHandlers() {
           })
           .Get(),
       &event_registrations_.permission_requested_token_);
+
+  webview_->add_NewWindowRequested(
+      Callback<ICoreWebView2NewWindowRequestedEventHandler>(
+          [this](ICoreWebView2* sender,
+                 ICoreWebView2NewWindowRequestedEventArgs* args) -> HRESULT {
+            if (disable_popup_windows_) {
+              args->put_Handled(TRUE);
+            }
+            return S_OK;
+          })
+          .Get(),
+      &event_registrations_.new_windows_requested_token_);
 }
 
 void Webview::SetSurfaceSize(size_t width, size_t height) {
@@ -339,6 +351,10 @@ bool Webview::SetCacheDisabled(bool disabled) {
   return webview_->CallDevToolsProtocolMethod(L"Network.setCacheDisabled",
                                               towstring(json).c_str(),
                                               nullptr) == S_OK;
+}
+
+void Webview::SetPopupWindowsDisabled(bool disabled) {
+  disable_popup_windows_ = disabled;
 }
 
 bool Webview::SetUserAgent(const std::string& user_agent) {
