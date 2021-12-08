@@ -116,17 +116,20 @@ Webview::~Webview() {
 }
 
 void Webview::EnableSecurityUpdates() {
-  if (webview_->CallDevToolsProtocolMethod(L"Security.enable", L"{}",nullptr) == S_OK) {
-    if (webview_->GetDevToolsProtocolEventReceiver(L"Security.securityStateChanged",
-      &devtools_protocol_event_receiver_) == S_OK) {
+  if (webview_->CallDevToolsProtocolMethod(L"Security.enable", L"{}",
+                                           nullptr) == S_OK) {
+    if (webview_->GetDevToolsProtocolEventReceiver(
+            L"Security.securityStateChanged",
+            &devtools_protocol_event_receiver_) == S_OK) {
       devtools_protocol_event_receiver_->add_DevToolsProtocolEventReceived(
           Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
               [this](ICoreWebView2* sender,
-                  ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT {
+                     ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args)
+                  -> HRESULT {
                 if (devtools_protocol_event_callback_) {
                   wil::unique_cotaskmem_string jsonArgs;
                   if (args->get_ParameterObjectAsJson(&jsonArgs) == S_OK) {
-                    std::string json = CW2A(jsonArgs.get());
+                    std::string json = CW2A(jsonArgs.get(), CP_UTF8);
                     devtools_protocol_event_callback_(json.c_str());
                   }
                 }
@@ -186,7 +189,7 @@ void Webview::RegisterEventHandlers() {
           [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
             LPWSTR wurl;
             if (url_changed_callback_ && webview_->get_Source(&wurl) == S_OK) {
-              std::string url = CW2A(wurl);
+              std::string url = CW2A(wurl, CP_UTF8);
               url_changed_callback_(url);
             }
 
@@ -201,7 +204,7 @@ void Webview::RegisterEventHandlers() {
             LPWSTR wtitle;
             if (document_title_changed_callback_ &&
                 webview_->get_DocumentTitle(&wtitle) == S_OK) {
-              std::string title = CW2A(wtitle);
+              std::string title = CW2A(wtitle, CP_UTF8);
               document_title_changed_callback_(title);
             }
 
@@ -253,7 +256,7 @@ void Webview::RegisterEventHandlers() {
             wil::unique_cotaskmem_string wmessage;
             if (web_message_received_callback_ &&
                 args->get_WebMessageAsJson(&wmessage) == S_OK) {
-              const std::string message = CW2A(wmessage.get());
+              const std::string message = CW2A(wmessage.get(), CP_UTF8);
               web_message_received_callback_(message);
             }
 
@@ -281,7 +284,7 @@ void Webview::RegisterEventHandlers() {
               wil::com_ptr<ICoreWebView2Deferral> deferral;
               args->GetDeferral(deferral.put());
 
-              const std::string uri = CW2A(wuri.get());
+              const std::string uri = CW2A(wuri.get(), CP_UTF8);
               permission_requested_callback_(
                   uri, CW2PermissionKindToPermissionKind(kind),
                   is_user_initiated == TRUE,
@@ -334,7 +337,8 @@ bool Webview::ClearCache() {
 bool Webview::SetCacheDisabled(bool disabled) {
   std::string json = fmt::format("{{\"disableCache\":{}}}", disabled);
   return webview_->CallDevToolsProtocolMethod(L"Network.setCacheDisabled",
-                                towstring(json).c_str(), nullptr) == S_OK;
+                                              towstring(json).c_str(),
+                                              nullptr) == S_OK;
 }
 
 bool Webview::SetUserAgent(const std::string& user_agent) {
