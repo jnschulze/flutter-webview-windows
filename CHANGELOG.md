@@ -1,3 +1,9 @@
+## 0.1.0
+
+* Fix a string conversion issue
+* Add an option for controlling popup window behavior
+* Update Microsoft.Web.WebView2 and Microsoft.Windows.ImplementationLibrary
+
 ## 0.0.9
 
 * Fix resizing issues
