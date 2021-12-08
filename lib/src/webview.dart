@@ -355,12 +355,14 @@ class WebviewController extends ValueNotifier<WebviewValue> {
         'setBackgroundColor', color.value.toSigned(32));
   }
 
-  /// Allows suppression of popup windows.
-  Future<void> setPopupWindowsDisabled(bool flag) async {
+  /// Sets the [WebviewPopupWindowPolicy].
+  Future<void> setPopupWindowPolicy(
+      WebviewPopupWindowPolicy popupPolicy) async {
     if (_isDisposed) {
       return;
     }
-    return _methodChannel.invokeMethod('setPopupWindowsDisabled', flag);
+    return _methodChannel.invokeMethod(
+        'setPopupWindowPolicy', popupPolicy.index);
   }
 
   /// Suspends the web view.

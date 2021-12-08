@@ -305,9 +305,16 @@ void Webview::RegisterEventHandlers() {
       Callback<ICoreWebView2NewWindowRequestedEventHandler>(
           [this](ICoreWebView2* sender,
                  ICoreWebView2NewWindowRequestedEventArgs* args) -> HRESULT {
-            if (disable_popup_windows_) {
-              args->put_Handled(TRUE);
+            switch (popup_window_policy_) {
+              case WebviewPopupWindowPolicy::Deny:
+                args->put_Handled(TRUE);
+                break;
+              case WebviewPopupWindowPolicy::ShowInSameWindow:
+                args->put_NewWindow(webview_.get());
+                args->put_Handled(TRUE);
+                break;
             }
+
             return S_OK;
           })
           .Get(),
@@ -353,8 +360,8 @@ bool Webview::SetCacheDisabled(bool disabled) {
                                               nullptr) == S_OK;
 }
 
-void Webview::SetPopupWindowsDisabled(bool disabled) {
-  disable_popup_windows_ = disabled;
+void Webview::SetPopupWindowPolicy(WebviewPopupWindowPolicy policy) {
+  popup_window_policy_ = policy;
 }
 
 bool Webview::SetUserAgent(const std::string& user_agent) {

@@ -27,6 +27,8 @@ enum class WebviewPermissionKind {
 
 enum class WebviewPermissionState { Default, Allow, Deny };
 
+enum class WebviewPopupWindowPolicy { Allow, Deny, ShowInSameWindow };
+
 struct WebviewHistoryChanged {
   BOOL can_go_back;
   BOOL can_go_forward;
@@ -127,7 +129,7 @@ class Webview {
   bool ClearCookies();
   bool ClearCache();
   bool SetCacheDisabled(bool disabled);
-  void SetPopupWindowsDisabled(bool disabled);
+  void SetPopupWindowPolicy(WebviewPopupWindowPolicy policy);
   bool SetUserAgent(const std::string& user_agent);
   bool SetBackgroundColor(int32_t color);
   bool Suspend();
@@ -184,7 +186,7 @@ class Webview {
   wil::com_ptr<ICoreWebView2Settings2> settings2_;
   POINT last_cursor_pos_ = {0, 0};
   VirtualKeyState virtual_keys_;
-  bool disable_popup_windows_ = false;
+  WebviewPopupWindowPolicy popup_window_policy_ = WebviewPopupWindowPolicy::Allow;
 
   winrt::agile_ref<winrt::Windows::UI::Composition::Visual> surface_{nullptr};
 
