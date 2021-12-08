@@ -1,3 +1,8 @@
+## 0.0.9
+
+* Fix resizing issues
+* Add preliminary GpuSurfaceTexture support
+
 ## 0.0.8
 
 * Don't rely on AVX2 support
