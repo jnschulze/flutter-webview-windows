@@ -32,6 +32,7 @@ else()
   message(FATAL_ERROR "Integrity check for ${NUGET} failed")
 endif()
 
+
 add_library(${PLUGIN_NAME} SHARED
   "webview_windows_plugin.cc"
   "webview.cc"
@@ -39,14 +40,27 @@ add_library(${PLUGIN_NAME} SHARED
   "webview_bridge.cc"
   "texture_bridge.cc"
   "graphics_context.cc"
-  "util/cpuid/cpuinfo.cc"
 )
 
-# Enable AVX2 for pixel buffer conversions
-if(MSVC)
-  target_compile_options(${PLUGIN_NAME} PRIVATE "/arch:AVX2")
+if(FLUTTER_WEBVIEW_WINDOWS_USE_D3D_TEXTURE)
+  message(STATUS "Building with D3D texture support.")
+  target_compile_definitions("${PLUGIN_NAME}" PRIVATE
+    HAVE_FLUTTER_D3D_TEXTURE
+  )
+  target_sources("${PLUGIN_NAME}" PRIVATE
+    "texture_bridge_gpu.cc"
+  )
+else()
+  message(STATUS "Building with fallback PixelBuffer texture.")
+  target_sources("${PLUGIN_NAME}" PRIVATE
+    "texture_bridge_fallback.cc"
+    "util/cpuid/cpuinfo.cc"
+  )
+  # Enable AVX2 for pixel buffer conversions
+  if(MSVC)
+    target_compile_options(${PLUGIN_NAME} PRIVATE "/arch:AVX2")
+  endif()
 endif()
-
 
 apply_standard_settings(${PLUGIN_NAME})
 set_target_properties(${PLUGIN_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)

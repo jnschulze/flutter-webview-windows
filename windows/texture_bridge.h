@@ -1,11 +1,12 @@
 #pragma once
 
-#include <flutter/texture_registrar.h>
 #include <windows.graphics.capture.h>
 #include <winrt/Windows.UI.Composition.Desktop.h>
 #include <winrt/Windows.UI.Composition.h>
 
 #include <cstdint>
+#include <functional>
+#include <mutex>
 
 #include "graphics_context.h"
 #include "util/capture.desktop.interop.h"
@@ -24,12 +25,10 @@ class TextureBridge {
 
   TextureBridge(GraphicsContext* graphics_context,
                 winrt::Windows::UI::Composition::Visual surface);
-  ~TextureBridge();
+  virtual ~TextureBridge();
 
   bool Start();
   void Stop();
-
-  const FlutterDesktopPixelBuffer* CopyPixelBuffer(size_t width, size_t height);
 
   void SetOnFrameAvailable(FrameAvailableCallback callback) {
     frame_available_ = std::move(callback);
@@ -41,16 +40,15 @@ class TextureBridge {
 
   void NotifySurfaceSizeChanged();
 
- private:
+ protected:
   bool is_running_ = false;
 
   const GraphicsContext* graphics_context_;
 
   FrameAvailableCallback frame_available_;
   SurfaceSizeChangedCallback surface_size_changed_;
-
-  Size staging_texture_size_ = {0, 0};
   std::atomic<bool> needs_update_ = false;
+  winrt::com_ptr<ID3D11Texture2D> last_frame_;
 
   winrt::Windows::Graphics::Capture::GraphicsCaptureItem capture_item_{nullptr};
   winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool frame_pool_{
@@ -60,18 +58,18 @@ class TextureBridge {
       nullptr};
   winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool::
       FrameArrived_revoker frame_arrived_;
-
-  winrt::com_ptr<ID3D11Texture2D> staging_texture_{nullptr};
-
-  std::unique_ptr<uint8_t> backing_pixel_buffer_;
-  std::unique_ptr<FlutterDesktopPixelBuffer> pixel_buffer_;
+  winrt::Windows::Graphics::Capture::GraphicsCaptureItem::Closed_revoker
+      closed_;
 
   void OnFrameArrived(
       winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool const&
           sender,
       winrt::Windows::Foundation::IInspectable const&);
 
-  void CopyFrame(ID3D11Texture2D* src_texture);
-  void EnsureStagingTexture(uint32_t width, uint32_t height,
-                            bool& is_exact_size);
+  void OnClosed(winrt::Windows::Graphics::Capture::GraphicsCaptureItem const&,
+                winrt::Windows::Foundation::IInspectable const&);
+
+  // corresponds to DXGI_FORMAT_B8G8R8A8_UNORM
+  static constexpr auto kPixelFormat = winrt::Windows::Graphics::DirectX::
+      DirectXPixelFormat::B8G8R8A8UIntNormalized;
 };

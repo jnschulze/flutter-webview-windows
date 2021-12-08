@@ -6,6 +6,12 @@
 
 #include <iostream>
 
+#ifdef HAVE_FLUTTER_D3D_TEXTURE
+#include "texture_bridge_gpu.h"
+#else
+#include "texture_bridge_fallback.h"
+#endif
+
 namespace {
 constexpr auto kErrorInvalidArgs = "invalidArguments";
 
@@ -111,15 +117,29 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
                              GraphicsContext* graphics_context,
                              std::unique_ptr<Webview> webview)
     : webview_(std::move(webview)), texture_registrar_(texture_registrar) {
-  texture_bridge_ = std::make_unique<TextureBridge>(graphics_context,
-                                                    webview_->surface().get());
+#ifdef HAVE_FLUTTER_D3D_TEXTURE
+  texture_bridge_ = std::make_unique<TextureBridgeGpu>(
+      graphics_context, webview_->surface().get());
+
+  flutter_texture_ =
+      std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
+          kFlutterDesktopGpuSurfaceTypeDxgi,
+          [bridge = static_cast<TextureBridgeGpu*>(texture_bridge_.get())](
+              size_t width,
+              size_t height) -> const FlutterDesktopGpuSurfaceDescriptor* {
+            return bridge->GetSurfaceDescriptor(width, height);
+          }));
+#else
+  texture_bridge_ = std::make_unique<TextureBridgeFallback>(
+      graphics_context, webview_->surface().get());
 
   flutter_texture_ =
       std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
-          [this](size_t width,
-                 size_t height) -> const FlutterDesktopPixelBuffer* {
-            return texture_bridge_->CopyPixelBuffer(width, height);
+          [bridge = static_cast<TextureBridgeFallback*>(texture_bridge_.get())](
+              size_t width, size_t height) -> const FlutterDesktopPixelBuffer* {
+            return bridge->CopyPixelBuffer(width, height);
           }));
+#endif
 
   texture_id_ = texture_registrar->RegisterTexture(flutter_texture_.get());
   texture_bridge_->SetOnFrameAvailable(
@@ -188,15 +208,14 @@ void WebviewBridge::RegisterEventHandlers() {
         {flutter::EncodableValue(kEventType),
          flutter::EncodableValue("historyChanged")},
         {flutter::EncodableValue(kEventValue),
-         flutter::EncodableValue(
-          flutter::EncodableMap{
-           {flutter::EncodableValue("canGoBack"),
-           flutter::EncodableValue(static_cast<bool>(historyChanged.can_go_back))},
-           {flutter::EncodableValue("canGoForward"),
-           flutter::EncodableValue(static_cast<bool>(historyChanged.can_go_forward))},
-          }
-         )
-         },
+         flutter::EncodableValue(flutter::EncodableMap{
+             {flutter::EncodableValue("canGoBack"),
+              flutter::EncodableValue(
+                  static_cast<bool>(historyChanged.can_go_back))},
+             {flutter::EncodableValue("canGoForward"),
+              flutter::EncodableValue(
+                  static_cast<bool>(historyChanged.can_go_forward))},
+         })},
     });
     event_sink_->Success(event);
   });
@@ -205,9 +224,7 @@ void WebviewBridge::RegisterEventHandlers() {
     const auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),
          flutter::EncodableValue("securityStateChanged")},
-        {flutter::EncodableValue(kEventValue),
-         flutter::EncodableValue(json)}
-    });
+        {flutter::EncodableValue(kEventValue), flutter::EncodableValue(json)}});
     event_sink_->Success(event);
   });
 
@@ -385,14 +402,14 @@ void WebviewBridge::HandleMethodCall(
   }
 
   // suspend
-  if(method_name.compare(kMethodSuspend) == 0) {
+  if (method_name.compare(kMethodSuspend) == 0) {
     texture_bridge_->Stop();
     webview_->Suspend();
     return result->Success();
   }
 
   // resume
-  if(method_name.compare(kMethodResume) == 0) {
+  if (method_name.compare(kMethodResume) == 0) {
     webview_->Resume();
     texture_bridge_->Start();
     return result->Success();
