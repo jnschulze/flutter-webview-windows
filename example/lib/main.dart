@@ -28,7 +28,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> initPlatformState() async {
     // Optionally initialize the webview environment using
-    // a custom user data directory 
+    // a custom user data directory
     // and/or a custom browser executable directory
     // and/or custom chromium command line flags
     //await WebviewController.initializeEnvironment(
@@ -57,7 +57,7 @@ class _MyAppState extends State<MyApp> {
         ),
       );
     } else {
-      return Container(
+      return Padding(
         padding: EdgeInsets.all(20),
         child: Column(
           children: [
@@ -98,7 +98,7 @@ class _MyAppState extends State<MyApp> {
                                   snapshot.data == LoadingState.loading) {
                                 return LinearProgressIndicator();
                               } else {
-                                return Container();
+                                return SizedBox();
                               }
                             }),
                       ],
