@@ -34,7 +34,7 @@ constexpr auto kMethodResume = "resume";
 constexpr auto kMethodClearCookies = "clearCookies";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
-constexpr auto kMethodSetPopupWindowsDisabled = "setPopupWindowsDisabled";
+constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
 
 constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
@@ -497,10 +497,21 @@ void WebviewBridge::HandleMethodCall(
     return result->Error(kErrorInvalidArgs);
   }
 
-  // setPopupWindowsDisabled: bool
-  if (method_name.compare(kMethodSetPopupWindowsDisabled) == 0) {
-    if (const auto disabled = std::get_if<bool>(method_call.arguments())) {
-      webview_->SetPopupWindowsDisabled(*disabled);
+  // setPopupWindowPolicy: int
+  if (method_name.compare(kMethodSetPopupWindowPolicy) == 0) {
+    if (const auto index = std::get_if<int32_t>(method_call.arguments())) {
+      switch (*index) {
+        case 1:
+          webview_->SetPopupWindowPolicy(WebviewPopupWindowPolicy::Deny);
+          break;
+        case 2:
+          webview_->SetPopupWindowPolicy(
+              WebviewPopupWindowPolicy::ShowInSameWindow);
+          break;
+        default:
+          webview_->SetPopupWindowPolicy(WebviewPopupWindowPolicy::Allow);
+          break;
+      }
       return result->Success();
     }
     return result->Error(kErrorInvalidArgs);

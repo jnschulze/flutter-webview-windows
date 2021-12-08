@@ -40,7 +40,7 @@ class _MyAppState extends State<MyApp> {
     });
 
     await _controller.setBackgroundColor(Colors.transparent);
-    await _controller.setPopupWindowsDisabled(true);
+    await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     await _controller.loadUrl('https://flutter.dev');
 
     if (!mounted) return;
