@@ -22,6 +22,14 @@ inline void ConvertColor(COREWEBVIEW2_COLOR& webview_color, int32_t color) {
   webview_color.A = (color >> 24) & 0xFF;
 }
 
+std::wstring get_utf16(const std::string &str, int codepage) {
+  if (str.empty()) return std::wstring();
+  int sz = MultiByteToWideChar(codepage, 0, &str[0], (int)str.size(), 0, 0);
+  std::wstring res(sz, 0);
+  MultiByteToWideChar(codepage, 0, &str[0], (int)str.size(), &res[0], sz);
+  return res;
+}
+
 inline WebviewPermissionKind CW2PermissionKindToPermissionKind(
     COREWEBVIEW2_PERMISSION_KIND kind) {
   using k = COREWEBVIEW2_PERMISSION_KIND;
@@ -467,7 +475,7 @@ void Webview::LoadUrl(const std::string& url) {
 }
 
 void Webview::LoadStringContent(const std::string& content) {
-  webview_->NavigateToString(towstring(content).c_str());
+  webview_->NavigateToString(get_utf16(content, CP_UTF8).c_str());
 }
 
 bool Webview::Stop() {
@@ -483,8 +491,8 @@ bool Webview::GoForward() { return webview_->GoForward() == S_OK; }
 
 void Webview::ExecuteScript(const std::string& script,
                             ScriptExecutedCallback callback) {
-  webview_->ExecuteScript(
-      towstring(script).c_str(),
+  webview_->ExecuteScript(      
+      get_utf16(script, CP_UTF8).c_str(),
       Callback<ICoreWebView2ExecuteScriptCompletedHandler>([callback](
                                                                HRESULT result,
                                                                PCWSTR _) {
