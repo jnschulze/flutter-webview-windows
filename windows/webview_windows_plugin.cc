@@ -5,7 +5,6 @@
 #include <flutter/standard_method_codec.h>
 #include <shlobj.h>
 #include <windows.h>
-#include <wrl.h>
 
 #include <filesystem>
 #include <memory>
@@ -13,15 +12,12 @@
 #include <unordered_map>
 
 #include "graphics_context.h"
-#include "util/dispatcher.interop.h"
 #include "webview_bridge.h"
 #include "webview_host.h"
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "windowsapp")
-
-using namespace Microsoft::WRL;
 
 namespace {
 
@@ -75,9 +71,6 @@ class WebviewWindowsPlugin : public flutter::Plugin {
   std::unique_ptr<WebviewHost> webview_host_;
   std::unique_ptr<GraphicsContext> graphics_context_;
 
-  winrt::Windows::System::DispatcherQueueController
-      dispatcher_queue_controller_{nullptr};
-
   WNDCLASS window_class_ = {};
   flutter::TextureRegistrar* textures_;
   flutter::BinaryMessenger* messenger_;
@@ -112,9 +105,6 @@ void WebviewWindowsPlugin::RegisterWithRegistrar(
 WebviewWindowsPlugin::WebviewWindowsPlugin(flutter::TextureRegistrar* textures,
                                            flutter::BinaryMessenger* messenger)
     : textures_(textures), messenger_(messenger) {
-  winrt::init_apartment(winrt::apartment_type::single_threaded);
-  dispatcher_queue_controller_ = CreateDispatcherQueueController();
-
   window_class_.lpszClassName = L"FlutterWebviewMessage";
   window_class_.lpfnWndProc = &DefWindowProc;
   RegisterClass(&window_class_);

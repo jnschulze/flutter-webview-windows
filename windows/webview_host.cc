@@ -1,17 +1,19 @@
 #include "webview_host.h"
 
-#include <wil/com.h>
-#include <wrl.h>
-
 #include <future>
 #include <iostream>
 
+#include "util/rohelper.h"
+
+// static
 std::unique_ptr<WebviewHost> WebviewHost::Create(
     std::optional<std::string> user_data_directory,
     std::optional<std::string> browser_exe_path,
     std::optional<std::string> arguments) {
-  std::promise<HRESULT> result_promise;
-  wil::com_ptr<ICoreWebView2Environment> env;
+  auto dispatcher_queue_controller = CreateDispatcherQueueController();
+  if (!dispatcher_queue_controller) {
+    return {};
+  }
 
   wil::com_ptr<CoreWebView2EnvironmentOptions> opts;
   if (arguments.has_value()) {
@@ -32,11 +34,11 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
         std::wstring(browser_exe_path->begin(), browser_exe_path->end());
   }
 
-
+  std::promise<HRESULT> result_promise;
+  wil::com_ptr<ICoreWebView2Environment> env;
   auto result = CreateCoreWebView2EnvironmentWithOptions(
       browser_path.has_value() ? browser_path->c_str() : nullptr,
-      user_data_dir.has_value() ? user_data_dir->c_str() : nullptr,
-      opts.get(),
+      user_data_dir.has_value() ? user_data_dir->c_str() : nullptr, opts.get(),
       Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
           [&promise = result_promise, &ptr = env](
               HRESULT r, ICoreWebView2Environment* env) -> HRESULT {
@@ -46,7 +48,9 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
           })
           .Get());
 
-  if (result != S_OK || result_promise.get_future().get() != S_OK || !env) {
+  auto future = result_promise.get_future();
+  if (result != S_OK ||
+      (future.get() != S_OK && future.get() != RPC_E_CHANGED_MODE) || !env) {
     return {};
   }
 
@@ -55,13 +59,35 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
     return {};
   }
 
-  auto host = std::unique_ptr<WebviewHost>(new WebviewHost());
-  host->webview_env_ = webViewEnvironment3;
-
-  return host;
+  return std::unique_ptr<WebviewHost>(
+      new WebviewHost(dispatcher_queue_controller, webViewEnvironment3));
 }
 
-WebviewHost::WebviewHost() {
+// static
+winrt::com_ptr<ABI::Windows::System::IDispatcherQueueController>
+WebviewHost::CreateDispatcherQueueController() {
+  DispatcherQueueOptions options{sizeof(DispatcherQueueOptions),
+                                 DQTYPE_THREAD_CURRENT, DQTAT_COM_STA};
+
+  winrt::com_ptr<ABI::Windows::System::IDispatcherQueueController>
+      dispatcher_queue_controller;
+
+  rx::RoHelper helper(RO_INIT_SINGLETHREADED);
+  if (!SUCCEEDED(helper.CreateDispatcherQueueController(
+          options, dispatcher_queue_controller.put()))) {
+    std::cerr << "Creating DispatcherQueueController failed." << std::endl;
+    return {};
+  }
+
+  return dispatcher_queue_controller;
+}
+
+WebviewHost::WebviewHost(
+    winrt::com_ptr<ABI::Windows::System::IDispatcherQueueController>
+        dispatcher_queue_controller,
+    wil::com_ptr<ICoreWebView2Environment3> webview_env)
+    : dispatcher_queue_controller_(dispatcher_queue_controller),
+      webview_env_(webview_env) {
   compositor_ = winrt::Windows::UI::Composition::Compositor();
 }
 

@@ -40,6 +40,7 @@ add_library(${PLUGIN_NAME} SHARED
   "webview_bridge.cc"
   "texture_bridge.cc"
   "graphics_context.cc"
+  "util/rohelper.cc"
 )
 
 if(FLUTTER_WEBVIEW_WINDOWS_USE_D3D_TEXTURE)
