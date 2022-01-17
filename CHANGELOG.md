@@ -1,3 +1,7 @@
+## 0.1.2
+
+* Unregister method channel handlers upon WebView destruction
+
 ## 0.1.1
 
 * Fix unicode string conversion in ExecuteScript and LoadStringContent
