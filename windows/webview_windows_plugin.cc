@@ -29,8 +29,8 @@ constexpr auto kErrorMessageEnvironmentCreationFailed =
 
 static std::optional<std::string> GetDefaultDataDirectory() {
   PWSTR path_tmp;
-  if (SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path_tmp) !=
-      S_OK) {
+  if (!SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr,
+                                      &path_tmp))) {
     return std::nullopt;
   }
   auto path = std::filesystem::path(path_tmp);

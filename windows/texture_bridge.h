@@ -6,7 +6,6 @@
 
 #include <cstdint>
 #include <functional>
-#include <mutex>
 
 #include "graphics_context.h"
 #include "util/capture.desktop.interop.h"

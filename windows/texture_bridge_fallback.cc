@@ -10,7 +10,8 @@ TextureBridgeFallback::TextureBridgeFallback(
     winrt::Windows::UI::Composition::Visual visual)
     : TextureBridge(graphics_context, visual) {}
 
-void TextureBridgeFallback::ProcessFrame(ID3D11Texture2D* src_texture) {
+void TextureBridgeFallback::ProcessFrame(
+    winrt::com_ptr<ID3D11Texture2D> src_texture) {
   D3D11_TEXTURE2D_DESC desc;
   src_texture->GetDesc(&desc);
 
@@ -24,7 +25,7 @@ void TextureBridgeFallback::ProcessFrame(ID3D11Texture2D* src_texture) {
   auto staging_texture = staging_texture_.get();
 
   if (is_exact_size) {
-    device_context->CopyResource(staging_texture, src_texture);
+    device_context->CopyResource(staging_texture, src_texture.get());
   } else {
     D3D11_BOX client_box;
     client_box.top = 0;
@@ -34,12 +35,12 @@ void TextureBridgeFallback::ProcessFrame(ID3D11Texture2D* src_texture) {
     client_box.front = 0;
     client_box.back = 1;
     device_context->CopySubresourceRegion(staging_texture, 0, 0, 0, 0,
-                                          src_texture, 0, &client_box);
+                                          src_texture.get(), 0, &client_box);
   }
 
   D3D11_MAPPED_SUBRESOURCE mappedResource;
-  if (device_context->Map(staging_texture, 0, D3D11_MAP_READ, 0,
-                          &mappedResource) != S_OK) {
+  if (!SUCCEEDED(device_context->Map(staging_texture, 0, D3D11_MAP_READ, 0,
+                                     &mappedResource))) {
     return;
   }
 
@@ -83,8 +84,8 @@ void TextureBridgeFallback::EnsureStagingTexture(uint32_t width,
     dstDesc.Usage = D3D11_USAGE_STAGING;
 
     staging_texture_ = nullptr;
-    if (graphics_context_->d3d_device()->CreateTexture2D(
-            &dstDesc, nullptr, staging_texture_.put()) != S_OK) {
+    if (!SUCCEEDED(graphics_context_->d3d_device()->CreateTexture2D(
+            &dstDesc, nullptr, staging_texture_.put()))) {
       std::cerr << "Creating dst texture failed" << std::endl;
       return;
     }
@@ -102,8 +103,8 @@ const FlutterDesktopPixelBuffer* TextureBridgeFallback::CopyPixelBuffer(
     return nullptr;
   }
 
-  if(last_frame_) {
-    ProcessFrame(last_frame_.get());
+  if (last_frame_) {
+    ProcessFrame(last_frame_);
   }
 
   return pixel_buffer_.get();

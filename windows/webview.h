@@ -113,6 +113,8 @@ class Webview {
     return surface_;
   }
 
+  bool IsValid() { return is_valid_; }
+
   void SetSurfaceSize(size_t width, size_t height);
   void SetCursorPos(double x, double y);
   void SetPointerButtonState(WebviewPointerButton button, bool isDown);
@@ -178,6 +180,7 @@ class Webview {
  private:
   HWND hwnd_;
   bool owns_window_;
+  bool is_valid_;
   wil::com_ptr<ICoreWebView2CompositionController> composition_controller_;
   wil::com_ptr<ICoreWebView2Controller3> webview_controller_;
   wil::com_ptr<ICoreWebView2> webview_;
@@ -186,7 +189,8 @@ class Webview {
   wil::com_ptr<ICoreWebView2Settings2> settings2_;
   POINT last_cursor_pos_ = {0, 0};
   VirtualKeyState virtual_keys_;
-  WebviewPopupWindowPolicy popup_window_policy_ = WebviewPopupWindowPolicy::Allow;
+  WebviewPopupWindowPolicy popup_window_policy_ =
+      WebviewPopupWindowPolicy::Allow;
 
   winrt::agile_ref<winrt::Windows::UI::Composition::Visual> surface_{nullptr};
 

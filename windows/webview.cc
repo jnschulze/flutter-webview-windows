@@ -22,7 +22,7 @@ inline void ConvertColor(COREWEBVIEW2_COLOR& webview_color, int32_t color) {
   webview_color.A = (color >> 24) & 0xFF;
 }
 
-std::wstring get_utf16(const std::string &str, int codepage) {
+std::wstring get_utf16(const std::string& str, int codepage) {
   if (str.empty()) return std::wstring();
   int sz = MultiByteToWideChar(codepage, 0, &str[0], (int)str.size(), 0, 0);
   std::wstring res(sz, 0);
@@ -74,15 +74,19 @@ Webview::Webview(
       hwnd_(hwnd),
       owns_window_(owns_window) {
   webview_controller_ =
-      composition_controller_.query<ICoreWebView2Controller3>();
-  webview_controller_->get_CoreWebView2(webview_.put());
+      composition_controller_.try_query<ICoreWebView2Controller3>();
+  is_valid_ = webview_controller_ &&
+              SUCCEEDED(webview_controller_->get_CoreWebView2(webview_.put()));
+  if (!is_valid_) {
+    return;
+  }
 
   webview_controller_->put_BoundsMode(COREWEBVIEW2_BOUNDS_MODE_USE_RAW_PIXELS);
   webview_controller_->put_ShouldDetectMonitorScaleChanges(FALSE);
   webview_controller_->put_RasterizationScale(1.0);
 
   wil::com_ptr<ICoreWebView2Settings> settings;
-  if (webview_->get_Settings(settings.put()) == S_OK) {
+  if (SUCCEEDED(webview_->get_Settings(settings.put()))) {
     settings2_ = settings.try_query<ICoreWebView2Settings2>();
 
     settings->put_IsStatusBarEnabled(FALSE);
@@ -124,33 +128,36 @@ Webview::~Webview() {
 }
 
 void Webview::EnableSecurityUpdates() {
-  if (webview_->CallDevToolsProtocolMethod(L"Security.enable", L"{}",
-                                           nullptr) == S_OK) {
-    if (webview_->GetDevToolsProtocolEventReceiver(
-            L"Security.securityStateChanged",
-            &devtools_protocol_event_receiver_) == S_OK) {
-      devtools_protocol_event_receiver_->add_DevToolsProtocolEventReceived(
-          Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
-              [this](ICoreWebView2* sender,
-                     ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args)
-                  -> HRESULT {
-                if (devtools_protocol_event_callback_) {
-                  wil::unique_cotaskmem_string jsonArgs;
-                  if (args->get_ParameterObjectAsJson(&jsonArgs) == S_OK) {
-                    std::string json = CW2A(jsonArgs.get(), CP_UTF8);
-                    devtools_protocol_event_callback_(json.c_str());
-                  }
+  if (SUCCEEDED(webview_->CallDevToolsProtocolMethod(L"Security.enable", L"{}",
+                                                     nullptr)) &&
+      SUCCEEDED(webview_->GetDevToolsProtocolEventReceiver(
+          L"Security.securityStateChanged",
+          &devtools_protocol_event_receiver_))) {
+    devtools_protocol_event_receiver_->add_DevToolsProtocolEventReceived(
+        Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
+            [this](ICoreWebView2* sender,
+                   ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args)
+                -> HRESULT {
+              if (devtools_protocol_event_callback_) {
+                wil::unique_cotaskmem_string json_args;
+                if (args->get_ParameterObjectAsJson(&json_args) == S_OK) {
+                  std::string json = CW2A(json_args.get(), CP_UTF8);
+                  devtools_protocol_event_callback_(json.c_str());
                 }
+              }
 
-                return S_OK;
-              })
-              .Get(),
-          &event_registrations_.devtools_protocol_event_token_);
-    }
+              return S_OK;
+            })
+            .Get(),
+        &event_registrations_.devtools_protocol_event_token_);
   }
 }
 
 void Webview::RegisterEventHandlers() {
+  if (!webview_) {
+    return;
+  }
+
   webview_->add_ContentLoading(
       Callback<ICoreWebView2ContentLoadingEventHandler>(
           [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
@@ -330,6 +337,10 @@ void Webview::RegisterEventHandlers() {
 }
 
 void Webview::SetSurfaceSize(size_t width, size_t height) {
+  if (!IsValid()) {
+    return;
+  }
+
   auto surface = surface_.get();
 
   if (surface && width > 0 && height > 0) {
@@ -352,16 +363,25 @@ void Webview::SetSurfaceSize(size_t width, size_t height) {
 }
 
 bool Webview::ClearCookies() {
+  if (!IsValid()) {
+    return false;
+  }
   return webview_->CallDevToolsProtocolMethod(L"Network.clearBrowserCookies",
                                               L"{}", nullptr) == S_OK;
 }
 
 bool Webview::ClearCache() {
+  if (!IsValid()) {
+    return false;
+  }
   return webview_->CallDevToolsProtocolMethod(L"Network.clearBrowserCache",
                                               L"{}", nullptr) == S_OK;
 }
 
 bool Webview::SetCacheDisabled(bool disabled) {
+  if (!IsValid()) {
+    return false;
+  }
   std::string json = fmt::format("{{\"disableCache\":{}}}", disabled);
   return webview_->CallDevToolsProtocolMethod(L"Network.setCacheDisabled",
                                               towstring(json).c_str(),
@@ -380,6 +400,10 @@ bool Webview::SetUserAgent(const std::string& user_agent) {
 }
 
 bool Webview::SetBackgroundColor(int32_t color) {
+  if (!IsValid()) {
+    return false;
+  }
+
   COREWEBVIEW2_COLOR webview_color;
   ConvertColor(webview_color, color);
 
@@ -393,6 +417,10 @@ bool Webview::SetBackgroundColor(int32_t color) {
 }
 
 void Webview::SetCursorPos(double x, double y) {
+  if (!IsValid()) {
+    return;
+  }
+
   POINT point;
   point.x = static_cast<LONG>(x);
   point.y = static_cast<LONG>(y);
@@ -405,6 +433,10 @@ void Webview::SetCursorPos(double x, double y) {
 }
 
 void Webview::SetPointerButtonState(WebviewPointerButton button, bool is_down) {
+  if (!IsValid()) {
+    return;
+  }
+
   COREWEBVIEW2_MOUSE_EVENT_KIND kind;
   switch (button) {
     case WebviewPointerButton::Primary:
@@ -462,6 +494,10 @@ void Webview::SendScroll(double delta, bool horizontal) {
 }
 
 void Webview::SetScrollDelta(double delta_x, double delta_y) {
+  if (!IsValid()) {
+    return;
+  }
+
   if (delta_x != 0.0) {
     SendScroll(delta_x, true);
   }
@@ -471,41 +507,76 @@ void Webview::SetScrollDelta(double delta_x, double delta_y) {
 }
 
 void Webview::LoadUrl(const std::string& url) {
-  webview_->Navigate(towstring(url).c_str());
+  if (IsValid()) {
+    webview_->Navigate(towstring(url).c_str());
+  }
 }
 
 void Webview::LoadStringContent(const std::string& content) {
-  webview_->NavigateToString(get_utf16(content, CP_UTF8).c_str());
+  if (IsValid()) {
+    webview_->NavigateToString(get_utf16(content, CP_UTF8).c_str());
+  }
 }
 
 bool Webview::Stop() {
-  return webview_->CallDevToolsProtocolMethod(L"Page.stopLoading", L"{}",
-                                              nullptr) == S_OK;
+  if (!IsValid()) {
+    return false;
+  }
+  return SUCCEEDED(webview_->CallDevToolsProtocolMethod(L"Page.stopLoading",
+                                                        L"{}", nullptr));
 }
 
-bool Webview::Reload() { return webview_->Reload() == S_OK; }
+bool Webview::Reload() {
+  if (!IsValid()) {
+    return false;
+  }
+  return SUCCEEDED(webview_->Reload());
+}
 
-bool Webview::GoBack() { return webview_->GoBack() == S_OK; }
+bool Webview::GoBack() {
+  if (!IsValid()) {
+    return false;
+  }
+  return SUCCEEDED(webview_->GoBack());
+}
 
-bool Webview::GoForward() { return webview_->GoForward() == S_OK; }
+bool Webview::GoForward() {
+  if (!IsValid()) {
+    return false;
+  }
+  return SUCCEEDED(webview_->GoForward());
+}
 
 void Webview::ExecuteScript(const std::string& script,
                             ScriptExecutedCallback callback) {
-  webview_->ExecuteScript(      
-      get_utf16(script, CP_UTF8).c_str(),
-      Callback<ICoreWebView2ExecuteScriptCompletedHandler>([callback](
-                                                               HRESULT result,
-                                                               PCWSTR _) {
-        callback(result == S_OK);
-        return S_OK;
-      }).Get());
+  if (IsValid()) {
+    if (SUCCEEDED(webview_->ExecuteScript(
+            get_utf16(script, CP_UTF8).c_str(),
+            Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
+                [callback](HRESULT result, PCWSTR _) {
+                  callback(SUCCEEDED(result));
+                  return S_OK;
+                })
+                .Get()))) {
+      return;
+    }
+  }
+
+  callback(false);
 }
 
 bool Webview::PostWebMessage(const std::string& json) {
+  if (!IsValid()) {
+    return false;
+  }
   return webview_->PostWebMessageAsJson(towstring(json).c_str()) == S_OK;
 }
 
 bool Webview::Suspend() {
+  if (!IsValid()) {
+    return false;
+  }
+
   wil::com_ptr<ICoreWebView2_3> webview;
   webview = webview_.query<ICoreWebView2_3>();
   if (!webview) {
@@ -522,6 +593,10 @@ bool Webview::Suspend() {
 }
 
 bool Webview::Resume() {
+  if (!IsValid()) {
+    return false;
+  }
+
   wil::com_ptr<ICoreWebView2_3> webview;
   webview = webview_.query<ICoreWebView2_3>();
   if (!webview) {

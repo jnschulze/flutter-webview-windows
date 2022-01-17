@@ -12,7 +12,8 @@ TextureBridgeGpu::TextureBridgeGpu(
       kFlutterDesktopPixelFormatNone;  // no format required for DXGI surfaces
 }
 
-void TextureBridgeGpu::ProcessFrame(ID3D11Texture2D* src_texture) {
+void TextureBridgeGpu::ProcessFrame(
+    winrt::com_ptr<ID3D11Texture2D> src_texture) {
   D3D11_TEXTURE2D_DESC desc;
   src_texture->GetDesc(&desc);
 
@@ -25,7 +26,7 @@ void TextureBridgeGpu::ProcessFrame(ID3D11Texture2D* src_texture) {
   auto device_context = graphics_context_->d3d_device_context();
 
   if (is_exact_size) {
-    device_context->CopyResource(surface_.get(), src_texture);
+    device_context->CopyResource(surface_.get(), src_texture.get());
   } else {
     D3D11_BOX client_box;
     client_box.top = 0;
@@ -35,7 +36,7 @@ void TextureBridgeGpu::ProcessFrame(ID3D11Texture2D* src_texture) {
     client_box.front = 0;
     client_box.back = 1;
     device_context->CopySubresourceRegion(surface_.get(), 0, 0, 0, 0,
-                                          src_texture, 0, &client_box);
+                                          src_texture.get(), 0, &client_box);
   }
 
   device_context->Flush();
@@ -60,8 +61,8 @@ void TextureBridgeGpu::EnsureSurface(uint32_t width, uint32_t height,
 
     surface_ = nullptr;
 
-    if (graphics_context_->d3d_device()->CreateTexture2D(
-            &dstDesc, nullptr, surface_.put()) != S_OK) {
+    if (!SUCCEEDED(graphics_context_->d3d_device()->CreateTexture2D(
+            &dstDesc, nullptr, surface_.put()))) {
       std::cerr << "Creating intermediate texture failed" << std::endl;
       return;
     }
@@ -91,7 +92,7 @@ TextureBridgeGpu::GetSurfaceDescriptor(size_t width, size_t height) {
   }
 
   if (last_frame_) {
-    ProcessFrame(last_frame_.get());
+    ProcessFrame(last_frame_);
   }
 
   return &surface_descriptor_;
