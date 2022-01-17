@@ -1,3 +1,8 @@
+## 0.1.1
+
+* Fix unicode string conversion in ExecuteScript and LoadStringContent
+* Load CoreMessaging.dll on demand
+
 ## 0.1.0
 
 * Fix a string conversion issue
