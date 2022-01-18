@@ -1,3 +1,7 @@
+## 0.1.4
+
+* Improve error handling for Webview environment creation
+
 ## 0.1.3
 
 * Stability fixes
