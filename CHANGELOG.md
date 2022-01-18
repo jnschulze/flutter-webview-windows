@@ -1,3 +1,7 @@
+## 0.1.3
+
+* Stability fixes
+
 ## 0.1.2
 
 * Unregister method channel handlers upon WebView destruction
