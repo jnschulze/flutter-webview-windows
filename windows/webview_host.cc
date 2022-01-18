@@ -48,19 +48,18 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
           })
           .Get());
 
-  auto future = result_promise.get_future();
-  if (result != S_OK ||
-      (future.get() != S_OK && future.get() != RPC_E_CHANGED_MODE) || !env) {
-    return {};
+  if (result == S_OK) {
+    result = result_promise.get_future().get();
+    if ((result == S_OK || result == RPC_E_CHANGED_MODE) && env) {
+      auto webview_env3 = env.try_query<ICoreWebView2Environment3>();
+      if (webview_env3) {
+        return std::unique_ptr<WebviewHost>(new WebviewHost(
+            std::move(dispatcher_queue_controller), std::move(webview_env3)));
+      }
+    }
   }
 
-  auto webViewEnvironment3 = env.try_query<ICoreWebView2Environment3>();
-  if (!webViewEnvironment3) {
-    return {};
-  }
-
-  return std::unique_ptr<WebviewHost>(
-      new WebviewHost(dispatcher_queue_controller, webViewEnvironment3));
+  return {};
 }
 
 // static
