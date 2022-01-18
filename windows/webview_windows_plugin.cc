@@ -167,18 +167,18 @@ void WebviewWindowsPlugin::HandleMethodCall(
 
 void WebviewWindowsPlugin::CreateWebviewInstance(
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  if (!winrt::Windows::Graphics::Capture::GraphicsCaptureSession::
-          IsSupported()) {
-    return result->Error(
-        "winrt::Windows::Graphics::Capture::GraphicsCaptureSession is not "
-        "supported");
-  }
-
   if (!webview_host_) {
     webview_host_ = std::move(WebviewHost::Create(GetDefaultDataDirectory()));
     if (!webview_host_) {
       return result->Error(kErrorMessageEnvironmentCreationFailed);
     }
+  }
+
+  if (!winrt::Windows::Graphics::Capture::GraphicsCaptureSession::
+          IsSupported()) {
+    return result->Error(
+        "winrt::Windows::Graphics::Capture::GraphicsCaptureSession is not "
+        "supported");
   }
 
   if (!graphics_context_) {
