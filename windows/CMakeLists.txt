@@ -35,6 +35,7 @@ endif()
 
 add_library(${PLUGIN_NAME} SHARED
   "webview_windows_plugin.cc"
+  "webview_platform.cc"
   "webview.cc"
   "webview_host.cc"
   "webview_bridge.cc"

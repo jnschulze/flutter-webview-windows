@@ -239,10 +239,9 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   Future<void> dispose() async {
     await _creatingCompleter.future;
     if (!_isDisposed) {
-      await _pluginChannel.invokeMethod('dispose', _textureId);
       _isDisposed = true;
+      await _pluginChannel.invokeMethod('dispose', _textureId);
     }
-    _isDisposed = true;
     super.dispose();
   }
 

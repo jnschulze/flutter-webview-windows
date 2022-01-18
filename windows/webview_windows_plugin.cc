@@ -3,10 +3,8 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
-#include <shlobj.h>
 #include <windows.h>
 
-#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -14,6 +12,7 @@
 #include "graphics_context.h"
 #include "webview_bridge.h"
 #include "webview_host.h"
+#include "webview_platform.h"
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -24,25 +23,14 @@ namespace {
 constexpr auto kMethodInitialize = "initialize";
 constexpr auto kMethodDispose = "dispose";
 constexpr auto kMethodInitializeEnvironment = "initializeEnvironment";
-constexpr auto kErrorMessageEnvironmentCreationFailed =
-    "Creating Webview environment failed";
 
-static std::optional<std::string> GetDefaultDataDirectory() {
-  PWSTR path_tmp;
-  if (!SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr,
-                                      &path_tmp))) {
-    return std::nullopt;
-  }
-  auto path = std::filesystem::path(path_tmp);
-  CoTaskMemFree(path_tmp);
-
-  wchar_t filename[MAX_PATH];
-  GetModuleFileName(nullptr, filename, MAX_PATH);
-  path /= "flutter_webview_windows";
-  path /= std::filesystem::path(filename).stem();
-
-  return path.string();
-}
+constexpr auto kErrorCodeInvalidId = "invalid_id";
+constexpr auto kErrorCodeEnvironmentCreationFailed =
+    "environment_creation_failed";
+constexpr auto kErrorCodeEnvironmentAlreadyInitialized =
+    "environment_already_initialized";
+constexpr auto kErrorCodeWebviewCreationFailed = "webview_creation_failed";
+constexpr auto kErrorUnsupportedPlatform = "unsupported_platform";
 
 template <typename T>
 std::optional<T> GetOptionalValue(const flutter::EncodableMap& map,
@@ -67,13 +55,16 @@ class WebviewWindowsPlugin : public flutter::Plugin {
   virtual ~WebviewWindowsPlugin();
 
  private:
-  std::unordered_map<int64_t, std::unique_ptr<WebviewBridge>> instances_;
-  std::unique_ptr<WebviewHost> webview_host_;
+  std::unique_ptr<WebviewPlatform> platform_;
   std::unique_ptr<GraphicsContext> graphics_context_;
+  std::unique_ptr<WebviewHost> webview_host_;
+  std::unordered_map<int64_t, std::unique_ptr<WebviewBridge>> instances_;
 
   WNDCLASS window_class_ = {};
   flutter::TextureRegistrar* textures_;
   flutter::BinaryMessenger* messenger_;
+
+  bool InitPlatform();
 
   void CreateWebviewInstance(
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>);
@@ -120,8 +111,13 @@ void WebviewWindowsPlugin::HandleMethodCall(
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   if (method_call.method_name().compare(kMethodInitializeEnvironment) == 0) {
     if (webview_host_) {
-      return result->Error("already_initialized",
+      return result->Error(kErrorCodeEnvironmentAlreadyInitialized,
                            "The webview environment is already initialized");
+    }
+
+    if (!InitPlatform()) {
+      return result->Error(kErrorUnsupportedPlatform,
+                           "The platform is not supported");
     }
 
     const auto& map = std::get<flutter::EncodableMap>(*method_call.arguments());
@@ -132,7 +128,7 @@ void WebviewWindowsPlugin::HandleMethodCall(
     std::optional<std::string> user_data_path =
         GetOptionalValue<std::string>(map, "userDataPath");
     if (!user_data_path) {
-      user_data_path = GetDefaultDataDirectory();
+      user_data_path = platform_->GetDefaultDataDirectory();
     }
 
     std::optional<std::string> additional_args =
@@ -141,7 +137,7 @@ void WebviewWindowsPlugin::HandleMethodCall(
     webview_host_ = std::move(
         WebviewHost::Create(user_data_path, browser_exe_path, additional_args));
     if (!webview_host_) {
-      return result->Error(kErrorMessageEnvironmentCreationFailed);
+      return result->Error(kErrorCodeEnvironmentCreationFailed);
     }
 
     return result->Success();
@@ -159,7 +155,7 @@ void WebviewWindowsPlugin::HandleMethodCall(
         return result->Success();
       }
     }
-    return result->Error("No such instance");
+    return result->Error(kErrorCodeInvalidId);
   } else {
     result->NotImplemented();
   }
@@ -167,18 +163,17 @@ void WebviewWindowsPlugin::HandleMethodCall(
 
 void WebviewWindowsPlugin::CreateWebviewInstance(
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  if (!webview_host_) {
-    webview_host_ = std::move(WebviewHost::Create(GetDefaultDataDirectory()));
-    if (!webview_host_) {
-      return result->Error(kErrorMessageEnvironmentCreationFailed);
-    }
+  if (!InitPlatform()) {
+    return result->Error(kErrorUnsupportedPlatform,
+                         "The platform is not supported");
   }
 
-  if (!winrt::Windows::Graphics::Capture::GraphicsCaptureSession::
-          IsSupported()) {
-    return result->Error(
-        "winrt::Windows::Graphics::Capture::GraphicsCaptureSession is not "
-        "supported");
+  if (!webview_host_) {
+    webview_host_ =
+        std::move(WebviewHost::Create(platform_->GetDefaultDataDirectory()));
+    if (!webview_host_) {
+      return result->Error(kErrorCodeEnvironmentCreationFailed);
+    }
   }
 
   if (!graphics_context_) {
@@ -193,6 +188,11 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
       std::move(result);
   webview_host_->CreateWebview(
       hwnd, true, true, [holder, this](std::unique_ptr<Webview> webview) {
+        if (!webview) {
+          return holder->Error(kErrorCodeWebviewCreationFailed,
+                               "Creating the webview failed");
+        }
+
         auto bridge = std::make_unique<WebviewBridge>(
             messenger_, textures_, graphics_context_.get(), std::move(webview));
         auto texture_id = bridge->texture_id();
@@ -205,6 +205,13 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
 
         holder->Success(response);
       });
+}
+
+bool WebviewWindowsPlugin::InitPlatform() {
+  if (!platform_) {
+    platform_ = std::make_unique<WebviewPlatform>();
+  }
+  return platform_->IsSupported();
 }
 
 }  // namespace
