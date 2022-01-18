@@ -44,22 +44,33 @@ void TextureBridgeFallback::ProcessFrame(
     return;
   }
 
-  if (!pixel_buffer_ || pixel_buffer_->width != width ||
-      pixel_buffer_->height != height) {
-    if (!pixel_buffer_) {
-      pixel_buffer_ = std::make_unique<FlutterDesktopPixelBuffer>();
+  {
+    const std::lock_guard<std::mutex> lock(buffer_mutex_);
+    if (!pixel_buffer_ || pixel_buffer_->width != width ||
+        pixel_buffer_->height != height) {
+      if (!pixel_buffer_) {
+        pixel_buffer_ = std::make_unique<FlutterDesktopPixelBuffer>();
+        pixel_buffer_->release_context = &buffer_mutex_;
+        // Gets invoked after the FlutterDesktopPixelBuffer's
+        // backing buffer has been uploaded.
+        pixel_buffer_->release_callback = [](void* opaque) {
+          auto mutex = reinterpret_cast<std::mutex*>(opaque);
+          // Gets locked just before |CopyPixelBuffer| returns.
+          mutex->unlock();
+        };
+      }
+      pixel_buffer_->width = width;
+      pixel_buffer_->height = height;
+      const auto size = width * height * 4;
+      backing_pixel_buffer_.reset(new uint8_t[size]);
+      pixel_buffer_->buffer = backing_pixel_buffer_.get();
     }
-    pixel_buffer_->width = width;
-    pixel_buffer_->height = height;
-    const auto size = width * height * 4;
-    backing_pixel_buffer_.reset(new uint8_t[size]);
-    pixel_buffer_->buffer = backing_pixel_buffer_.get();
-  }
 
-  const auto src_pitch_in_pixels = mappedResource.RowPitch / 4;
-  RGBA_to_BGRA(reinterpret_cast<uint32_t*>(backing_pixel_buffer_.get()),
-               static_cast<const uint32_t*>(mappedResource.pData), height,
-               src_pitch_in_pixels, width);
+    const auto src_pitch_in_pixels = mappedResource.RowPitch / 4;
+    RGBA_to_BGRA(reinterpret_cast<uint32_t*>(backing_pixel_buffer_.get()),
+                 static_cast<const uint32_t*>(mappedResource.pData), height,
+                 src_pitch_in_pixels, width);
+  }
 
   device_context->Unmap(staging_texture, 0);
 }
@@ -107,5 +118,7 @@ const FlutterDesktopPixelBuffer* TextureBridgeFallback::CopyPixelBuffer(
     ProcessFrame(last_frame_);
   }
 
+  // Gets unlocked in the FlutterDesktopPixelBuffer's release callback
+  buffer_mutex_.lock();
   return pixel_buffer_.get();
 }
