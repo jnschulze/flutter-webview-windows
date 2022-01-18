@@ -2,6 +2,8 @@
 
 #include <flutter/texture_registrar.h>
 
+#include <mutex>
+
 #include "texture_bridge.h"
 
 class TextureBridgeFallback : public TextureBridge {
@@ -14,6 +16,7 @@ class TextureBridgeFallback : public TextureBridge {
  private:
   Size staging_texture_size_ = {0, 0};
   winrt::com_ptr<ID3D11Texture2D> staging_texture_{nullptr};
+  std::mutex buffer_mutex_;
   std::unique_ptr<uint8_t> backing_pixel_buffer_;
   std::unique_ptr<FlutterDesktopPixelBuffer> pixel_buffer_;
 
