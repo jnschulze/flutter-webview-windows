@@ -1,11 +1,10 @@
 #pragma once
 
-#include <DispatcherQueue.h>
 #include <WebView2.h>
 #include <WebView2EnvironmentOptions.h>
 #include <wil/com.h>
 #include <winrt/Windows.UI.Composition.h>
-#include <wrl.h>
+
 
 #include <functional>
 
@@ -34,16 +33,10 @@ class WebviewHost {
   winrt::Windows::UI::Composition::Visual CreateSurface() const;
 
  private:
-  winrt::com_ptr<ABI::Windows::System::IDispatcherQueueController>
-      dispatcher_queue_controller_;
   winrt::Windows::UI::Composition::Compositor compositor_;
   wil::com_ptr<ICoreWebView2Environment3> webview_env_;
 
-  WebviewHost(winrt::com_ptr<ABI::Windows::System::IDispatcherQueueController>
-                  dispatcher_queue_controller,
-              wil::com_ptr<ICoreWebView2Environment3> webview_env);
+  WebviewHost(wil::com_ptr<ICoreWebView2Environment3> webview_env);
   void CreateWebViewCompositionController(
       HWND hwnd, CompositionControllerCreationCallback cb);
-
-  static winrt::com_ptr<ABI::Windows::System::IDispatcherQueueController> CreateDispatcherQueueController();
 };

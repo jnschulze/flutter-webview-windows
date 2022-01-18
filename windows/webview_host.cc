@@ -10,11 +10,6 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
     std::optional<std::string> user_data_directory,
     std::optional<std::string> browser_exe_path,
     std::optional<std::string> arguments) {
-  auto dispatcher_queue_controller = CreateDispatcherQueueController();
-  if (!dispatcher_queue_controller) {
-    return {};
-  }
-
   wil::com_ptr<CoreWebView2EnvironmentOptions> opts;
   if (arguments.has_value()) {
     opts = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
@@ -48,13 +43,13 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
           })
           .Get());
 
-  if (result == S_OK) {
+  if (SUCCEEDED(result)) {
     result = result_promise.get_future().get();
-    if ((result == S_OK || result == RPC_E_CHANGED_MODE) && env) {
+    if ((SUCCEEDED(result) || result == RPC_E_CHANGED_MODE) && env) {
       auto webview_env3 = env.try_query<ICoreWebView2Environment3>();
       if (webview_env3) {
-        return std::unique_ptr<WebviewHost>(new WebviewHost(
-            std::move(dispatcher_queue_controller), std::move(webview_env3)));
+        return std::unique_ptr<WebviewHost>(
+            new WebviewHost(std::move(webview_env3)));
       }
     }
   }
@@ -62,31 +57,8 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
   return {};
 }
 
-// static
-winrt::com_ptr<ABI::Windows::System::IDispatcherQueueController>
-WebviewHost::CreateDispatcherQueueController() {
-  DispatcherQueueOptions options{sizeof(DispatcherQueueOptions),
-                                 DQTYPE_THREAD_CURRENT, DQTAT_COM_STA};
-
-  winrt::com_ptr<ABI::Windows::System::IDispatcherQueueController>
-      dispatcher_queue_controller;
-
-  rx::RoHelper helper(RO_INIT_SINGLETHREADED);
-  if (!SUCCEEDED(helper.CreateDispatcherQueueController(
-          options, dispatcher_queue_controller.put()))) {
-    std::cerr << "Creating DispatcherQueueController failed." << std::endl;
-    return {};
-  }
-
-  return dispatcher_queue_controller;
-}
-
-WebviewHost::WebviewHost(
-    winrt::com_ptr<ABI::Windows::System::IDispatcherQueueController>
-        dispatcher_queue_controller,
-    wil::com_ptr<ICoreWebView2Environment3> webview_env)
-    : dispatcher_queue_controller_(dispatcher_queue_controller),
-      webview_env_(webview_env) {
+WebviewHost::WebviewHost(wil::com_ptr<ICoreWebView2Environment3> webview_env)
+    : webview_env_(webview_env) {
   compositor_ = winrt::Windows::UI::Composition::Compositor();
 }
 
@@ -96,26 +68,39 @@ void WebviewHost::CreateWebview(HWND hwnd, bool offscreen_only,
   CreateWebViewCompositionController(
       hwnd, [=, self = this](
                 wil::com_ptr<ICoreWebView2CompositionController> controller) {
-        std::unique_ptr<Webview> webview(new Webview(
-            std::move(controller), self, hwnd, owns_window, offscreen_only));
-        callback(std::move(webview));
+        if (controller) {
+          std::unique_ptr<Webview> webview(new Webview(
+              std::move(controller), self, hwnd, owns_window, offscreen_only));
+          callback(std::move(webview));
+        } else {
+          callback(nullptr);
+        }
       });
 }
 
 void WebviewHost::CreateWebViewCompositionController(
     HWND hwnd, CompositionControllerCreationCallback callback) {
-  webview_env_->CreateCoreWebView2CompositionController(
+  auto success = SUCCEEDED(webview_env_->CreateCoreWebView2CompositionController(
       hwnd,
       Callback<
           ICoreWebView2CreateCoreWebView2CompositionControllerCompletedHandler>(
-          [callback](HRESULT result,
-                     ICoreWebView2CompositionController* compositionController)
-              -> HRESULT {
-            callback(std::move(wil::com_ptr<ICoreWebView2CompositionController>(
-                compositionController)));
+          [callback](HRESULT result, ICoreWebView2CompositionController*
+                                         compositionController) -> HRESULT {
+            if (SUCCEEDED(result)) {
+              callback(
+                  std::move(wil::com_ptr<ICoreWebView2CompositionController>(
+                      compositionController)));
+            } else {
+              callback(nullptr);
+            }
+
             return S_OK;
           })
-          .Get());
+          .Get()));
+
+  if (!success) {
+    callback(nullptr);
+  }
 }
 
 winrt::Windows::UI::Composition::Visual WebviewHost::CreateSurface() const {
