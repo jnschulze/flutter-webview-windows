@@ -14,24 +14,29 @@ add_subdirectory(third_party/fmt)
 
 set(NUGET_URL https://dist.nuget.org/win-x86-commandline/v5.10.0/nuget.exe)
 set(NUGET_SHA256 852b71cc8c8c2d40d09ea49d321ff56fd2397b9d6ea9f96e532530307bbbafd3)
-set(NUGET ${CMAKE_BINARY_DIR}/nuget.exe)
-if (NOT EXISTS ${NUGET})
-  file(DOWNLOAD ${NUGET_URL} ${NUGET})
+
+find_program(NUGET nuget)
+if(NOT NUGET)
+  message(NOTICE "Nuget is not installed.")
+  set(NUGET ${CMAKE_BINARY_DIR}/nuget.exe)
+  if (NOT EXISTS ${NUGET})
+    message(NOTICE "Attempting to download nuget.")
+    file(DOWNLOAD ${NUGET_URL} ${NUGET})
+  endif()
+
+  file(SHA256 ${NUGET} NUGET_DL_HASH)
+  if (NOT NUGET_DL_HASH STREQUAL NUGET_SHA256)
+    message(FATAL_ERROR "Integrity check for ${NUGET} failed.")
+  endif()
 endif()
 
-file(SHA256 ${NUGET} NUGET_DL_HASH)
-if (NUGET_DL_HASH STREQUAL NUGET_SHA256)
-  add_custom_target(DEPENDENCIES_DOWNLOAD ALL)
-  add_custom_command(
-    TARGET DEPENDENCIES_DOWNLOAD PRE_BUILD
-    COMMAND ${NUGET} install Microsoft.Windows.ImplementationLibrary -Version ${WIL_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
-    COMMAND ${NUGET} install Microsoft.Web.WebView2 -Version ${WEBVIEW_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
-    DEPENDS ${NUGET}
-  )
-else()
-  message(FATAL_ERROR "Integrity check for ${NUGET} failed")
-endif()
-
+add_custom_target(DEPENDENCIES_DOWNLOAD ALL)
+add_custom_command(
+  TARGET DEPENDENCIES_DOWNLOAD PRE_BUILD
+  COMMAND ${NUGET} install Microsoft.Windows.ImplementationLibrary -Version ${WIL_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
+  COMMAND ${NUGET} install Microsoft.Web.WebView2 -Version ${WEBVIEW_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
+  DEPENDS ${NUGET}
+)
 
 add_library(${PLUGIN_NAME} SHARED
   "webview_windows_plugin.cc"
