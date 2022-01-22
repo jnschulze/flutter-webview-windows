@@ -118,7 +118,12 @@ const FlutterDesktopPixelBuffer* TextureBridgeFallback::CopyPixelBuffer(
     ProcessFrame(last_frame_);
   }
 
-  // Gets unlocked in the FlutterDesktopPixelBuffer's release callback
-  buffer_mutex_.lock();
-  return pixel_buffer_.get();
+  auto buffer = pixel_buffer_.get();
+  // Only lock the mutex if the buffer is not null
+  // (to ensure the release callback gets called)
+  if (buffer) {
+    // Gets unlocked in the FlutterDesktopPixelBuffer's release callback.
+    buffer_mutex_.lock();
+  }
+  return buffer;
 }
