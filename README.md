@@ -13,6 +13,7 @@ A [Flutter](https://flutter.dev/) WebView plugin for Windows built on [Microsoft
 ### Development platform requirements
 - Visual Studio 2019
 - Windows 10 SDK 2004+ (10.0.19041.0)
+- (recommended) nuget.exe in your $PATH *(The makefile attempts to download nuget if it's not installed, however, this fallback might not work in China)*
 
 ## Demo
 ![image](https://user-images.githubusercontent.com/720469/116823636-d8b9fe00-ab85-11eb-9f91-b7bc819615ed.png)
