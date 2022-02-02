@@ -1,3 +1,7 @@
+## 0.1.6
+
+* Improve WebView creation error handling
+
 ## 0.1.5
 
 * Fix a potential crash during WebView creation
