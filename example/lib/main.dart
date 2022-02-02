@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 
 import 'package:webview_windows/webview_windows.dart';
@@ -9,12 +10,19 @@ void main() {
   runApp(MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   @override
-  _MyAppState createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(navigatorKey: navigatorKey, home: ExampleBrowser());
+  }
 }
 
-class _MyAppState extends State<MyApp> {
+class ExampleBrowser extends StatefulWidget {
+  @override
+  State<ExampleBrowser> createState() => _ExampleBrowser();
+}
+
+class _ExampleBrowser extends State<ExampleBrowser> {
   final _controller = WebviewController();
   final _textController = TextEditingController();
   bool _isWebviewSuspended = false;
@@ -22,7 +30,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-
     initPlatformState();
   }
 
@@ -34,18 +41,43 @@ class _MyAppState extends State<MyApp> {
     //await WebviewController.initializeEnvironment(
     //    additionalArguments: '--show-fps-counter');
 
-    await _controller.initialize();
-    _controller.url.listen((url) {
-      _textController.text = url;
-    });
+    try {
+      await _controller.initialize();
+      _controller.url.listen((url) {
+        _textController.text = url;
+      });
 
-    await _controller.setBackgroundColor(Colors.transparent);
-    await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
-    await _controller.loadUrl('https://flutter.dev');
+      await _controller.setBackgroundColor(Colors.transparent);
+      await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+      await _controller.loadUrl('https://flutter.dev');
 
-    if (!mounted) return;
-
-    setState(() {});
+      if (!mounted) return;
+      setState(() {});
+    } on PlatformException catch (e) {
+      WidgetsBinding.instance?.addPostFrameCallback((_) {
+        showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+                  title: Text('Error'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Code: ${e.code}'),
+                      Text('Message: ${e.message}'),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      child: Text('Continue'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    )
+                  ],
+                ));
+      });
+    }
   }
 
   Widget compositeView() {
@@ -112,35 +144,31 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      home: Scaffold(
-        floatingActionButton: FloatingActionButton(
-          tooltip: _isWebviewSuspended ? 'Resume webview' : 'Suspend webview',
-          onPressed: () async {
-            if (_isWebviewSuspended) {
-              await _controller.resume();
-            } else {
-              await _controller.suspend();
-            }
-            setState(() {
-              _isWebviewSuspended = !_isWebviewSuspended;
-            });
-          },
-          child: Icon(_isWebviewSuspended ? Icons.play_arrow : Icons.pause),
-        ),
-        appBar: AppBar(
-            title: StreamBuilder<String>(
-          stream: _controller.title,
-          builder: (context, snapshot) {
-            return Text(snapshot.hasData
-                ? snapshot.data!
-                : 'WebView (Windows) Example');
-          },
-        )),
-        body: Center(
-          child: compositeView(),
-        ),
+    return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        tooltip: _isWebviewSuspended ? 'Resume webview' : 'Suspend webview',
+        onPressed: () async {
+          if (_isWebviewSuspended) {
+            await _controller.resume();
+          } else {
+            await _controller.suspend();
+          }
+          setState(() {
+            _isWebviewSuspended = !_isWebviewSuspended;
+          });
+        },
+        child: Icon(_isWebviewSuspended ? Icons.play_arrow : Icons.pause),
+      ),
+      appBar: AppBar(
+          title: StreamBuilder<String>(
+        stream: _controller.title,
+        builder: (context, snapshot) {
+          return Text(
+              snapshot.hasData ? snapshot.data! : 'WebView (Windows) Example');
+        },
+      )),
+      body: Center(
+        child: compositeView(),
       ),
     );
   }

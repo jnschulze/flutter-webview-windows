@@ -5,17 +5,31 @@
 #include <wil/com.h>
 #include <winrt/Windows.UI.Composition.h>
 
-
 #include <functional>
 
 #include "webview.h"
 
 using namespace Microsoft::WRL;
 
+struct WebviewCreationError {
+  HRESULT hr;
+  std::string message;
+
+  explicit WebviewCreationError(HRESULT hr, std::string message)
+      : hr(hr), message(message) {}
+
+  static std::unique_ptr<WebviewCreationError> create(
+      HRESULT hr, const std::string message) {
+    return std::make_unique<WebviewCreationError>(hr, message);
+  }
+};
+
 class WebviewHost {
  public:
-  typedef std::function<void(std::unique_ptr<Webview>)> WebviewCreationCallback;
-  typedef std::function<void(wil::com_ptr<ICoreWebView2CompositionController>)>
+  typedef std::function<void(std::unique_ptr<Webview>,
+                             std::unique_ptr<WebviewCreationError>)>
+      WebviewCreationCallback;
+  typedef std::function<void(wil::com_ptr<ICoreWebView2CompositionController>, std::unique_ptr<WebviewCreationError>)>
       CompositionControllerCreationCallback;
 
   static std::unique_ptr<WebviewHost> Create(

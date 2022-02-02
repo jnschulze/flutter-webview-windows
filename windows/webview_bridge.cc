@@ -175,7 +175,10 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
         RegisterEventHandlers();
         return nullptr;
       },
-      [](const flutter::EncodableValue* arguments) { return nullptr; });
+      [this](const flutter::EncodableValue* arguments) {
+        event_sink_ = nullptr;
+        return nullptr;
+      });
 
   event_channel_->SetStreamHandler(std::move(handler));
 }
@@ -192,7 +195,7 @@ void WebviewBridge::RegisterEventHandlers() {
          flutter::EncodableValue("urlChanged")},
         {flutter::EncodableValue(kEventValue), flutter::EncodableValue(url)},
     });
-    event_sink_->Success(event);
+    EmitEvent(event);
   });
 
   webview_->OnLoadingStateChanged([this](WebviewLoadingState state) {
@@ -202,7 +205,7 @@ void WebviewBridge::RegisterEventHandlers() {
         {flutter::EncodableValue(kEventValue),
          flutter::EncodableValue(static_cast<int>(state))},
     });
-    event_sink_->Success(event);
+    EmitEvent(event);
   });
 
   webview_->OnHistoryChanged([this](WebviewHistoryChanged historyChanged) {
@@ -219,7 +222,7 @@ void WebviewBridge::RegisterEventHandlers() {
                   static_cast<bool>(historyChanged.can_go_forward))},
          })},
     });
-    event_sink_->Success(event);
+    EmitEvent(event);
   });
 
   webview_->OnDevtoolsProtocolEvent([this](const std::string& json) {
@@ -227,7 +230,7 @@ void WebviewBridge::RegisterEventHandlers() {
         {flutter::EncodableValue(kEventType),
          flutter::EncodableValue("securityStateChanged")},
         {flutter::EncodableValue(kEventValue), flutter::EncodableValue(json)}});
-    event_sink_->Success(event);
+    EmitEvent(event);
   });
 
   webview_->OnDocumentTitleChanged([this](const std::string& title) {
@@ -236,7 +239,7 @@ void WebviewBridge::RegisterEventHandlers() {
          flutter::EncodableValue("titleChanged")},
         {flutter::EncodableValue(kEventValue), flutter::EncodableValue(title)},
     });
-    event_sink_->Success(event);
+    EmitEvent(event);
   });
 
   webview_->OnSurfaceSizeChanged([this](size_t width, size_t height) {
@@ -249,7 +252,7 @@ void WebviewBridge::RegisterEventHandlers() {
         flutter::EncodableMap{{flutter::EncodableValue(kEventType),
                                flutter::EncodableValue("cursorChanged")},
                               {flutter::EncodableValue(kEventValue), name}});
-    event_sink_->Success(event);
+    EmitEvent(event);
   });
 
   webview_->OnWebMessageReceived([this](const std::string& message) {
@@ -257,7 +260,7 @@ void WebviewBridge::RegisterEventHandlers() {
         flutter::EncodableMap{{flutter::EncodableValue(kEventType),
                                flutter::EncodableValue("webMessageReceived")},
                               {flutter::EncodableValue(kEventValue), message}});
-    event_sink_->Success(event);
+    EmitEvent(event);
   });
 
   webview_->OnPermissionRequested(
