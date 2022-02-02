@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -92,6 +91,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
 
   late MethodChannel _methodChannel;
   late EventChannel _eventChannel;
+  StreamSubscription? _eventStreamSubscription;
 
   final StreamController<String> _urlStreamController =
       StreamController<String>();
@@ -144,67 +144,64 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return Future<void>.value();
     }
+    _creatingCompleter = Completer<void>();
     try {
-      _creatingCompleter = Completer<void>();
-
       final reply =
           await _pluginChannel.invokeMapMethod<String, dynamic>('initialize');
 
-      if (reply != null) {
-        _textureId = reply['textureId'];
-        value = value.copyWith(isInitialized: true);
-        _methodChannel = MethodChannel('$_pluginChannelPrefix/$_textureId');
-        _eventChannel =
-            EventChannel('$_pluginChannelPrefix/$_textureId/events');
-        _eventChannel.receiveBroadcastStream().listen((event) {
-          final map = event as Map<dynamic, dynamic>;
-          switch (map['type']) {
-            case 'urlChanged':
-              _urlStreamController.add(map['value']);
-              break;
-            case 'loadingStateChanged':
-              final value = LoadingState.values[map['value']];
-              _loadingStateStreamController.add(value);
-              break;
-            case 'historyChanged':
-              final value = HistoryChanged(
-                  map['value']['canGoBack'], map['value']['canGoForward']);
-              _historyChangedStreamController.add(value);
-              break;
-            case 'securityStateChanged':
-              _securityStateChangedStreamController.add(map['value']);
-              break;
-            case 'titleChanged':
-              _titleStreamController.add(map['value']);
-              break;
-            case 'cursorChanged':
-              _cursorStreamController.add(getCursorByName(map['value']));
-              break;
-            case 'webMessageReceived':
-              try {
-                final message = json.decode(map['value']);
-                _webMessageStreamController.add(message);
-              } catch (ex) {
-                _webMessageStreamController.addError(ex);
-              }
-          }
-        });
+      _textureId = reply!['textureId'];
+      _methodChannel = MethodChannel('$_pluginChannelPrefix/$_textureId');
+      _eventChannel = EventChannel('$_pluginChannelPrefix/$_textureId/events');
+      _eventStreamSubscription =
+          _eventChannel.receiveBroadcastStream().listen((event) {
+        final map = event as Map<dynamic, dynamic>;
+        switch (map['type']) {
+          case 'urlChanged':
+            _urlStreamController.add(map['value']);
+            break;
+          case 'loadingStateChanged':
+            final value = LoadingState.values[map['value']];
+            _loadingStateStreamController.add(value);
+            break;
+          case 'historyChanged':
+            final value = HistoryChanged(
+                map['value']['canGoBack'], map['value']['canGoForward']);
+            _historyChangedStreamController.add(value);
+            break;
+          case 'securityStateChanged':
+            _securityStateChangedStreamController.add(map['value']);
+            break;
+          case 'titleChanged':
+            _titleStreamController.add(map['value']);
+            break;
+          case 'cursorChanged':
+            _cursorStreamController.add(getCursorByName(map['value']));
+            break;
+          case 'webMessageReceived':
+            try {
+              final message = json.decode(map['value']);
+              _webMessageStreamController.add(message);
+            } catch (ex) {
+              _webMessageStreamController.addError(ex);
+            }
+        }
+      });
 
-        _methodChannel.setMethodCallHandler((call) {
-          if (call.method == 'permissionRequested') {
-            return _onPermissionRequested(
-                call.arguments as Map<dynamic, dynamic>);
-          }
+      _methodChannel.setMethodCallHandler((call) {
+        if (call.method == 'permissionRequested') {
+          return _onPermissionRequested(
+              call.arguments as Map<dynamic, dynamic>);
+        }
 
-          throw MissingPluginException('Unknown method ${call.method}');
-        });
-      }
+        throw MissingPluginException('Unknown method ${call.method}');
+      });
+
+      value = value.copyWith(isInitialized: true);
+      _creatingCompleter.complete();
     } on PlatformException catch (e) {
       _creatingCompleter.completeError(e);
-      return;
     }
 
-    _creatingCompleter.complete();
     return _creatingCompleter.future;
   }
 
@@ -240,6 +237,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     await _creatingCompleter.future;
     if (!_isDisposed) {
       _isDisposed = true;
+      await _eventStreamSubscription?.cancel();
       await _pluginChannel.invokeMethod('dispose', _textureId);
     }
     super.dispose();
@@ -250,6 +248,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('loadUrl', url);
   }
 
@@ -258,6 +257,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('loadStringContent', content);
   }
 
@@ -266,6 +266,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('reload');
   }
 
@@ -274,6 +275,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('stop');
   }
 
@@ -282,6 +284,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('goBack');
   }
 
@@ -290,6 +293,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('goForward');
   }
 
@@ -298,6 +302,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('executeScript', script);
   }
 
@@ -306,15 +311,17 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('postWebMessage', message);
   }
 
   /// Sets the user agent value.
-  Future<void> setUserAgent(String value) async {
+  Future<void> setUserAgent(String userAgent) async {
     if (_isDisposed) {
       return;
     }
-    return _methodChannel.invokeMethod('setUserAgent', value);
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod('setUserAgent', userAgent);
   }
 
   /// Clears browser cookies.
@@ -322,6 +329,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('clearCookies');
   }
 
@@ -330,6 +338,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('clearCache');
   }
 
@@ -338,6 +347,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('setCacheDisabled', disabled);
   }
 
@@ -350,6 +360,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod(
         'setBackgroundColor', color.value.toSigned(32));
   }
@@ -360,6 +371,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod(
         'setPopupWindowPolicy', popupPolicy.index);
   }
@@ -369,7 +381,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('suspend');
   }
 
@@ -378,7 +390,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
-
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('resume');
   }
 
@@ -387,6 +399,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel
         .invokeMethod('setCursorPos', [position.dx, position.dy]);
   }
@@ -396,6 +409,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('setPointerButton',
         <String, dynamic>{'button': button.index, 'isDown': isDown});
   }
@@ -405,6 +419,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('setScrollDelta', [dx, dy]);
   }
 
@@ -413,6 +428,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     if (_isDisposed) {
       return;
     }
+    assert(value.isInitialized);
     return _methodChannel.invokeMethod('setSize', [size.width, size.height]);
   }
 }

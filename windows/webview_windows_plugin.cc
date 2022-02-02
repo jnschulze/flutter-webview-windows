@@ -3,6 +3,7 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
+#include <fmt/core.h>
 #include <windows.h>
 
 #include <memory>
@@ -184,13 +185,22 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
                              CW_DEFAULT, 0, 0, HWND_MESSAGE, nullptr,
                              window_class_.hInstance, nullptr);
 
-  std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> holder =
-      std::move(result);
+  std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
+      shared_result = std::move(result);
   webview_host_->CreateWebview(
-      hwnd, true, true, [holder, this](std::unique_ptr<Webview> webview) {
+      hwnd, true, true,
+      [shared_result, this](std::unique_ptr<Webview> webview,
+                            std::unique_ptr<WebviewCreationError> error) {
         if (!webview) {
-          return holder->Error(kErrorCodeWebviewCreationFailed,
-                               "Creating the webview failed");
+          if (error) {
+            return shared_result->Error(
+                kErrorCodeWebviewCreationFailed,
+                fmt::format(
+                    "Creating the webview failed: {} (HRESULT: {:#010x})",
+                    error->message, error->hr));
+          }
+          return shared_result->Error(kErrorCodeWebviewCreationFailed,
+                                      "Creating the webview failed.");
         }
 
         auto bridge = std::make_unique<WebviewBridge>(
@@ -203,7 +213,7 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
              flutter::EncodableValue(texture_id)},
         });
 
-        holder->Success(response);
+        shared_result->Success(response);
       });
 }
 

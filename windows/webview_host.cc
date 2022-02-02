@@ -67,39 +67,47 @@ void WebviewHost::CreateWebview(HWND hwnd, bool offscreen_only,
                                 WebviewCreationCallback callback) {
   CreateWebViewCompositionController(
       hwnd, [=, self = this](
-                wil::com_ptr<ICoreWebView2CompositionController> controller) {
+                wil::com_ptr<ICoreWebView2CompositionController> controller,
+                std::unique_ptr<WebviewCreationError> error) {
         if (controller) {
           std::unique_ptr<Webview> webview(new Webview(
               std::move(controller), self, hwnd, owns_window, offscreen_only));
-          callback(std::move(webview));
+          callback(std::move(webview), nullptr);
         } else {
-          callback(nullptr);
+          callback(nullptr, std::move(error));
         }
       });
 }
 
 void WebviewHost::CreateWebViewCompositionController(
     HWND hwnd, CompositionControllerCreationCallback callback) {
-  auto success = SUCCEEDED(webview_env_->CreateCoreWebView2CompositionController(
+  auto hr = webview_env_->CreateCoreWebView2CompositionController(
       hwnd,
       Callback<
           ICoreWebView2CreateCoreWebView2CompositionControllerCompletedHandler>(
-          [callback](HRESULT result, ICoreWebView2CompositionController*
-                                         compositionController) -> HRESULT {
-            if (SUCCEEDED(result)) {
+          [callback](HRESULT hr,
+                     ICoreWebView2CompositionController* compositionController)
+              -> HRESULT {
+            if (SUCCEEDED(hr)) {
               callback(
                   std::move(wil::com_ptr<ICoreWebView2CompositionController>(
-                      compositionController)));
+                      compositionController)),
+                  nullptr);
             } else {
-              callback(nullptr);
+              callback(nullptr, WebviewCreationError::create(
+                                    hr,
+                                    "CreateCoreWebView2CompositionController "
+                                    "completion handler failed."));
             }
 
             return S_OK;
           })
-          .Get()));
+          .Get());
 
-  if (!success) {
-    callback(nullptr);
+  if (FAILED(hr)) {
+    callback(nullptr,
+             WebviewCreationError::create(
+                 hr, "CreateCoreWebView2CompositionController failed."));
   }
 }
 
