@@ -1,3 +1,7 @@
+## 0.1.7-dev.1
+
+* Remove windowsapp.lib dependency
+
 ## 0.1.6
 
 * Improve WebView creation error handling
