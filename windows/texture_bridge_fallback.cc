@@ -7,7 +7,7 @@
 
 TextureBridgeFallback::TextureBridgeFallback(
     GraphicsContext* graphics_context,
-    winrt::Windows::UI::Composition::Visual visual)
+    ABI::Windows::UI::Composition::IVisual* visual)
     : TextureBridge(graphics_context, visual) {}
 
 void TextureBridgeFallback::ProcessFrame(

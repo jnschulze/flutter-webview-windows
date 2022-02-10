@@ -2,7 +2,7 @@
 
 #include <DispatcherQueue.h>
 #include <shlobj.h>
-#include <winrt/Windows.Graphics.Capture.h>
+#include <windows.graphics.capture.h>
 
 #include <filesystem>
 #include <iostream>
@@ -13,14 +13,13 @@ WebviewPlatform::WebviewPlatform()
     DispatcherQueueOptions options{sizeof(DispatcherQueueOptions),
                                    DQTYPE_THREAD_CURRENT, DQTAT_COM_STA};
 
-    if (!SUCCEEDED(rohelper_->CreateDispatcherQueueController(
+    if (FAILED(rohelper_->CreateDispatcherQueueController(
             options, dispatcher_queue_controller_.put()))) {
       std::cerr << "Creating DispatcherQueueController failed." << std::endl;
       return;
     }
 
-    if (!winrt::Windows::Graphics::Capture::GraphicsCaptureSession::
-            IsSupported()) {
+    if (!IsGraphicsCaptureSessionSupported()) {
       std::cerr << "Windows::Graphics::Capture::GraphicsCaptureSession is not "
                    "supported."
                 << std::endl;
@@ -29,6 +28,34 @@ WebviewPlatform::WebviewPlatform()
 
     valid_ = true;
   }
+}
+
+bool WebviewPlatform::IsGraphicsCaptureSessionSupported() {
+  HSTRING className;
+  HSTRING_HEADER classNameHeader;
+
+  if (FAILED(rohelper_->GetStringReference(
+          RuntimeClass_Windows_Graphics_Capture_GraphicsCaptureSession,
+          &className, &classNameHeader))) {
+    return false;
+  }
+
+  ABI::Windows::Graphics::Capture::IGraphicsCaptureSessionStatics*
+      capture_session_statics;
+  if (FAILED(rohelper_->GetActivationFactory(
+          className,
+          __uuidof(
+              ABI::Windows::Graphics::Capture::IGraphicsCaptureSessionStatics),
+          (void**)&capture_session_statics))) {
+    return false;
+  }
+
+  boolean is_supported = false;
+  if (FAILED(capture_session_statics->IsSupported(&is_supported))) {
+    return false;
+  }
+
+  return !!is_supported;
 }
 
 std::optional<std::string> WebviewPlatform::GetDefaultDataDirectory() {

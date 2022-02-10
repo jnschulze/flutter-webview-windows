@@ -4,17 +4,17 @@
 
 namespace util {
 
-auto CreateDesktopWindowTarget(
-    winrt::Windows::UI::Composition::Compositor const& compositor,
+winrt::com_ptr<ABI::Windows::UI::Composition::Desktop::IDesktopWindowTarget>
+TryCreateDesktopWindowTarget(
+    const winrt::com_ptr<ABI::Windows::UI::Composition::ICompositor>&
+        compositor,
     HWND window) {
   namespace abi = ABI::Windows::UI::Composition::Desktop;
+  auto interop = compositor.try_as<abi::ICompositorDesktopInterop>();
 
-  auto interop = compositor.as<abi::ICompositorDesktopInterop>();
-  winrt::Windows::UI::Composition::Desktop::DesktopWindowTarget target{nullptr};
-  winrt::check_hresult(interop->CreateDesktopWindowTarget(
-      window, true,
-      reinterpret_cast<abi::IDesktopWindowTarget**>(winrt::put_abi(target))));
+  winrt::com_ptr<abi::IDesktopWindowTarget> target;
+  interop->CreateDesktopWindowTarget(window, true, target.put());
   return target;
 }
 
-}
+}  // namespace util

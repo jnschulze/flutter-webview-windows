@@ -13,6 +13,9 @@ class WebviewPlatform {
   WebviewPlatform();
   bool IsSupported() { return valid_; }
   std::optional<std::string> GetDefaultDataDirectory();
+  bool IsGraphicsCaptureSessionSupported();
+
+  rx::RoHelper* rohelper() const { return rohelper_.get(); }
 
  private:
   std::unique_ptr<rx::RoHelper> rohelper_;

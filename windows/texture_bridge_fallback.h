@@ -9,7 +9,7 @@
 class TextureBridgeFallback : public TextureBridge {
  public:
   TextureBridgeFallback(GraphicsContext* graphics_context,
-                        winrt::Windows::UI::Composition::Visual surface);
+                        ABI::Windows::UI::Composition::IVisual* visual);
 
   const FlutterDesktopPixelBuffer* CopyPixelBuffer(size_t width, size_t height);
 

@@ -3,12 +3,11 @@
 #include <flutter/texture_registrar.h>
 
 #include "texture_bridge.h"
-#include "util/direct3d11.interop.h"
 
 class TextureBridgeGpu : public TextureBridge {
  public:
   TextureBridgeGpu(GraphicsContext* graphics_context,
-                   winrt::Windows::UI::Composition::Visual visual);
+                   ABI::Windows::UI::Composition::IVisual* visual);
 
   const FlutterDesktopGpuSurfaceDescriptor* GetSurfaceDescriptor(size_t width,
                                                                  size_t height);

@@ -6,7 +6,7 @@
 
 TextureBridgeGpu::TextureBridgeGpu(
     GraphicsContext* graphics_context,
-    winrt::Windows::UI::Composition::Visual visual)
+    ABI::Windows::UI::Composition::IVisual* visual)
     : TextureBridge(graphics_context, visual) {
   surface_descriptor_.format =
       kFlutterDesktopPixelFormatNone;  // no format required for DXGI surfaces
@@ -68,7 +68,8 @@ void TextureBridgeGpu::EnsureSurface(uint32_t width, uint32_t height,
     }
 
     HANDLE shared_handle;
-    surface_.as(dxgi_surface_);
+    surface_.try_as(dxgi_surface_);
+    assert(dxgi_surface_);
     dxgi_surface_->GetSharedHandle(&shared_handle);
 
     surface_descriptor_.handle = shared_handle;
