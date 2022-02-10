@@ -1,3 +1,7 @@
+## 0.1.7-dev.2
+
+* Ensure Flutter apps referencing `webview_windows` still work on Windows 8.
+
 ## 0.1.7-dev.1
 
 * Remove windowsapp.lib dependency
