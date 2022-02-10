@@ -3,13 +3,13 @@
 #include <WebView2.h>
 #include <WebView2EnvironmentOptions.h>
 #include <wil/com.h>
-#include <winrt/Windows.UI.Composition.h>
 
 #include <functional>
 
+#include "graphics_context.h"
 #include "webview.h"
-
-using namespace Microsoft::WRL;
+#include "webview_platform.h"
+#include "windows.ui.composition.h"
 
 struct WebviewCreationError {
   HRESULT hr;
@@ -29,10 +29,12 @@ class WebviewHost {
   typedef std::function<void(std::unique_ptr<Webview>,
                              std::unique_ptr<WebviewCreationError>)>
       WebviewCreationCallback;
-  typedef std::function<void(wil::com_ptr<ICoreWebView2CompositionController>, std::unique_ptr<WebviewCreationError>)>
+  typedef std::function<void(wil::com_ptr<ICoreWebView2CompositionController>,
+                             std::unique_ptr<WebviewCreationError>)>
       CompositionControllerCreationCallback;
 
   static std::unique_ptr<WebviewHost> Create(
+      WebviewPlatform* platform,
       std::optional<std::string> user_data_directory = std::nullopt,
       std::optional<std::string> browser_exe_path = std::nullopt,
       std::optional<std::string> arguments = std::nullopt);
@@ -40,17 +42,20 @@ class WebviewHost {
   void CreateWebview(HWND hwnd, bool offscreen_only, bool owns_window,
                      WebviewCreationCallback callback);
 
-  winrt::Windows::UI::Composition::Compositor compositor() const {
+  winrt::com_ptr<ABI::Windows::UI::Composition::ICompositor> compositor()
+      const {
     return compositor_;
   }
 
-  winrt::Windows::UI::Composition::Visual CreateSurface() const;
+  GraphicsContext* graphics_context() const { return graphics_context_.get(); }
 
  private:
-  winrt::Windows::UI::Composition::Compositor compositor_;
+  std::unique_ptr<GraphicsContext> graphics_context_;
+  winrt::com_ptr<ABI::Windows::UI::Composition::ICompositor> compositor_;
   wil::com_ptr<ICoreWebView2Environment3> webview_env_;
 
-  WebviewHost(wil::com_ptr<ICoreWebView2Environment3> webview_env);
+  WebviewHost(WebviewPlatform* platform,
+              wil::com_ptr<ICoreWebView2Environment3> webview_env);
   void CreateWebViewCompositionController(
       HWND hwnd, CompositionControllerCreationCallback cb);
 };

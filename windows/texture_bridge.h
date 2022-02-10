@@ -1,16 +1,13 @@
 #pragma once
 
 #include <windows.graphics.capture.h>
-#include <winrt/Windows.UI.Composition.Desktop.h>
-#include <winrt/Windows.UI.Composition.h>
+
+#include <wrl.h>
 
 #include <cstdint>
 #include <functional>
 
 #include "graphics_context.h"
-#include "util/capture.desktop.interop.h"
-
-using namespace winrt::Windows::Graphics::Capture;
 
 typedef struct {
   size_t width;
@@ -23,7 +20,7 @@ class TextureBridge {
   typedef std::function<void(Size size)> SurfaceSizeChangedCallback;
 
   TextureBridge(GraphicsContext* graphics_context,
-                winrt::Windows::UI::Composition::Visual surface);
+                ABI::Windows::UI::Composition::IVisual* visual);
   virtual ~TextureBridge();
 
   bool Start();
@@ -49,26 +46,19 @@ class TextureBridge {
   std::atomic<bool> needs_update_ = false;
   winrt::com_ptr<ID3D11Texture2D> last_frame_;
 
-  winrt::Windows::Graphics::Capture::GraphicsCaptureItem capture_item_{nullptr};
-  winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool frame_pool_{
-      nullptr};
+  winrt::com_ptr<ABI::Windows::Graphics::Capture::IGraphicsCaptureItem>
+      capture_item_;
+  winrt::com_ptr<ABI::Windows::Graphics::Capture::IDirect3D11CaptureFramePool>
+      frame_pool_;
+  winrt::com_ptr<ABI::Windows::Graphics::Capture::IGraphicsCaptureSession>
+      capture_session_;
 
-  winrt::Windows::Graphics::Capture::GraphicsCaptureSession capture_session_{
-      nullptr};
-  winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool::
-      FrameArrived_revoker frame_arrived_;
-  winrt::Windows::Graphics::Capture::GraphicsCaptureItem::Closed_revoker
-      closed_;
+  EventRegistrationToken on_closed_token_ = {};
+  EventRegistrationToken on_frame_arrived_token_ = {};
 
-  void OnFrameArrived(
-      winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool const&
-          sender,
-      winrt::Windows::Foundation::IInspectable const&);
-
-  void OnClosed(winrt::Windows::Graphics::Capture::GraphicsCaptureItem const&,
-                winrt::Windows::Foundation::IInspectable const&);
+  void OnFrameArrived();
 
   // corresponds to DXGI_FORMAT_B8G8R8A8_UNORM
-  static constexpr auto kPixelFormat = winrt::Windows::Graphics::DirectX::
-      DirectXPixelFormat::B8G8R8A8UIntNormalized;
+  static constexpr auto kPixelFormat = ABI::Windows::Graphics::DirectX::
+      DirectXPixelFormat::DirectXPixelFormat_B8G8R8A8UIntNormalized;
 };

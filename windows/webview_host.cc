@@ -1,13 +1,17 @@
 #include "webview_host.h"
 
+#include <wrl.h>
+
 #include <future>
 #include <iostream>
 
 #include "util/rohelper.h"
 
+using namespace Microsoft::WRL;
+
 // static
 std::unique_ptr<WebviewHost> WebviewHost::Create(
-    std::optional<std::string> user_data_directory,
+    WebviewPlatform* platform, std::optional<std::string> user_data_directory,
     std::optional<std::string> browser_exe_path,
     std::optional<std::string> arguments) {
   wil::com_ptr<CoreWebView2EnvironmentOptions> opts;
@@ -49,7 +53,7 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
       auto webview_env3 = env.try_query<ICoreWebView2Environment3>();
       if (webview_env3) {
         return std::unique_ptr<WebviewHost>(
-            new WebviewHost(std::move(webview_env3)));
+            new WebviewHost(platform, std::move(webview_env3)));
       }
     }
   }
@@ -57,9 +61,11 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
   return {};
 }
 
-WebviewHost::WebviewHost(wil::com_ptr<ICoreWebView2Environment3> webview_env)
+WebviewHost::WebviewHost(WebviewPlatform* platform,
+                         wil::com_ptr<ICoreWebView2Environment3> webview_env)
     : webview_env_(webview_env) {
-  compositor_ = winrt::Windows::UI::Composition::Compositor();
+  graphics_context_ = std::make_unique<GraphicsContext>(platform->rohelper());
+  compositor_ = graphics_context_->CreateCompositor();
 }
 
 void WebviewHost::CreateWebview(HWND hwnd, bool offscreen_only,
@@ -109,8 +115,4 @@ void WebviewHost::CreateWebViewCompositionController(
              WebviewCreationError::create(
                  hr, "CreateCoreWebView2CompositionController failed."));
   }
-}
-
-winrt::Windows::UI::Composition::Visual WebviewHost::CreateSurface() const {
-  return compositor_.CreateContainerVisual();
 }

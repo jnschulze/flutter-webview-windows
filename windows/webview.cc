@@ -2,12 +2,14 @@
 
 #include <atlstr.h>
 #include <fmt/core.h>
-#include <winrt/Windows.UI.Core.h>
+#include <wrl.h>
 
 #include <iostream>
 
 #include "util/composition.desktop.interop.h"
 #include "webview_host.h"
+
+using namespace Microsoft::WRL;
 
 namespace {
 
@@ -75,9 +77,9 @@ Webview::Webview(
       owns_window_(owns_window) {
   webview_controller_ =
       composition_controller_.try_query<ICoreWebView2Controller3>();
-  is_valid_ = webview_controller_ &&
-              SUCCEEDED(webview_controller_->get_CoreWebView2(webview_.put()));
-  if (!is_valid_) {
+
+  if (!webview_controller_ ||
+      FAILED(webview_controller_->get_CoreWebView2(webview_.put()))) {
     return;
   }
 
@@ -96,35 +98,60 @@ Webview::Webview(
   EnableSecurityUpdates();
   RegisterEventHandlers();
 
-  auto compositor = host->compositor();
-  auto root = compositor.CreateContainerVisual();
-
-  // initial size. doesn't matter as we resize the surface anyway.
-  root.Size({1280, 720});
-  root.IsVisible(true);
-  surface_ = root.as<winrt::Windows::UI::Composition::Visual>();
-
-  // Create on-screen window for debugging purposes
-  if (!offscreen_only) {
-    window_target_ = util::CreateDesktopWindowTarget(compositor, hwnd);
-    window_target_.Root(root);
-  }
-
-  auto webview_visual = compositor.CreateSpriteVisual();
-  webview_visual.RelativeSizeAdjustment({1.0f, 1.0f});
-
-  root.Children().InsertAtTop(webview_visual);
-
-  composition_controller_->put_RootVisualTarget(
-      webview_visual.as<IUnknown>().get());
-
-  webview_controller_->put_IsVisible(true);
+  is_valid_ = CreateSurface(host->compositor(), hwnd, offscreen_only);
 }
 
 Webview::~Webview() {
   if (owns_window_) {
     DestroyWindow(hwnd_);
   }
+}
+
+bool Webview::CreateSurface(
+    winrt::com_ptr<ABI::Windows::UI::Composition::ICompositor> compositor,
+    HWND hwnd, bool offscreen_only) {
+  winrt::com_ptr<ABI::Windows::UI::Composition::IContainerVisual> root;
+  if (FAILED(compositor->CreateContainerVisual(root.put()))) {
+    return false;
+  }
+
+  surface_ = root.try_as<ABI::Windows::UI::Composition::IVisual>();
+  assert(surface_);
+
+  // initial size. doesn't matter as we resize the surface anyway.
+  surface_->put_Size({1280, 720});
+  surface_->put_IsVisible(true);
+
+  // Create on-screen window for debugging purposes
+  if (!offscreen_only) {
+    window_target_ = util::TryCreateDesktopWindowTarget(compositor, hwnd);
+    auto composition_target =
+        window_target_
+            .try_as<ABI::Windows::UI::Composition::ICompositionTarget>();
+    if (composition_target) {
+      composition_target->put_Root(surface_.get());
+    }
+  }
+
+  winrt::com_ptr<ABI::Windows::UI::Composition::IVisual> webview_visual;
+  compositor->CreateContainerVisual(
+      reinterpret_cast<ABI::Windows::UI::Composition::IContainerVisual**>(
+          webview_visual.put()));
+
+  auto webview_visual2 =
+      webview_visual.try_as<ABI::Windows::UI::Composition::IVisual2>();
+  if (webview_visual2) {
+    webview_visual2->put_RelativeSizeAdjustment({1.0f, 1.0f});
+  }
+
+  winrt::com_ptr<ABI::Windows::UI::Composition::IVisualCollection> children;
+  root->get_Children(children.put());
+  children->InsertAtTop(webview_visual.get());
+  composition_controller_->put_RootVisualTarget(webview_visual2.get());
+
+  webview_controller_->put_IsVisible(true);
+
+  return true;
 }
 
 void Webview::EnableSecurityUpdates() {
@@ -341,10 +368,8 @@ void Webview::SetSurfaceSize(size_t width, size_t height) {
     return;
   }
 
-  auto surface = surface_.get();
-
-  if (surface && width > 0 && height > 0) {
-    surface.Size({(float)width, (float)height});
+  if (surface_ && width > 0 && height > 0) {
+    surface_->put_Size({(float)width, (float)height});
 
     RECT bounds;
     bounds.left = 0;

@@ -10,14 +10,12 @@
 #include <string>
 #include <unordered_map>
 
-#include "graphics_context.h"
 #include "webview_bridge.h"
 #include "webview_host.h"
 #include "webview_platform.h"
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "windowsapp")
 
 namespace {
 
@@ -57,7 +55,6 @@ class WebviewWindowsPlugin : public flutter::Plugin {
 
  private:
   std::unique_ptr<WebviewPlatform> platform_;
-  std::unique_ptr<GraphicsContext> graphics_context_;
   std::unique_ptr<WebviewHost> webview_host_;
   std::unordered_map<int64_t, std::unique_ptr<WebviewBridge>> instances_;
 
@@ -135,8 +132,8 @@ void WebviewWindowsPlugin::HandleMethodCall(
     std::optional<std::string> additional_args =
         GetOptionalValue<std::string>(map, "additionalArguments");
 
-    webview_host_ = std::move(
-        WebviewHost::Create(user_data_path, browser_exe_path, additional_args));
+    webview_host_ = std::move(WebviewHost::Create(
+        platform_.get(), user_data_path, browser_exe_path, additional_args));
     if (!webview_host_) {
       return result->Error(kErrorCodeEnvironmentCreationFailed);
     }
@@ -170,15 +167,11 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
   }
 
   if (!webview_host_) {
-    webview_host_ =
-        std::move(WebviewHost::Create(platform_->GetDefaultDataDirectory()));
+    webview_host_ = std::move(WebviewHost::Create(
+        platform_.get(), platform_->GetDefaultDataDirectory()));
     if (!webview_host_) {
       return result->Error(kErrorCodeEnvironmentCreationFailed);
     }
-  }
-
-  if (!graphics_context_) {
-    graphics_context_ = std::make_unique<GraphicsContext>();
   }
 
   auto hwnd = CreateWindowEx(0, window_class_.lpszClassName, L"", 0, CW_DEFAULT,
@@ -204,7 +197,8 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
         }
 
         auto bridge = std::make_unique<WebviewBridge>(
-            messenger_, textures_, graphics_context_.get(), std::move(webview));
+            messenger_, textures_, webview_host_->graphics_context(),
+            std::move(webview));
         auto texture_id = bridge->texture_id();
         instances_[texture_id] = std::move(bridge);
 

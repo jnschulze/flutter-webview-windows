@@ -8,7 +8,8 @@ inline auto CreateD3DDevice(D3D_DRIVER_TYPE const type,
                             winrt::com_ptr<ID3D11Device>& device) {
   WINRT_ASSERT(!device);
 
-  UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_VIDEO_SUPPORT;
+  UINT flags =
+      D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_VIDEO_SUPPORT;
 
   //#ifdef _DEBUG
   //	flags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -23,9 +24,8 @@ inline auto CreateD3DDevice() {
   HRESULT hr = CreateD3DDevice(D3D_DRIVER_TYPE_HARDWARE, device);
 
   if (DXGI_ERROR_UNSUPPORTED == hr) {
-    hr = CreateD3DDevice(D3D_DRIVER_TYPE_WARP, device);
+    CreateD3DDevice(D3D_DRIVER_TYPE_WARP, device);
   }
 
-  winrt::check_hresult(hr);
   return device;
 }
