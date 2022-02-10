@@ -7,9 +7,18 @@
 
 GraphicsContext::GraphicsContext(rx::RoHelper* rohelper) : rohelper_(rohelper) {
   device_ = CreateD3DDevice();
+  if (!device_) {
+    return;
+  }
+
   device_->GetImmediateContext(device_context_.put());
-  CreateDirect3D11DeviceFromDXGIDevice(device_.try_as<IDXGIDevice>().get(),
-                                       (IInspectable**)device_winrt_.put());
+  if (FAILED(util::CreateDirect3D11DeviceFromDXGIDevice(
+          device_.try_as<IDXGIDevice>().get(),
+          (IInspectable**)device_winrt_.put()))) {
+    return;
+  }
+
+  valid_ = true;
 }
 
 winrt::com_ptr<ABI::Windows::UI::Composition::ICompositor>

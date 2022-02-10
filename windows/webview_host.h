@@ -47,10 +47,7 @@ class WebviewHost {
     return compositor_;
   }
 
-  GraphicsContext* graphics_context() const { return graphics_context_.get(); }
-
  private:
-  std::unique_ptr<GraphicsContext> graphics_context_;
   winrt::com_ptr<ABI::Windows::UI::Composition::ICompositor> compositor_;
   wil::com_ptr<ICoreWebView2Environment3> webview_env_;
 

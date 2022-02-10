@@ -14,10 +14,10 @@ const int kNumBuffers = 2;
 }  // namespace
 
 TextureBridge::TextureBridge(GraphicsContext* graphics_context,
-                             ABI::Windows::UI::Composition::IVisual* abi_visual)
+                             ABI::Windows::UI::Composition::IVisual* visual)
     : graphics_context_(graphics_context) {
   capture_item_ =
-      graphics_context_->CreateGraphicsCaptureItemFromVisual(abi_visual);
+      graphics_context_->CreateGraphicsCaptureItemFromVisual(visual);
   assert(capture_item_);
 
   capture_item_->add_Closed(
@@ -109,7 +109,7 @@ void TextureBridge::OnFrameArrived() {
 
     if (SUCCEEDED(frame->get_Surface(frame_surface.put()))) {
       last_frame_ =
-          TryGetDXGIInterfaceFromObject<ID3D11Texture2D>(frame_surface);
+          util::TryGetDXGIInterfaceFromObject<ID3D11Texture2D>(frame_surface);
     }
   }
 
