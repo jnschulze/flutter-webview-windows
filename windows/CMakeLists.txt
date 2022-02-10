@@ -46,6 +46,7 @@ add_library(${PLUGIN_NAME} SHARED
   "webview_bridge.cc"
   "texture_bridge.cc"
   "graphics_context.cc"
+  "util/direct3d11.interop.cc"
   "util/rohelper.cc"
 )
 

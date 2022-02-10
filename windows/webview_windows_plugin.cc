@@ -197,7 +197,7 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
         }
 
         auto bridge = std::make_unique<WebviewBridge>(
-            messenger_, textures_, webview_host_->graphics_context(),
+            messenger_, textures_, platform_->graphics_context(),
             std::move(webview));
         auto texture_id = bridge->texture_id();
         instances_[texture_id] = std::move(bridge);

@@ -11,6 +11,8 @@ class GraphicsContext {
  public:
   GraphicsContext(rx::RoHelper* rohelper);
 
+  inline bool IsValid() const { return valid_; }
+
   ABI::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice* device() const {
     return device_winrt_.get();
   }
@@ -38,6 +40,7 @@ class GraphicsContext {
       INT32 numberOfBuffers, ABI::Windows::Graphics::SizeInt32 size) const;
 
  private:
+  bool valid_ = false;
   rx::RoHelper* rohelper_;
   winrt::com_ptr<ABI::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice>
       device_winrt_;

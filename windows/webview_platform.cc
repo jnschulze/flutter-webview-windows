@@ -26,7 +26,8 @@ WebviewPlatform::WebviewPlatform()
       return;
     }
 
-    valid_ = true;
+    graphics_context_ = std::make_unique<GraphicsContext>(rohelper_.get());
+    valid_ = graphics_context_->IsValid();
   }
 }
 
@@ -74,3 +75,4 @@ std::optional<std::string> WebviewPlatform::GetDefaultDataDirectory() {
 
   return path.string();
 }
+

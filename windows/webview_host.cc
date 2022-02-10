@@ -64,8 +64,7 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
 WebviewHost::WebviewHost(WebviewPlatform* platform,
                          wil::com_ptr<ICoreWebView2Environment3> webview_env)
     : webview_env_(webview_env) {
-  graphics_context_ = std::make_unique<GraphicsContext>(platform->rohelper());
-  compositor_ = graphics_context_->CreateCompositor();
+  compositor_ = platform->graphics_context()->CreateCompositor();
 }
 
 void WebviewHost::CreateWebview(HWND hwnd, bool offscreen_only,
