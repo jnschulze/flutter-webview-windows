@@ -96,22 +96,37 @@ class _ExampleBrowser extends State<ExampleBrowser> {
           children: [
             Card(
               elevation: 0,
-              child: TextField(
-                decoration: InputDecoration(
-                    hintText: 'URL',
-                    contentPadding: EdgeInsets.all(10.0),
-                    suffixIcon: IconButton(
-                      icon: Icon(Icons.refresh),
-                      onPressed: () {
-                        _controller.reload();
-                      },
-                    )),
-                textAlignVertical: TextAlignVertical.center,
-                controller: _textController,
-                onSubmitted: (val) {
-                  _controller.loadUrl(val);
-                },
-              ),
+              child: Row(children: [
+                
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'URL',
+                      contentPadding: EdgeInsets.all(10.0),
+                    ),
+                    textAlignVertical: TextAlignVertical.center,
+                    controller: _textController,
+                    onSubmitted: (val) {
+                      _controller.loadUrl(val);
+                    },
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.refresh),
+                  splashRadius: 20,
+                  onPressed: () {
+                    _controller.reload();
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.developer_mode),
+                  tooltip: 'Open DevTools',
+                  splashRadius: 20,
+                  onPressed: () {
+                    _controller.openDevTools();
+                  },
+                )
+              ]),
             ),
             Expanded(
                 child: Card(
