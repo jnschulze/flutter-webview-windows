@@ -29,6 +29,7 @@ constexpr auto kMethodSetPointerButton = "setPointerButton";
 constexpr auto kMethodSetScrollDelta = "setScrollDelta";
 constexpr auto kMethodSetUserAgent = "setUserAgent";
 constexpr auto kMethodSetBackgroundColor = "setBackgroundColor";
+constexpr auto kMethodOpenDevTools = "openDevTools";
 constexpr auto kMethodSuspend = "suspend";
 constexpr auto kMethodResume = "resume";
 constexpr auto kMethodClearCookies = "clearCookies";
@@ -473,6 +474,14 @@ void WebviewBridge::HandleMethodCall(
                            "Setting the background color failed.");
     }
     return result->Error(kErrorInvalidArgs);
+  }
+
+  // openDevTools
+  if (method_name.compare(kMethodOpenDevTools) == 0) {
+    if (webview_->OpenDevTools()) {
+      return result->Success();
+    }
+    return result->Error(kMethodFailed);
   }
 
   // clearCookies
