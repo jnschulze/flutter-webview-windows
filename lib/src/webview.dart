@@ -351,6 +351,15 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('setCacheDisabled', disabled);
   }
 
+    /// Opens the Browser DevTools in seperate Window
+  Future<void> openDevTools() async {
+    if (_isDisposed) {
+      return;
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod('openDevTools');
+  }
+
   /// Sets the background color to the provided [color].
   ///
   /// Due to a limitation of the underlying WebView implementation,

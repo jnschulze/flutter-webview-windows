@@ -387,6 +387,14 @@ void Webview::SetSurfaceSize(size_t width, size_t height) {
   }
 }
 
+bool Webview::OpenDevTools() {
+  if (!IsValid()) {
+    return false;
+  }
+  webview_->OpenDevToolsWindow();
+  return true;
+}
+
 bool Webview::ClearCookies() {
   if (!IsValid()) {
     return false;

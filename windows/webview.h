@@ -132,6 +132,7 @@ class Webview {
   bool SetCacheDisabled(bool disabled);
   void SetPopupWindowPolicy(WebviewPopupWindowPolicy policy);
   bool SetUserAgent(const std::string& user_agent);
+  bool OpenDevTools();
   bool SetBackgroundColor(int32_t color);
   bool Suspend();
   bool Resume();
