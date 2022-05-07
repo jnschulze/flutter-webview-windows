@@ -120,12 +120,12 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
                              std::unique_ptr<Webview> webview)
     : webview_(std::move(webview)), texture_registrar_(texture_registrar) {
 #ifdef HAVE_FLUTTER_D3D_TEXTURE
-  texture_bridge_ = std::make_unique<TextureBridgeGpu>(
-      graphics_context, webview_->surface());
+  texture_bridge_ =
+      std::make_unique<TextureBridgeGpu>(graphics_context, webview_->surface());
 
   flutter_texture_ =
       std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
-          kFlutterDesktopGpuSurfaceTypeDxgi,
+          kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
           [bridge = static_cast<TextureBridgeGpu*>(texture_bridge_.get())](
               size_t width,
               size_t height) -> const FlutterDesktopGpuSurfaceDescriptor* {
