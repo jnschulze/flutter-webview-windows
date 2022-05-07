@@ -30,9 +30,9 @@ if(NOT NUGET)
   endif()
 endif()
 
-add_custom_target(DEPENDENCIES_DOWNLOAD ALL)
+add_custom_target(${PROJECT_NAME}_DEPENDENCIES_DOWNLOAD ALL)
 add_custom_command(
-  TARGET DEPENDENCIES_DOWNLOAD PRE_BUILD
+  TARGET ${PROJECT_NAME}_DEPENDENCIES_DOWNLOAD PRE_BUILD
   COMMAND ${NUGET} install Microsoft.Windows.ImplementationLibrary -Version ${WIL_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
   COMMAND ${NUGET} install Microsoft.Web.WebView2 -Version ${WEBVIEW_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
   DEPENDS ${NUGET}
