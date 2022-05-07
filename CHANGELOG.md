@@ -1,3 +1,9 @@
+## 0.1.7
+
+* Add method for opening DevTools
+* Update `TextureBridgeGpu`
+* Update `libfmt` dependency
+
 ## 0.1.7-dev.2
 
 * Ensure Flutter apps referencing `webview_windows` still work on Windows 8.
