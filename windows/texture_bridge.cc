@@ -10,7 +10,7 @@
 #include "util/direct3d11.interop.h"
 
 namespace {
-const int kNumBuffers = 2;
+const int kNumBuffers = 1;
 }  // namespace
 
 TextureBridge::TextureBridge(GraphicsContext* graphics_context,
