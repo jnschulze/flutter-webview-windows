@@ -1,3 +1,7 @@
+## 0.1.8
+
+* Prefix CMake build target names to prevent collisions with other plugins
+
 ## 0.1.7
 
 * Add method for opening DevTools
