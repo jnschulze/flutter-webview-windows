@@ -1,3 +1,7 @@
+## 0.1.9
+
+* Fix Flutter 3.0 compatibility
+
 ## 0.1.8
 
 * Prefix CMake build target names to prevent collisions with other plugins
