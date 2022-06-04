@@ -1,11 +1,13 @@
 #pragma once
 
 #include <windows.graphics.capture.h>
-
 #include <wrl.h>
 
+#include <chrono>
 #include <cstdint>
 #include <functional>
+#include <mutex>
+#include <optional>
 
 #include "graphics_context.h"
 
@@ -18,6 +20,7 @@ class TextureBridge {
  public:
   typedef std::function<void()> FrameAvailableCallback;
   typedef std::function<void(Size size)> SurfaceSizeChangedCallback;
+  typedef std::chrono::duration<double, std::milli> FrameDuration;
 
   TextureBridge(GraphicsContext* graphics_context,
                 ABI::Windows::UI::Composition::IVisual* visual);
@@ -35,16 +38,21 @@ class TextureBridge {
   }
 
   void NotifySurfaceSizeChanged();
+  void SetFpsLimit(std::optional<int> max_fps);
 
  protected:
   bool is_running_ = false;
 
   const GraphicsContext* graphics_context_;
+  std::mutex mutex_;
+  std::optional<FrameDuration> frame_duration_ = std::nullopt;
 
   FrameAvailableCallback frame_available_;
   SurfaceSizeChangedCallback surface_size_changed_;
   std::atomic<bool> needs_update_ = false;
   winrt::com_ptr<ID3D11Texture2D> last_frame_;
+  std::optional<std::chrono::high_resolution_clock::time_point>
+      last_frame_timestamp_;
 
   winrt::com_ptr<ABI::Windows::Graphics::Capture::IGraphicsCaptureItem>
       capture_item_;
@@ -56,7 +64,9 @@ class TextureBridge {
   EventRegistrationToken on_closed_token_ = {};
   EventRegistrationToken on_frame_arrived_token_ = {};
 
+  void StopInternal();
   void OnFrameArrived();
+  bool ShouldDropFrame();
 
   // corresponds to DXGI_FORMAT_B8G8R8A8_UNORM
   static constexpr auto kPixelFormat = ABI::Windows::Graphics::DirectX::

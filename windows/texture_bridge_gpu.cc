@@ -73,6 +73,8 @@ void TextureBridgeGpu::EnsureSurface(uint32_t width, uint32_t height) {
 
 const FlutterDesktopGpuSurfaceDescriptor*
 TextureBridgeGpu::GetSurfaceDescriptor(size_t width, size_t height) {
+  const std::lock_guard<std::mutex> lock(mutex_);
+
   if (!is_running_) {
     return nullptr;
   }
