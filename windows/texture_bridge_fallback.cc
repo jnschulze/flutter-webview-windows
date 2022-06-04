@@ -10,6 +10,10 @@ TextureBridgeFallback::TextureBridgeFallback(
     ABI::Windows::UI::Composition::IVisual* visual)
     : TextureBridge(graphics_context, visual) {}
 
+TextureBridgeFallback::~TextureBridgeFallback() {
+  const std::lock_guard<std::mutex> lock(buffer_mutex_);
+}
+
 void TextureBridgeFallback::ProcessFrame(
     winrt::com_ptr<ID3D11Texture2D> src_texture) {
   D3D11_TEXTURE2D_DESC desc;
