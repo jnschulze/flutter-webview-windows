@@ -114,6 +114,8 @@ void TextureBridgeFallback::EnsureStagingTexture(uint32_t width,
 
 const FlutterDesktopPixelBuffer* TextureBridgeFallback::CopyPixelBuffer(
     size_t width, size_t height) {
+  const std::lock_guard<std::mutex> lock(mutex_);
+
   if (!is_running_) {
     return nullptr;
   }

@@ -34,13 +34,15 @@ TextureBridge::TextureBridge(GraphicsContext* graphics_context,
 }
 
 TextureBridge::~TextureBridge() {
-  Stop();
+  const std::lock_guard<std::mutex> lock(mutex_);
+  StopInternal();
   if (capture_item_) {
     capture_item_->remove_Closed(on_closed_token_);
   }
 }
 
 bool TextureBridge::Start() {
+  const std::lock_guard<std::mutex> lock(mutex_);
   if (is_running_ || !capture_item_) {
     return false;
   }
@@ -83,6 +85,11 @@ bool TextureBridge::Start() {
 }
 
 void TextureBridge::Stop() {
+  const std::lock_guard<std::mutex> lock(mutex_);
+  StopInternal();
+}
+
+void TextureBridge::StopInternal() {
   if (is_running_) {
     is_running_ = false;
     frame_pool_->remove_FrameArrived(on_frame_arrived_token_);
@@ -95,9 +102,12 @@ void TextureBridge::Stop() {
 }
 
 void TextureBridge::OnFrameArrived() {
+  const std::lock_guard<std::mutex> lock(mutex_);
   if (!is_running_) {
     return;
   }
+
+  bool has_frame = false;
 
   winrt::com_ptr<ABI::Windows::Graphics::Capture::IDirect3D11CaptureFrame>
       frame;
@@ -110,6 +120,7 @@ void TextureBridge::OnFrameArrived() {
     if (SUCCEEDED(frame->get_Surface(frame_surface.put()))) {
       last_frame_ =
           util::TryGetDXGIInterfaceFromObject<ID3D11Texture2D>(frame_surface);
+      has_frame = !ShouldDropFrame();
     }
   }
 
@@ -124,9 +135,42 @@ void TextureBridge::OnFrameArrived() {
     needs_update_ = false;
   }
 
-  if (frame_available_) {
+  if (has_frame && frame_available_) {
     frame_available_();
   }
 }
 
-void TextureBridge::NotifySurfaceSizeChanged() { needs_update_ = true; }
+bool TextureBridge::ShouldDropFrame() {
+  if (!frame_duration_.has_value()) {
+    return false;
+  }
+  auto now = std::chrono::high_resolution_clock::now();
+
+  bool should_drop_frame = false;
+  if (last_frame_timestamp_.has_value()) {
+    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - last_frame_timestamp_.value());
+    should_drop_frame = diff < frame_duration_.value();
+  }
+
+  if (!should_drop_frame) {
+    last_frame_timestamp_ = now;
+  }
+  return should_drop_frame;
+}
+
+void TextureBridge::NotifySurfaceSizeChanged() {
+  const std::lock_guard<std::mutex> lock(mutex_);
+  needs_update_ = true;
+}
+
+void TextureBridge::SetFpsLimit(std::optional<int> max_fps) {
+  const std::lock_guard<std::mutex> lock(mutex_);
+  auto value = max_fps.value_or(0);
+  if (value != 0) {
+    frame_duration_ = FrameDuration(1000.0 / value);
+  } else {
+    frame_duration_.reset();
+    last_frame_timestamp_.reset();
+  }
+}

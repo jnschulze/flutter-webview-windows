@@ -36,6 +36,7 @@ constexpr auto kMethodClearCookies = "clearCookies";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
 constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
+constexpr auto kMethodSetFpsLimit = "setFpsLimit";
 
 constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
@@ -528,6 +529,14 @@ void WebviewBridge::HandleMethodCall(
       return result->Success();
     }
     return result->Error(kErrorInvalidArgs);
+  }
+
+  if (method_name.compare(kMethodSetFpsLimit) == 0) {
+    if (const auto value = std::get_if<int32_t>(method_call.arguments())) {
+      texture_bridge_->SetFpsLimit(*value == 0 ? std::nullopt
+                                               : std::make_optional(*value));
+      return result->Success();
+    }
   }
 
   result->NotImplemented();

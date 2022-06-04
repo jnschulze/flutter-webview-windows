@@ -351,7 +351,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('setCacheDisabled', disabled);
   }
 
-    /// Opens the Browser DevTools in seperate Window
+  /// Opens the Browser DevTools in a separate window
   Future<void> openDevTools() async {
     if (_isDisposed) {
       return;
@@ -401,6 +401,15 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     }
     assert(value.isInitialized);
     return _methodChannel.invokeMethod('resume');
+  }
+
+  /// Limits the number of frames per second to the given value.
+  Future<void> setFpsLimit([int? maxFps = 0]) async {
+    if (_isDisposed) {
+      return;
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod('setFpsLimit', maxFps);
   }
 
   /// Moves the virtual cursor to [position].
