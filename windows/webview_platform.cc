@@ -61,8 +61,8 @@ bool WebviewPlatform::IsGraphicsCaptureSessionSupported() {
 
 std::optional<std::string> WebviewPlatform::GetDefaultDataDirectory() {
   PWSTR path_tmp;
-  if (!SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr,
-                                      &path_tmp))) {
+  if (!SUCCEEDED(
+          SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path_tmp))) {
     return std::nullopt;
   }
   auto path = std::filesystem::path(path_tmp);
@@ -75,4 +75,3 @@ std::optional<std::string> WebviewPlatform::GetDefaultDataDirectory() {
 
   return path.string();
 }
-
