@@ -1,3 +1,10 @@
+## 0.2.0
+
+* Fix Flutter 3.0 null safety warning in example
+* Bump WebView2 SDK version to `1.0.1210.3`
+* Add an option for limiting the FPS
+* Change data directory base path from `RoamingAppData` to `LocalAppData`
+
 ## 0.1.9
 
 * Fix Flutter 3.0 compatibility
