@@ -64,7 +64,7 @@ class TextureBridge {
   EventRegistrationToken on_closed_token_ = {};
   EventRegistrationToken on_frame_arrived_token_ = {};
 
-  void StopInternal();
+  virtual void StopInternal();
   void OnFrameArrived();
   bool ShouldDropFrame();
 

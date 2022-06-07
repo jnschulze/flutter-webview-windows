@@ -45,8 +45,6 @@ void TextureBridgeGpu::EnsureSurface(uint32_t width, uint32_t height) {
     dstDesc.SampleDesc.Quality = 0;
     dstDesc.Usage = D3D11_USAGE_DEFAULT;
 
-    surface_ = nullptr;
-
     if (!SUCCEEDED(graphics_context_->d3d_device()->CreateTexture2D(
             &dstDesc, nullptr, surface_.put()))) {
       std::cerr << "Creating intermediate texture failed" << std::endl;
@@ -89,4 +87,12 @@ TextureBridgeGpu::GetSurfaceDescriptor(size_t width, size_t height) {
   }
 
   return &surface_descriptor_;
+}
+
+void TextureBridgeGpu::StopInternal() {
+  TextureBridge::StopInternal();
+
+  // For some reason, the destination surface needs to be recreated upon
+  // resuming. Force |EnsureSurface| to create a new one by resetting it here.
+  surface_ = nullptr;
 }
