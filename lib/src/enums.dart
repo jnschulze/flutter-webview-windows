@@ -26,3 +26,7 @@ enum WebviewPermissionDecision { none, allow, deny }
 /// [deny] suppresses popups.
 /// [sameWindow] displays popup contents in the current WebView.
 enum WebviewPopupWindowPolicy { allow, deny, sameWindow }
+
+// Event kind
+// Matches the types defined for CoreWebView2PointerEventKind.
+enum WebviewPointerEventKind { activate, down, enter, leave, up, update }

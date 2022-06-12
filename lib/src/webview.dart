@@ -412,6 +412,17 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('setFpsLimit', maxFps);
   }
 
+  /// Sends a Pointer (Touch) update
+  Future<void> _setPointerUpdate(WebviewPointerEventKind kind, Offset position,
+      double size, double pressure) async {
+    if (_isDisposed) {
+      return;
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod('setPointerUpdate',
+        [kind.winIntValue, position.dx, position.dy, size, pressure]);
+  }
+
   /// Moves the virtual cursor to [position].
   Future<void> _setCursorPos(Offset position) async {
     if (_isDisposed) {
@@ -472,6 +483,8 @@ class _WebviewState extends State<Webview> {
   final GlobalKey _key = GlobalKey();
   final _downButtons = <int, PointerButton>{};
 
+  PointerDeviceKind _pointerKind = PointerDeviceKind.unknown;
+
   MouseCursor _cursor = SystemMouseCursors.basic;
 
   WebviewController get _controller => widget.controller;
@@ -517,27 +530,61 @@ class _WebviewState extends State<Webview> {
             child: _controller.value.isInitialized
                 ? Listener(
                     onPointerHover: (ev) {
+                      // ev.kind is for whatever reason not set to touch
+                      // even on touch input
+                      if (_pointerKind == PointerDeviceKind.touch) {
+                        // Ignoring hover events on touch for now
+                        return;
+                      }
                       _controller._setCursorPos(ev.localPosition);
                     },
                     onPointerDown: (ev) {
+                      _pointerKind = ev.kind;
+                      if (ev.kind == PointerDeviceKind.touch) {
+                        _controller._setPointerUpdate(
+                            WebviewPointerEventKind.down,
+                            ev.localPosition,
+                            ev.size,
+                            ev.pressure);
+                        return;
+                      }
                       final button = getButton(ev.buttons);
                       _downButtons[ev.pointer] = button;
                       _controller._setPointerButtonState(button, true);
                     },
                     onPointerUp: (ev) {
+                      _pointerKind = ev.kind;
+                      if (ev.kind == PointerDeviceKind.touch) {
+                        _controller._setPointerUpdate(
+                            WebviewPointerEventKind.up,
+                            ev.localPosition,
+                            ev.size,
+                            ev.pressure);
+                        return;
+                      }
                       final button = _downButtons.remove(ev.pointer);
                       if (button != null) {
                         _controller._setPointerButtonState(button, false);
                       }
                     },
                     onPointerCancel: (ev) {
+                      _pointerKind = ev.kind;
                       final button = _downButtons.remove(ev.pointer);
                       if (button != null) {
                         _controller._setPointerButtonState(button, false);
                       }
                     },
                     onPointerMove: (ev) {
-                      _controller._setCursorPos(ev.localPosition);
+                      _pointerKind = ev.kind;
+                      if (ev.kind == PointerDeviceKind.touch) {
+                        _controller._setPointerUpdate(
+                            WebviewPointerEventKind.update,
+                            ev.localPosition,
+                            ev.size,
+                            ev.pressure);
+                      } else {
+                        _controller._setCursorPos(ev.localPosition);
+                      }
                     },
                     onPointerSignal: (signal) {
                       if (signal is PointerScrollEvent) {
@@ -564,5 +611,24 @@ class _WebviewState extends State<Webview> {
   void dispose() {
     super.dispose();
     _cursorSubscription?.cancel();
+  }
+}
+
+extension WebviewPointerEventKindExt on WebviewPointerEventKind {
+  int get winIntValue {
+    switch (this) {
+      case WebviewPointerEventKind.activate:
+        return 587; // WM_POINTERACTIVATE
+      case WebviewPointerEventKind.down:
+        return 582; // WM_POINTERDOWN
+      case WebviewPointerEventKind.enter:
+        return 585; // WM_POINTERENTER
+      case WebviewPointerEventKind.leave:
+        return 586; // WM_POINTERLEAVE
+      case WebviewPointerEventKind.up:
+        return 583; // WM_POINTERUP
+      case WebviewPointerEventKind.update:
+        return 581; // WM_POINTERUPDATE
+    }
   }
 }

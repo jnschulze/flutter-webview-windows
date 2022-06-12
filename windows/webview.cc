@@ -465,6 +465,53 @@ void Webview::SetCursorPos(double x, double y) {
       virtual_keys_.state(), 0, point);
 }
 
+void Webview::SetPointerUpdate(int32_t event, double x, double y, double size, double pressure) {
+  if (!IsValid()) {
+    return;
+  }
+
+  UINT32 pointerFlags = POINTER_FLAG_NONE;
+  switch (event) {
+    case COREWEBVIEW2_POINTER_EVENT_KIND_DOWN:
+      pointerFlags = POINTER_FLAG_DOWN | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
+      break;
+    case COREWEBVIEW2_POINTER_EVENT_KIND_UPDATE:
+      pointerFlags = POINTER_FLAG_UPDATE | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
+      break;
+    case COREWEBVIEW2_POINTER_EVENT_KIND_UP:
+      pointerFlags = POINTER_FLAG_UP;
+      break;
+  }
+
+  POINT point;
+  point.x = static_cast<LONG>(x);
+  point.y = static_cast<LONG>(y);
+
+  RECT rect;
+  rect.left = point.x - 2;
+  rect.right = point.x + 2;
+  rect.top = point.y - 2;
+  rect.bottom = point.y + 2;
+
+ host_->CreateWebViewPointerInfo([this, event, pointerFlags, point, rect, pressure](
+           wil::com_ptr<ICoreWebView2PointerInfo> pointerInfo,
+           std::unique_ptr<WebviewCreationError> error) {
+             if (pointerInfo) {
+               ICoreWebView2PointerInfo *pointer = pointerInfo.get();
+               pointer->put_PointerId(0);
+               pointer->put_PointerKind(PT_TOUCH);
+               pointer->put_PointerFlags(pointerFlags);
+               pointer->put_TouchFlags(TOUCH_FLAG_NONE);
+               pointer->put_TouchMask(TOUCH_MASK_CONTACTAREA | TOUCH_MASK_PRESSURE);
+               pointer->put_TouchPressure(std::clamp((UINT32)(pressure == 0.0 ? 1024 : 1024 * pressure), (UINT32) 0, (UINT32) 1024));
+               pointer->put_PixelLocationRaw(point);
+               pointer->put_TouchContactRaw(rect);
+               composition_controller_->SendPointerInput((COREWEBVIEW2_POINTER_EVENT_KIND) event, pointer);
+               return;
+             }
+           });
+}
+
 void Webview::SetPointerButtonState(WebviewPointerButton button, bool is_down) {
   if (!IsValid()) {
     return;

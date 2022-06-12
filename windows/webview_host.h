@@ -32,6 +32,9 @@ class WebviewHost {
   typedef std::function<void(wil::com_ptr<ICoreWebView2CompositionController>,
                              std::unique_ptr<WebviewCreationError>)>
       CompositionControllerCreationCallback;
+  typedef std::function<void(wil::com_ptr<ICoreWebView2PointerInfo>,
+                             std::unique_ptr<WebviewCreationError>)>
+      PointerInfoCreationCallback;
 
   static std::unique_ptr<WebviewHost> Create(
       WebviewPlatform* platform,
@@ -41,6 +44,8 @@ class WebviewHost {
 
   void CreateWebview(HWND hwnd, bool offscreen_only, bool owns_window,
                      WebviewCreationCallback callback);
+
+  void CreateWebViewPointerInfo(PointerInfoCreationCallback cb);
 
   winrt::com_ptr<ABI::Windows::UI::Composition::ICompositor> compositor()
       const {
