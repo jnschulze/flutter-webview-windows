@@ -4,6 +4,7 @@
 #include <flutter/method_result_functions.h>
 #include <fmt/core.h>
 
+#include <atlstr.h>
 #include <iostream>
 
 #ifdef HAVE_FLUTTER_D3D_TEXTURE
@@ -21,6 +22,8 @@ constexpr auto kMethodReload = "reload";
 constexpr auto kMethodStop = "stop";
 constexpr auto kMethodGoBack = "goBack";
 constexpr auto kMethodGoForward = "goForward";
+constexpr auto kMethodAddScriptToExecuteOnDocumentCreated = "addScriptToExecuteOnDocumentCreated";
+constexpr auto kMethodRemoveScriptToExecuteOnDocumentCreated = "removeScriptToExecuteOnDocumentCreated";
 constexpr auto kMethodExecuteScript = "executeScript";
 constexpr auto kMethodPostWebMessage = "postWebMessage";
 constexpr auto kMethodSetSize = "setSize";
@@ -420,6 +423,36 @@ void WebviewBridge::HandleMethodCall(
     webview_->Resume();
     texture_bridge_->Start();
     return result->Success();
+  }
+
+  if (method_name.compare(kMethodAddScriptToExecuteOnDocumentCreated) == 0) {
+    if (const auto script = std::get_if<std::string>(method_call.arguments())) {
+      std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
+          shared_result = std::move(result);
+
+      webview_->AddScriptToExecuteOnDocumentCreated(*script, [shared_result](bool success, LPCWSTR script_id) {
+        if (success) {
+          std::string sid = CW2A(script_id, CP_UTF8);
+          shared_result->Success(sid);
+        } else {
+          shared_result->Error(kScriptFailed, "Executing script failed.");
+        }
+      });
+      return;
+    }
+    return result->Error(kErrorInvalidArgs);
+  }
+
+  if (method_name.compare(kMethodRemoveScriptToExecuteOnDocumentCreated) == 0) {
+    if (const auto script_id = std::get_if<std::string>(method_call.arguments())) {
+      std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
+          shared_result = std::move(result);
+
+      webview_->RemoveScriptToExecuteOnDocumentCreated(*script_id);
+      shared_result->Success();
+      return;
+    }
+    return result->Error(kErrorInvalidArgs);
   }
 
   // executeScript: string
