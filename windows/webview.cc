@@ -580,6 +580,30 @@ bool Webview::GoForward() {
   return SUCCEEDED(webview_->GoForward());
 }
 
+void Webview::AddScriptToExecuteOnDocumentCreated(const std::string& script,
+                                                  AddScriptToExecuteOnDocumentCreatedCallback callback) {
+  if (!IsValid()) {
+    return;
+  }
+
+  webview_->AddScriptToExecuteOnDocumentCreated(
+          get_utf16(script, CP_UTF8).c_str(),
+          Callback<ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
+              [callback](HRESULT result, LPCWSTR script_id) -> HRESULT {
+                callback(SUCCEEDED(result), script_id);
+                return S_OK;
+              })
+              .Get());
+}
+
+void Webview::RemoveScriptToExecuteOnDocumentCreated(const std::string& script_id) {
+  if (!IsValid()) {
+    return;
+  }
+
+  webview_->RemoveScriptToExecuteOnDocumentCreated(get_utf16(script_id, CP_UTF8).c_str());
+}
+
 void Webview::ExecuteScript(const std::string& script,
                             ScriptExecutedCallback callback) {
   if (IsValid()) {
