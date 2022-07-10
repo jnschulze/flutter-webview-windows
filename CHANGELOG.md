@@ -1,3 +1,9 @@
+## 0.2.1
+
+* Add method `addScriptToExecuteOnDocumentCreated` and `removeScriptToExecuteOnDocumentCreated` on `WebviewController`
+* __Breaking change__ Update `WebViewController.webMessage` event type from `Map<dynamic, dynamic>` to `dynamic`
+* Receive result of `executeScript`, add method `executeScriptStatement`
+
 ## 0.2.0
 
 * Fix Flutter 3.0 null safety warning in example

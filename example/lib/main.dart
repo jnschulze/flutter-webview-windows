@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
@@ -33,6 +35,24 @@ class _ExampleBrowser extends State<ExampleBrowser> {
     initPlatformState();
   }
 
+//   Future<dynamic> executeScript(String script) async {
+//     final scriptWraps = '''
+// try {
+//   JSON.stringify({result: $script});
+// } catch(e) {
+//   JSON.stringify({error: e.toString()});
+// }
+// ''';
+
+//     final result = await _controller.executeScript(scriptWraps);
+//     print('result = $result');
+
+//     final m = jsonDecode(result) as Map<String, dynamic>;
+//     if (m.containsKey('error')) throw Exception(m['error']); // JavascriptException
+//     if (m.containsKey('result')) return m['result'];
+//     return null; // undefined
+//   }
+
   Future<void> initPlatformState() async {
     // Optionally initialize the webview environment using
     // a custom user data directory
@@ -43,6 +63,11 @@ class _ExampleBrowser extends State<ExampleBrowser> {
 
     try {
       await _controller.initialize();
+      final scriptID1 = await _controller.addScriptToExecuteOnDocumentCreated('window.hello1 = "world1"');
+      final scriptID2 = await _controller.addScriptToExecuteOnDocumentCreated('window.hello2 = "world2"');
+      print('==== $scriptID1 $scriptID2');
+      await _controller.removeScriptToExecuteOnDocumentCreated(scriptID1!);
+
       _controller.url.listen((url) {
         _textController.text = url;
       });
@@ -50,6 +75,23 @@ class _ExampleBrowser extends State<ExampleBrowser> {
       await _controller.setBackgroundColor(Colors.transparent);
       await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
       await _controller.loadUrl('https://flutter.dev');
+
+      print(await _controller.executeScript('window.hello1')); // ✔️ return null
+      print(await _controller.executeScript('window.hello2')); // ✔️ return world2
+      print(await _controller.executeScriptStatement('window.hello2')); // ✔️ return world2
+
+      print(await _controller.executeScript('document.activeElement.getBoundingClientRect()')); // ❌ return null
+      print(await _controller.executeScriptStatement('document.activeElement.getBoundingClientRect()'));  // ✔️ return {...}
+
+      print(await _controller.executeScript('1 + 2')); // ✔️ return 3
+      print(await _controller.executeScriptStatement('1 + 2')); // ✔️ return 3
+
+      print(await _controller.executeScript('function printObj() { return {"a": 1, "arr": [2, 3, "string", 4.5]}; }'));
+      print(await _controller.executeScript('printObj()')); // ✔️ return {"a": 1, "arr": [2, 3, "string", 4.5]}; }
+      print(await _controller.executeScriptStatement('printObj()')); // ✔️ return {"a": 1, "arr": [2, 3, "string", 4.5]}; }
+
+      print(await _controller.executeScript("document.querySelector('.container>h1').textContent")); // ✔️ 
+      print(await _controller.executeScriptStatement("document.querySelector('.container>h1').textContent")); // ✔️ 
 
       if (!mounted) return;
       setState(() {});
@@ -137,6 +179,11 @@ class _ExampleBrowser extends State<ExampleBrowser> {
                         Webview(
                           _controller,
                           permissionRequested: _onPermissionRequested,
+                        ),
+                        Positioned(
+                          top: 100,
+                          left: 100,
+                          child: OutlinedButton.icon(onPressed: (){}, icon: Icon(Icons.abc_outlined), label: Text('ABCD')),
                         ),
                         StreamBuilder<LoadingState>(
                             stream: _controller.loadingState,
