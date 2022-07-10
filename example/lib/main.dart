@@ -35,24 +35,6 @@ class _ExampleBrowser extends State<ExampleBrowser> {
     initPlatformState();
   }
 
-//   Future<dynamic> executeScript(String script) async {
-//     final scriptWraps = '''
-// try {
-//   JSON.stringify({result: $script});
-// } catch(e) {
-//   JSON.stringify({error: e.toString()});
-// }
-// ''';
-
-//     final result = await _controller.executeScript(scriptWraps);
-//     print('result = $result');
-
-//     final m = jsonDecode(result) as Map<String, dynamic>;
-//     if (m.containsKey('error')) throw Exception(m['error']); // JavascriptException
-//     if (m.containsKey('result')) return m['result'];
-//     return null; // undefined
-//   }
-
   Future<void> initPlatformState() async {
     // Optionally initialize the webview environment using
     // a custom user data directory
