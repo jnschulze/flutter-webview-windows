@@ -638,30 +638,30 @@ bool Webview::GoForward() {
 void Webview::AddScriptToExecuteOnDocumentCreated(
     const std::string& script,
     AddScriptToExecuteOnDocumentCreatedCallback callback) {
-  if (!IsValid()) {
-    return;
+  if (IsValid()) {
+    if (SUCCEEDED(webview_->AddScriptToExecuteOnDocumentCreated(
+            util::Utf16FromUtf8(script).c_str(),
+            Callback<
+                ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
+                [callback](HRESULT result, LPCWSTR wsid) -> HRESULT {
+                  std::string sid = util::Utf8FromUtf16(wsid);
+                  callback(SUCCEEDED(result), sid);
+                  return S_OK;
+                })
+                .Get()))) {
+      return;
+    }
   }
 
-  webview_->AddScriptToExecuteOnDocumentCreated(
-      util::Utf16FromUtf8(script).c_str(),
-      Callback<
-          ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
-          [callback](HRESULT result, LPCWSTR wsid) -> HRESULT {
-            std::string sid = util::Utf8FromUtf16(wsid);
-            callback(SUCCEEDED(result), sid);
-            return S_OK;
-          })
-          .Get());
+  callback(false, std::string());
 }
 
 void Webview::RemoveScriptToExecuteOnDocumentCreated(
     const std::string& script_id) {
-  if (!IsValid()) {
-    return;
+  if (IsValid()) {
+    webview_->RemoveScriptToExecuteOnDocumentCreated(
+        util::Utf16FromUtf8(script_id).c_str());
   }
-
-  webview_->RemoveScriptToExecuteOnDocumentCreated(
-      util::Utf16FromUtf8(script_id).c_str());
 }
 
 void Webview::ExecuteScript(const std::string& script,
@@ -670,8 +670,9 @@ void Webview::ExecuteScript(const std::string& script,
     if (SUCCEEDED(webview_->ExecuteScript(
             util::Utf16FromUtf8(script).c_str(),
             Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
-                [callback](HRESULT result, PCWSTR _) {
-                  callback(SUCCEEDED(result));
+                [callback](HRESULT result, LPCWSTR json_result_object) {
+                  callback(SUCCEEDED(result),
+                           util::Utf8FromUtf16(json_result_object));
                   return S_OK;
                 })
                 .Get()))) {
@@ -679,7 +680,7 @@ void Webview::ExecuteScript(const std::string& script,
     }
   }
 
-  callback(false);
+  callback(false, std::string());
 }
 
 bool Webview::PostWebMessage(const std::string& json) {
