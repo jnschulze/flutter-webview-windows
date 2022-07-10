@@ -638,3 +638,32 @@ bool Webview::Resume() {
   return webview->Resume() == S_OK &&
          webview_controller_->put_IsVisible(true) == S_OK;
 }
+
+bool Webview::SetVirtualHostNameMapping(
+  const std::string& hostName, const std::string& path, COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND accessKind) {
+  if (!IsValid()) {
+    return false;
+  }
+
+  wil::com_ptr<ICoreWebView2_3> webview;
+  webview = webview_.query<ICoreWebView2_3>();
+  if (!webview) {
+    return false;
+  }
+
+  return webview->SetVirtualHostNameToFolderMapping(towstring(hostName).c_str(), towstring(path).c_str(), accessKind);
+}
+
+bool Webview::ClearVirtualHostNameMapping(const std::string& hostName) {
+  if (!IsValid()) {
+    return false;
+  }
+
+  wil::com_ptr<ICoreWebView2_3> webview;
+  webview = webview_.query<ICoreWebView2_3>();
+  if (!webview) {
+    return false;
+  }
+
+  return webview->ClearVirtualHostNameToFolderMapping(towstring(hostName).c_str());
+}

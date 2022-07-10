@@ -26,3 +26,5 @@ enum WebviewPermissionDecision { none, allow, deny }
 /// [deny] suppresses popups.
 /// [sameWindow] displays popup contents in the current WebView.
 enum WebviewPopupWindowPolicy { allow, deny, sameWindow }
+
+enum WebviewHostResourceAccessKind { allow, deny, denyCors }

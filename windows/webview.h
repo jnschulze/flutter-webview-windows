@@ -137,6 +137,11 @@ class Webview {
   bool Suspend();
   bool Resume();
 
+  bool SetVirtualHostNameMapping(const std::string& hostName,
+                                 const std::string& path,
+                                 COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND accessKind);
+  bool ClearVirtualHostNameMapping(const std::string& hostName);
+
   void OnUrlChanged(UrlChangedCallback callback) {
     url_changed_callback_ = std::move(callback);
   }
