@@ -461,9 +461,10 @@ void WebviewBridge::HandleMethodCall(
       std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
           shared_result = std::move(result);
 
-      webview_->ExecuteScript(*script, [shared_result](bool success) {
+      webview_->ExecuteScript(*script, [shared_result](bool success, LPCWSTR resultObjectAsJson) {
         if (success) {
-          shared_result->Success();
+          std::string executedResult = CW2A(resultObjectAsJson, CP_UTF8);
+          shared_result->Success(executedResult);
         } else {
           shared_result->Error(kScriptFailed, "Executing script failed.");
         }

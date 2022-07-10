@@ -326,13 +326,48 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('removeScriptToExecuteOnDocumentCreated', scriptID);
   }
 
-  /// Executes the given [script].
-  Future<void> executeScript(String script) async {
+  /// Run JavaScript code from the javascript parameter in the current top-level
+  /// document rendered in the WebView, and return executed result.
+  ///
+  /// Note:
+  ///   In mamy cases [executeScript] will return null.
+  ///   See https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.1264.42#executescript
+  ///
+  /// If you got a null or empty json object or other values which is unexpected
+  /// in your case, you can also try [executeScriptStatement].
+  ///
+  Future<dynamic> executeScript(String script) async {
     if (_isDisposed) {
       return;
     }
     assert(value.isInitialized);
-    return _methodChannel.invokeMethod('executeScript', script);
+
+    final data = await _methodChannel.invokeMethod('executeScript', script);
+    if (data == null) return null;
+    return jsonDecode(data as String);
+  }
+
+  /// Run (one) JavaScript statement in the current top-level document rendered in the
+  /// WebView, and return executed result.
+  /// 
+  /// This method only accepted one statement in one call. That's meaning you can do:
+  ///   [executeScriptStatement]('1+1') and [executeScriptStatement]('2+2')
+  /// but can't do:
+  ///   [executeScriptStatement]('1+1; 2+2')
+  ///
+  /// This method is a fix for [executeScript] which the [executeScript] method return
+  /// null or any unexpected result in many cases.
+  Future<dynamic> executeScriptStatement(String statement) async {
+    if (_isDisposed) {
+      return;
+    }
+    assert(value.isInitialized);
+
+    /// Use `JSON.stringify` to wrap the executed result force return a string type value
+    statement = '''JSON.stringify($statement);''';
+    final executedResult = await executeScript(statement);
+    if (executedResult == null) return null;
+    return jsonDecode(executedResult);
   }
 
   /// Posts the given JSON-formatted message to the current document.
@@ -594,4 +629,9 @@ class _WebviewState extends State<Webview> {
     super.dispose();
     _cursorSubscription?.cancel();
   }
+}
+
+class JavascriptException implements Exception {
+  final String message;
+  JavascriptException(this.message);
 }

@@ -606,20 +606,20 @@ void Webview::RemoveScriptToExecuteOnDocumentCreated(const std::string& script_i
 
 void Webview::ExecuteScript(const std::string& script,
                             ScriptExecutedCallback callback) {
-  if (IsValid()) {
-    if (SUCCEEDED(webview_->ExecuteScript(
-            get_utf16(script, CP_UTF8).c_str(),
-            Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
-                [callback](HRESULT result, PCWSTR _) {
-                  callback(SUCCEEDED(result));
-                  return S_OK;
-                })
-                .Get()))) {
-      return;
-    }
+  if (!IsValid()) {
+    return;
   }
 
-  callback(false);
+  if (SUCCEEDED(webview_->ExecuteScript(
+          get_utf16(script, CP_UTF8).c_str(),
+          Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
+              [callback](HRESULT result, LPCWSTR resultObjectAsJson) {
+                callback(SUCCEEDED(result), resultObjectAsJson);
+                return S_OK;
+              })
+              .Get()))) {
+    return;
+  }
 }
 
 bool Webview::PostWebMessage(const std::string& json) {
