@@ -43,6 +43,12 @@ class _ExampleBrowser extends State<ExampleBrowser> {
 
     try {
       await _controller.initialize();
+
+      final scriptID1 = await _controller.addScriptToExecuteOnDocumentCreated('window.hello1 = "world1"');
+      final scriptID2 = await _controller.addScriptToExecuteOnDocumentCreated('window.hello2 = "world2"');
+      print('==== $scriptID1 $scriptID2');
+      await _controller.removeScriptToExecuteOnDocumentCreated(scriptID1!);
+
       _controller.url.listen((url) {
         _textController.text = url;
       });
