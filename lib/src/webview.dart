@@ -349,7 +349,9 @@ class WebviewController extends ValueNotifier<WebviewValue> {
 
   /// Run (one) JavaScript statement in the current top-level document rendered in the
   /// WebView, and return executed result.
-  /// 
+  /// [executeScriptStatement] just wraps the [statement] in `JSON.stringify($statement);`
+  /// to get the returned value, hence try [executeScript] first.
+  ///
   /// This method only accepted one statement in one call. That's meaning you can do:
   ///   [executeScriptStatement]('1+1') and [executeScriptStatement]('2+2')
   /// but can't do:
@@ -629,9 +631,4 @@ class _WebviewState extends State<Webview> {
     super.dispose();
     _cursorSubscription?.cancel();
   }
-}
-
-class JavascriptException implements Exception {
-  final String message;
-  JavascriptException(this.message);
 }
