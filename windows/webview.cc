@@ -638,3 +638,47 @@ bool Webview::Resume() {
   return webview->Resume() == S_OK &&
          webview_controller_->put_IsVisible(true) == S_OK;
 }
+
+bool Webview::SetVirtualHostNameMapping(
+  const std::string& hostName, const std::string& path, WebviewHostResourceAccessKind accessKind) {
+  if (!IsValid()) {
+    return false;
+  }
+
+  wil::com_ptr<ICoreWebView2_3> webview;
+  webview = webview_.query<ICoreWebView2_3>();
+  if (!webview) {
+    return false;
+  }
+
+  COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND accessKindIntValue = COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY;
+  switch (accessKind) {
+    case WebviewHostResourceAccessKind::Allow:
+      accessKindIntValue = COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_ALLOW;
+      break;
+    case WebviewHostResourceAccessKind::DenyCors:
+      accessKindIntValue = COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY_CORS;
+      break;
+    case WebviewHostResourceAccessKind::Deny:
+      accessKindIntValue = COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY;
+      break;
+  }
+
+  return webview->SetVirtualHostNameToFolderMapping(towstring(hostName).c_str(),
+                                                    towstring(path).c_str(),
+                                                    accessKindIntValue);
+}
+
+bool Webview::ClearVirtualHostNameMapping(const std::string& hostName) {
+  if (!IsValid()) {
+    return false;
+  }
+
+  wil::com_ptr<ICoreWebView2_3> webview;
+  webview = webview_.query<ICoreWebView2_3>();
+  if (!webview) {
+    return false;
+  }
+
+  return webview->ClearVirtualHostNameToFolderMapping(towstring(hostName).c_str());
+}

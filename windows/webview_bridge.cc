@@ -32,11 +32,14 @@ constexpr auto kMethodSetBackgroundColor = "setBackgroundColor";
 constexpr auto kMethodOpenDevTools = "openDevTools";
 constexpr auto kMethodSuspend = "suspend";
 constexpr auto kMethodResume = "resume";
+constexpr auto kMethodSetVirtualHostNameMapping = "setVirtualHostNameMapping";
+constexpr auto kMethodClearVirtualHostNameMapping = "clearVirtualHostNameMapping";
 constexpr auto kMethodClearCookies = "clearCookies";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
 constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
 constexpr auto kMethodSetFpsLimit = "setFpsLimit";
+
 
 constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
@@ -420,6 +423,35 @@ void WebviewBridge::HandleMethodCall(
     webview_->Resume();
     texture_bridge_->Start();
     return result->Success();
+  }
+
+  // setVirtualHostNameMapping [string hostName, string path, int accessKind]
+  if (method_name.compare(kMethodSetVirtualHostNameMapping) == 0) {
+    const flutter::EncodableList* list =
+    std::get_if<flutter::EncodableList>(method_call.arguments());
+    if (!list || list->size() != 3) {
+      return result->Error(kErrorInvalidArgs);
+    }
+
+    const auto hostName = std::get_if<std::string>(&(*list)[0]);
+    const auto path = std::get_if<std::string>(&(*list)[1]);
+    const auto accessKind = std::get_if<int32_t>(&(*list)[2]);
+
+    if (hostName && path && accessKind) {
+      webview_->SetVirtualHostNameMapping(*hostName, *path, static_cast<WebviewHostResourceAccessKind>(*accessKind));
+      return result->Success();
+    }
+    return result->Error(kErrorInvalidArgs);
+  }
+
+  // clearVirtualHostNameMapping: string
+  if (method_name.compare(kMethodClearVirtualHostNameMapping) == 0) {
+    if (const auto hostName = std::get_if<std::string>(method_call.arguments())) {
+      if (webview_->ClearVirtualHostNameMapping(*hostName)) {
+      return result->Success();
+      }
+    }
+    return result->Error(kErrorInvalidArgs);
   }
 
   // executeScript: string

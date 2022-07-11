@@ -403,6 +403,33 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('resume');
   }
 
+  /// Adds a Virtual Host Name Mapping.
+  ///
+  /// Please refer to
+  /// [Microsofts](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2_3#setvirtualhostnametofoldermapping)
+  /// documentation for more details.
+  Future<void> addVirtualHostNameMapping(String hostName, String folderPath,
+      WebviewHostResourceAccessKind accessKind) async {
+    if (_isDisposed) {
+      return;
+    }
+
+    return _methodChannel.invokeMethod(
+        'setVirtualHostNameMapping', [hostName, folderPath, accessKind.index]);
+  }
+
+  /// Removes a Virtual Host Name Mapping.
+  ///
+  /// Please refer to
+  /// [Microsofts](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2_3#clearvirtualhostnametofoldermapping)
+  /// documentation for more details.
+  Future<void> removeVirtualHostNameMapping(String hostName) async {
+    if (_isDisposed) {
+      return;
+    }
+    return _methodChannel.invokeMethod('clearVirtualHostNameMapping', hostName);
+  }
+
   /// Limits the number of frames per second to the given value.
   Future<void> setFpsLimit([int? maxFps = 0]) async {
     if (_isDisposed) {
