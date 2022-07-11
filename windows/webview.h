@@ -28,6 +28,8 @@ enum class WebviewPermissionState { Default, Allow, Deny };
 
 enum class WebviewPopupWindowPolicy { Allow, Deny, ShowInSameWindow };
 
+enum class WebviewHostResourceAccessKind { Deny, Allow, DenyCors };
+
 struct WebviewHistoryChanged {
   BOOL can_go_back;
   BOOL can_go_forward;
@@ -139,7 +141,7 @@ class Webview {
 
   bool SetVirtualHostNameMapping(const std::string& hostName,
                                  const std::string& path,
-                                 COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND accessKind);
+                                 WebviewHostResourceAccessKind accessKind);
   bool ClearVirtualHostNameMapping(const std::string& hostName);
 
   void OnUrlChanged(UrlChangedCallback callback) {

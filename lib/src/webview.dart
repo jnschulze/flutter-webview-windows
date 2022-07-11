@@ -414,8 +414,8 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       return;
     }
 
-    return _methodChannel.invokeMethod('setVirtualHostNameMapping',
-        [hostName, folderPath, accessKind.winIntValue]);
+    return _methodChannel.invokeMethod(
+        'setVirtualHostNameMapping', [hostName, folderPath, accessKind.index]);
   }
 
   /// Removes a Virtual Host Name Mapping.
@@ -591,18 +591,5 @@ class _WebviewState extends State<Webview> {
   void dispose() {
     super.dispose();
     _cursorSubscription?.cancel();
-  }
-}
-
-extension WebviewHostResourceAccessKindExt on WebviewHostResourceAccessKind {
-  int get winIntValue {
-    switch (this) {
-      case WebviewHostResourceAccessKind.allow:
-        return 1;
-      case WebviewHostResourceAccessKind.deny:
-        return 0;
-      case WebviewHostResourceAccessKind.denyCors:
-        return 2;
-    }
   }
 }

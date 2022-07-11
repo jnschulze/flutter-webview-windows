@@ -438,9 +438,8 @@ void WebviewBridge::HandleMethodCall(
     const auto accessKind = std::get_if<int32_t>(&(*list)[2]);
 
     if (hostName && path && accessKind) {
-      if (webview_->SetVirtualHostNameMapping(*hostName, *path, (COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND) *accessKind)) {
+      webview_->SetVirtualHostNameMapping(*hostName, *path, static_cast<WebviewHostResourceAccessKind>(*accessKind));
       return result->Success();
-      } 
     }
     return result->Error(kErrorInvalidArgs);
   }
