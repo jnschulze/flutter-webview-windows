@@ -317,22 +317,24 @@ void WebviewBridge::HandleMethodCall(
     return result->Error(kErrorInvalidArgs);
   }
 
-  // setPointerUpdate: [int event, double x, double y, double size, double pressure]
+  // setPointerUpdate: 
+  // [int pointer, int event, double x, double y, double size, double pressure]
   if (method_name.compare(kMethodSetPointerUpdate) == 0) {
       const flutter::EncodableList* list =
       std::get_if<flutter::EncodableList>(method_call.arguments());
-    if (!list || list->size() != 5) {
+    if (!list || list->size() != 6) {
       return result->Error(kErrorInvalidArgs);
     }
 
-    const auto event = std::get_if<int32_t>(&(*list)[0]);
-    const auto x = std::get_if<double>(&(*list)[1]);
-    const auto y = std::get_if<double>(&(*list)[2]);
-    const auto size = std::get_if<double>(&(*list)[3]);
-    const auto pressure = std::get_if<double>(&(*list)[4]);
+    const auto pointer = std::get_if<int32_t>(&(*list)[0]);
+    const auto event = std::get_if<int32_t>(&(*list)[1]);
+    const auto x = std::get_if<double>(&(*list)[2]);
+    const auto y = std::get_if<double>(&(*list)[3]);
+    const auto size = std::get_if<double>(&(*list)[4]);
+    const auto pressure = std::get_if<double>(&(*list)[5]);
 
-    if (event && x && y && size && pressure) {
-      webview_->SetPointerUpdate(*event, *x, *y, *size, *pressure);
+    if (pointer && event && x && y && size && pressure) {
+      webview_->SetPointerUpdate(*pointer, static_cast<WebviewPointerEventKind>(*event), *x, *y, *size, *pressure);
       return result->Success();
     }
     return result->Error(kErrorInvalidArgs);

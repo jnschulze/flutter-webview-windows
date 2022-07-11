@@ -465,21 +465,34 @@ void Webview::SetCursorPos(double x, double y) {
       virtual_keys_.state(), 0, point);
 }
 
-void Webview::SetPointerUpdate(int32_t event, double x, double y, double size, double pressure) {
+void Webview::SetPointerUpdate(int32_t pointer, WebviewPointerEventKind eventKind, double x, double y, double size, double pressure) {
   if (!IsValid()) {
     return;
   }
 
+  COREWEBVIEW2_POINTER_EVENT_KIND event = COREWEBVIEW2_POINTER_EVENT_KIND_UPDATE;
   UINT32 pointerFlags = POINTER_FLAG_NONE;
-  switch (event) {
-    case COREWEBVIEW2_POINTER_EVENT_KIND_DOWN:
+  switch (eventKind) {
+    case WebviewPointerEventKind::Activate:
+      event = COREWEBVIEW2_POINTER_EVENT_KIND_ACTIVATE;
+      break;
+    case WebviewPointerEventKind::Down:
+    event = COREWEBVIEW2_POINTER_EVENT_KIND_DOWN;
       pointerFlags = POINTER_FLAG_DOWN | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
       break;
-    case COREWEBVIEW2_POINTER_EVENT_KIND_UPDATE:
-      pointerFlags = POINTER_FLAG_UPDATE | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
+    case WebviewPointerEventKind::Enter:
+      event = COREWEBVIEW2_POINTER_EVENT_KIND_ENTER;
       break;
-    case COREWEBVIEW2_POINTER_EVENT_KIND_UP:
+    case WebviewPointerEventKind::Leave:
+      event = COREWEBVIEW2_POINTER_EVENT_KIND_LEAVE;
+      break;
+    case WebviewPointerEventKind::Up:
+      event = COREWEBVIEW2_POINTER_EVENT_KIND_UP;
       pointerFlags = POINTER_FLAG_UP;
+      break;
+    case WebviewPointerEventKind::Update:
+      event = COREWEBVIEW2_POINTER_EVENT_KIND_UPDATE;
+      pointerFlags = POINTER_FLAG_UPDATE | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
       break;
   }
 
@@ -493,20 +506,20 @@ void Webview::SetPointerUpdate(int32_t event, double x, double y, double size, d
   rect.top = point.y - 2;
   rect.bottom = point.y + 2;
 
- host_->CreateWebViewPointerInfo([this, event, pointerFlags, point, rect, pressure](
+ host_->CreateWebViewPointerInfo([this, pointer, event, pointerFlags, point, rect, pressure](
            wil::com_ptr<ICoreWebView2PointerInfo> pointerInfo,
            std::unique_ptr<WebviewCreationError> error) {
              if (pointerInfo) {
-               ICoreWebView2PointerInfo *pointer = pointerInfo.get();
-               pointer->put_PointerId(0);
-               pointer->put_PointerKind(PT_TOUCH);
-               pointer->put_PointerFlags(pointerFlags);
-               pointer->put_TouchFlags(TOUCH_FLAG_NONE);
-               pointer->put_TouchMask(TOUCH_MASK_CONTACTAREA | TOUCH_MASK_PRESSURE);
-               pointer->put_TouchPressure(std::clamp((UINT32)(pressure == 0.0 ? 1024 : 1024 * pressure), (UINT32) 0, (UINT32) 1024));
-               pointer->put_PixelLocationRaw(point);
-               pointer->put_TouchContactRaw(rect);
-               composition_controller_->SendPointerInput((COREWEBVIEW2_POINTER_EVENT_KIND) event, pointer);
+               ICoreWebView2PointerInfo *pInfo = pointerInfo.get();
+               pInfo->put_PointerId(pointer);
+               pInfo->put_PointerKind(PT_TOUCH);
+               pInfo->put_PointerFlags(pointerFlags);
+               pInfo->put_TouchFlags(TOUCH_FLAG_NONE);
+               pInfo->put_TouchMask(TOUCH_MASK_CONTACTAREA | TOUCH_MASK_PRESSURE);
+               pInfo->put_TouchPressure(std::clamp((UINT32)(pressure == 0.0 ? 1024 : 1024 * pressure), (UINT32) 0, (UINT32) 1024));
+               pInfo->put_PixelLocationRaw(point);
+               pInfo->put_TouchContactRaw(rect);
+               composition_controller_->SendPointerInput(event, pInfo);
                return;
              }
            });

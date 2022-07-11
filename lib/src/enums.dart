@@ -6,6 +6,10 @@ enum LoadingState { none, loading, navigationCompleted }
 // Order must match WebviewPointerButton (see webview.h)
 enum PointerButton { none, primary, secondary, tertiary }
 
+/// Pointer Event kind
+// Order must match WebviewPointerEventKind (see webview.h)
+enum WebviewPointerEventKind { activate, down, enter, leave, up, update }
+
 /// Permission kind
 // Order must match WebviewPermissionKind (see webview.h)
 enum WebviewPermissionKind {
@@ -26,7 +30,3 @@ enum WebviewPermissionDecision { none, allow, deny }
 /// [deny] suppresses popups.
 /// [sameWindow] displays popup contents in the current WebView.
 enum WebviewPopupWindowPolicy { allow, deny, sameWindow }
-
-// Event kind
-// Matches the types defined for CoreWebView2PointerEventKind.
-enum WebviewPointerEventKind { activate, down, enter, leave, up, update }

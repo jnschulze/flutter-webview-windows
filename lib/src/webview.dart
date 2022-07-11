@@ -413,14 +413,14 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   }
 
   /// Sends a Pointer (Touch) update
-  Future<void> _setPointerUpdate(WebviewPointerEventKind kind, Offset position,
-      double size, double pressure) async {
+  Future<void> _setPointerUpdate(WebviewPointerEventKind kind, int pointer,
+      Offset position, double size, double pressure) async {
     if (_isDisposed) {
       return;
     }
     assert(value.isInitialized);
     return _methodChannel.invokeMethod('setPointerUpdate',
-        [kind.winIntValue, position.dx, position.dy, size, pressure]);
+        [pointer, kind.index, position.dx, position.dy, size, pressure]);
   }
 
   /// Moves the virtual cursor to [position].
@@ -543,6 +543,7 @@ class _WebviewState extends State<Webview> {
                       if (ev.kind == PointerDeviceKind.touch) {
                         _controller._setPointerUpdate(
                             WebviewPointerEventKind.down,
+                            ev.pointer,
                             ev.localPosition,
                             ev.size,
                             ev.pressure);
@@ -557,6 +558,7 @@ class _WebviewState extends State<Webview> {
                       if (ev.kind == PointerDeviceKind.touch) {
                         _controller._setPointerUpdate(
                             WebviewPointerEventKind.up,
+                            ev.pointer,
                             ev.localPosition,
                             ev.size,
                             ev.pressure);
@@ -579,6 +581,7 @@ class _WebviewState extends State<Webview> {
                       if (ev.kind == PointerDeviceKind.touch) {
                         _controller._setPointerUpdate(
                             WebviewPointerEventKind.update,
+                            ev.pointer,
                             ev.localPosition,
                             ev.size,
                             ev.pressure);
@@ -611,24 +614,5 @@ class _WebviewState extends State<Webview> {
   void dispose() {
     super.dispose();
     _cursorSubscription?.cancel();
-  }
-}
-
-extension WebviewPointerEventKindExt on WebviewPointerEventKind {
-  int get winIntValue {
-    switch (this) {
-      case WebviewPointerEventKind.activate:
-        return 587; // WM_POINTERACTIVATE
-      case WebviewPointerEventKind.down:
-        return 582; // WM_POINTERDOWN
-      case WebviewPointerEventKind.enter:
-        return 585; // WM_POINTERENTER
-      case WebviewPointerEventKind.leave:
-        return 586; // WM_POINTERLEAVE
-      case WebviewPointerEventKind.up:
-        return 583; // WM_POINTERUP
-      case WebviewPointerEventKind.update:
-        return 581; // WM_POINTERUPDATE
-    }
   }
 }
