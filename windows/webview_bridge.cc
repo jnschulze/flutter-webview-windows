@@ -25,6 +25,7 @@ constexpr auto kMethodExecuteScript = "executeScript";
 constexpr auto kMethodPostWebMessage = "postWebMessage";
 constexpr auto kMethodSetSize = "setSize";
 constexpr auto kMethodSetCursorPos = "setCursorPos";
+constexpr auto kMethodSetPointerUpdate = "setPointerUpdate";
 constexpr auto kMethodSetPointerButton = "setPointerButton";
 constexpr auto kMethodSetScrollDelta = "setScrollDelta";
 constexpr auto kMethodSetUserAgent = "setUserAgent";
@@ -314,6 +315,29 @@ void WebviewBridge::HandleMethodCall(
     const auto point = GetPointFromArgs(method_call.arguments());
     if (point) {
       webview_->SetCursorPos(point->first, point->second);
+      return result->Success();
+    }
+    return result->Error(kErrorInvalidArgs);
+  }
+
+  // setPointerUpdate: 
+  // [int pointer, int event, double x, double y, double size, double pressure]
+  if (method_name.compare(kMethodSetPointerUpdate) == 0) {
+      const flutter::EncodableList* list =
+      std::get_if<flutter::EncodableList>(method_call.arguments());
+    if (!list || list->size() != 6) {
+      return result->Error(kErrorInvalidArgs);
+    }
+
+    const auto pointer = std::get_if<int32_t>(&(*list)[0]);
+    const auto event = std::get_if<int32_t>(&(*list)[1]);
+    const auto x = std::get_if<double>(&(*list)[2]);
+    const auto y = std::get_if<double>(&(*list)[3]);
+    const auto size = std::get_if<double>(&(*list)[4]);
+    const auto pressure = std::get_if<double>(&(*list)[5]);
+
+    if (pointer && event && x && y && size && pressure) {
+      webview_->SetPointerUpdate(*pointer, static_cast<WebviewPointerEventKind>(*event), *x, *y, *size, *pressure);
       return result->Success();
     }
     return result->Error(kErrorInvalidArgs);

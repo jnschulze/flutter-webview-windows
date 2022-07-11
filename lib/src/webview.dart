@@ -439,6 +439,17 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('setFpsLimit', maxFps);
   }
 
+  /// Sends a Pointer (Touch) update
+  Future<void> _setPointerUpdate(WebviewPointerEventKind kind, int pointer,
+      Offset position, double size, double pressure) async {
+    if (_isDisposed) {
+      return;
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod('setPointerUpdate',
+        [pointer, kind.index, position.dx, position.dy, size, pressure]);
+  }
+
   /// Moves the virtual cursor to [position].
   Future<void> _setCursorPos(Offset position) async {
     if (_isDisposed) {
@@ -499,6 +510,8 @@ class _WebviewState extends State<Webview> {
   final GlobalKey _key = GlobalKey();
   final _downButtons = <int, PointerButton>{};
 
+  PointerDeviceKind _pointerKind = PointerDeviceKind.unknown;
+
   MouseCursor _cursor = SystemMouseCursors.basic;
 
   WebviewController get _controller => widget.controller;
@@ -544,27 +557,64 @@ class _WebviewState extends State<Webview> {
             child: _controller.value.isInitialized
                 ? Listener(
                     onPointerHover: (ev) {
+                      // ev.kind is for whatever reason not set to touch
+                      // even on touch input
+                      if (_pointerKind == PointerDeviceKind.touch) {
+                        // Ignoring hover events on touch for now
+                        return;
+                      }
                       _controller._setCursorPos(ev.localPosition);
                     },
                     onPointerDown: (ev) {
+                      _pointerKind = ev.kind;
+                      if (ev.kind == PointerDeviceKind.touch) {
+                        _controller._setPointerUpdate(
+                            WebviewPointerEventKind.down,
+                            ev.pointer,
+                            ev.localPosition,
+                            ev.size,
+                            ev.pressure);
+                        return;
+                      }
                       final button = getButton(ev.buttons);
                       _downButtons[ev.pointer] = button;
                       _controller._setPointerButtonState(button, true);
                     },
                     onPointerUp: (ev) {
+                      _pointerKind = ev.kind;
+                      if (ev.kind == PointerDeviceKind.touch) {
+                        _controller._setPointerUpdate(
+                            WebviewPointerEventKind.up,
+                            ev.pointer,
+                            ev.localPosition,
+                            ev.size,
+                            ev.pressure);
+                        return;
+                      }
                       final button = _downButtons.remove(ev.pointer);
                       if (button != null) {
                         _controller._setPointerButtonState(button, false);
                       }
                     },
                     onPointerCancel: (ev) {
+                      _pointerKind = ev.kind;
                       final button = _downButtons.remove(ev.pointer);
                       if (button != null) {
                         _controller._setPointerButtonState(button, false);
                       }
                     },
                     onPointerMove: (ev) {
-                      _controller._setCursorPos(ev.localPosition);
+                      _pointerKind = ev.kind;
+                      if (ev.kind == PointerDeviceKind.touch) {
+                        _controller._setPointerUpdate(
+                            WebviewPointerEventKind.update,
+                            ev.pointer,
+                            ev.localPosition,
+                            ev.size,
+                            ev.pressure);
+                      } else {
+                        _controller._setCursorPos(ev.localPosition);
+                      }
                     },
                     onPointerSignal: (signal) {
                       if (signal is PointerScrollEvent) {

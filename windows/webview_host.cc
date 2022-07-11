@@ -84,6 +84,18 @@ void WebviewHost::CreateWebview(HWND hwnd, bool offscreen_only,
       });
 }
 
+void WebviewHost::CreateWebViewPointerInfo(PointerInfoCreationCallback callback) {
+
+  ICoreWebView2PointerInfo *pointer;
+  auto hr = webview_env_->CreateCoreWebView2PointerInfo(&pointer);
+
+  if (FAILED(hr)) {
+    callback(nullptr, WebviewCreationError::create(hr, "CreateWebViewPointerInfo failed."));
+  } else if (SUCCEEDED(hr)) {
+    callback(std::move(wil::com_ptr<ICoreWebView2PointerInfo>(pointer)), nullptr);
+  }
+}
+
 void WebviewHost::CreateWebViewCompositionController(
     HWND hwnd, CompositionControllerCreationCallback callback) {
   auto hr = webview_env_->CreateCoreWebView2CompositionController(
