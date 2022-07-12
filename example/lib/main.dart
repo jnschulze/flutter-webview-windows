@@ -44,10 +44,25 @@ class _ExampleBrowser extends State<ExampleBrowser> {
     try {
       await _controller.initialize();
 
-      final scriptID1 = await _controller.addScriptToExecuteOnDocumentCreated('window.hello1 = "world1"');
-      final scriptID2 = await _controller.addScriptToExecuteOnDocumentCreated('window.hello2 = "world2"');
-      print('==== $scriptID1 $scriptID2');
-      await _controller.removeScriptToExecuteOnDocumentCreated(scriptID1!);
+      /// Example about [addScriptToExecuteOnDocumentCreated] and [removeScriptToExecuteOnDocumentCreated]
+      /// Plase open DevTools to check the results.
+
+      /// 1. Example to listening DOMContentLoaded event.
+      await _controller.addScriptToExecuteOnDocumentCreated('document.addEventListener("DOMContentLoaded", () => console.log("document ready"));');
+
+      /// 2. Example how [addScriptToExecuteOnDocumentCreated] and [removeScriptToExecuteOnDocumentCreated] works.
+      final scriptID = await _controller.addScriptToExecuteOnDocumentCreated('''
+window.message1 = 'This message will not display on the console due to it will be removed soon by removeScriptToExecuteOnDocumentCreated()';
+console.log(window.message1);
+''');
+      /// The script added on [scriptID] will be deleted and are no longer executed.
+      await _controller.removeScriptToExecuteOnDocumentCreated(scriptID!);
+      /// Yet another script that always be excuted.
+      await _controller.addScriptToExecuteOnDocumentCreated('''
+window.message2 = 'You will see this message in every WebView that created with this _controller';
+console.log('window.message1 is undefined:', window.message1);
+console.log('window.message2:', window.message2);
+''');
 
       _controller.url.listen((url) {
         _textController.text = url;

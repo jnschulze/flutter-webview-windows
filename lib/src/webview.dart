@@ -303,7 +303,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   /// object has been created, but before the HTML document has been parsed and before any
   /// other script included by the HTML document is run.
   ///
-  /// Returns a [ScriptID] when succefully which can be used for [removeScriptToExecuteOnDocumentCreated].
+  /// Returns a [ScriptID] when succefully that can be used for [removeScriptToExecuteOnDocumentCreated].
   ///
   /// see https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.1264.42#addscripttoexecuteondocumentcreated
   Future<ScriptID?> addScriptToExecuteOnDocumentCreated(String script) async {
