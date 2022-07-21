@@ -199,7 +199,15 @@ void Webview::RegisterEventHandlers() {
 
   webview_->add_NavigationCompleted(
       Callback<ICoreWebView2NavigationCompletedEventHandler>(
-          [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+          [this](ICoreWebView2* sender, ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT {
+            BOOL is_success;
+            args->get_IsSuccess(&is_success);
+            if (!is_success && on_load_error_callback_) {
+              COREWEBVIEW2_WEB_ERROR_STATUS web_error_status;
+              args->get_WebErrorStatus(&web_error_status);
+              on_load_error_callback_(web_error_status);
+            }
+
             if (loading_state_changed_callback_) {
               loading_state_changed_callback_(
                   WebviewLoadingState::NavigationCompleted);

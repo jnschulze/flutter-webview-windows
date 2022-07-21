@@ -42,3 +42,25 @@ enum WebviewPopupWindowPolicy { allow, deny, sameWindow }
 /// documentation.
 // Order must match WebviewHostResourceAccessKind (see webview.h)
 enum WebviewHostResourceAccessKind { deny, allow, denyCors }
+
+enum WebErrorStatus {
+	WebErrorStatusUnknown,
+	WebErrorStatusCertificateCommonNameIsIncorrect,
+	WebErrorStatusCertificateExpired,
+	WebErrorStatusClientCertificateContainsErrors,
+	WebErrorStatusCertificateRevoked,
+	WebErrorStatusCertificateIsInvalid,
+	WebErrorStatusServerUnreachable,
+	WebErrorStatusTimeout,
+	WebErrorStatusErrorHTTPInvalidServerResponse,
+	WebErrorStatusConnectionAborted,
+	WebErrorStatusConnectionReset,
+	WebErrorStatusDisconnected,
+	WebErrorStatusCannotConnect,
+	WebErrorStatusHostNameNotResolved,
+	WebErrorStatusOperationCanceled,
+	WebErrorStatusRedirectFailed,
+	WebErrorStatusUnexpectedError,
+	WebErrorStatusValidAuthenticationCredentialsRequired,
+	WebErrorStatusValidProxyAuthenticationRequired,
+}
