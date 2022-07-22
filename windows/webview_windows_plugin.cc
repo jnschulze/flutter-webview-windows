@@ -65,7 +65,7 @@ class WebviewWindowsPlugin : public flutter::Plugin {
   bool InitPlatform();
 
   void CreateWebviewInstance(
-      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>);
+      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>, bool);
   // Called when a method is called on this plugin's channel from Dart.
   void HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue>& method_call,
@@ -142,7 +142,8 @@ void WebviewWindowsPlugin::HandleMethodCall(
   }
 
   if (method_call.method_name().compare(kMethodInitialize) == 0) {
-    return CreateWebviewInstance(std::move(result));
+    const auto pHeadless = std::get_if<bool>(method_call.arguments());
+    return CreateWebviewInstance(std::move(result), pHeadless != nullptr && *pHeadless);
   }
 
   if (method_call.method_name().compare(kMethodDispose) == 0) {
@@ -160,7 +161,7 @@ void WebviewWindowsPlugin::HandleMethodCall(
 }
 
 void WebviewWindowsPlugin::CreateWebviewInstance(
-    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result, bool headless) {
   if (!InitPlatform()) {
     return result->Error(kErrorUnsupportedPlatform,
                          "The platform is not supported");
@@ -182,7 +183,7 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
       shared_result = std::move(result);
   webview_host_->CreateWebview(
       hwnd, true, true,
-      [shared_result, this](std::unique_ptr<Webview> webview,
+      [shared_result, headless, this](std::unique_ptr<Webview> webview,
                             std::unique_ptr<WebviewCreationError> error) {
         if (!webview) {
           if (error) {
@@ -196,9 +197,17 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
                                       "Creating the webview failed.");
         }
 
-        auto bridge = std::make_unique<WebviewBridge>(
-            messenger_, textures_, platform_->graphics_context(),
-            std::move(webview));
+        std::unique_ptr<WebviewBridge> bridge;
+        if (headless) {
+          bridge = std::make_unique<WebviewBridge>(
+              messenger_, nullptr, nullptr,
+              std::move(webview));
+        } else {
+          bridge = std::make_unique<WebviewBridge>(
+              messenger_, textures_, platform_->graphics_context(),
+              std::move(webview));
+        }
+
         auto texture_id = bridge->texture_id();
         instances_[texture_id] = std::move(bridge);
 

@@ -124,36 +124,41 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
                              GraphicsContext* graphics_context,
                              std::unique_ptr<Webview> webview)
     : webview_(std::move(webview)), texture_registrar_(texture_registrar) {
+  if (texture_registrar && graphics_context) {
 #ifdef HAVE_FLUTTER_D3D_TEXTURE
-  texture_bridge_ =
-      std::make_unique<TextureBridgeGpu>(graphics_context, webview_->surface());
+    texture_bridge_ =
+        std::make_unique<TextureBridgeGpu>(graphics_context, webview_->surface());
 
-  flutter_texture_ =
-      std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
-          kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
-          [bridge = static_cast<TextureBridgeGpu*>(texture_bridge_.get())](
-              size_t width,
-              size_t height) -> const FlutterDesktopGpuSurfaceDescriptor* {
-            return bridge->GetSurfaceDescriptor(width, height);
-          }));
+    flutter_texture_ =
+        std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
+            kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
+            [bridge = static_cast<TextureBridgeGpu*>(texture_bridge_.get())](
+                size_t width,
+                size_t height) -> const FlutterDesktopGpuSurfaceDescriptor* {
+              return bridge->GetSurfaceDescriptor(width, height);
+            }));
 #else
-  texture_bridge_ = std::make_unique<TextureBridgeFallback>(
-      graphics_context, webview_->surface());
+    texture_bridge_ = std::make_unique<TextureBridgeFallback>(
+        graphics_context, webview_->surface());
 
-  flutter_texture_ =
-      std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
-          [bridge = static_cast<TextureBridgeFallback*>(texture_bridge_.get())](
-              size_t width, size_t height) -> const FlutterDesktopPixelBuffer* {
-            return bridge->CopyPixelBuffer(width, height);
-          }));
+    flutter_texture_ =
+        std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
+            [bridge = static_cast<TextureBridgeFallback*>(texture_bridge_.get())](
+                size_t width, size_t height) -> const FlutterDesktopPixelBuffer* {
+              return bridge->CopyPixelBuffer(width, height);
+            }));
 #endif
 
-  texture_id_ = texture_registrar->RegisterTexture(flutter_texture_.get());
-  texture_bridge_->SetOnFrameAvailable(
-      [this]() { texture_registrar_->MarkTextureFrameAvailable(texture_id_); });
-  // texture_bridge_->SetOnSurfaceSizeChanged([this](Size size) {
-  //  webview_->SetSurfaceSize(size.width, size.height);
-  //});
+    texture_id_ = texture_registrar->RegisterTexture(flutter_texture_.get());
+    texture_bridge_->SetOnFrameAvailable(
+        [this]() { texture_registrar_->MarkTextureFrameAvailable(texture_id_); });
+    // texture_bridge_->SetOnSurfaceSizeChanged([this](Size size) {
+    //  webview_->SetSurfaceSize(size.width, size.height);
+    //});
+  } else {
+    // This is necessarily for communication between dart and c++
+    texture_id_ = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  }
 
   const auto method_channel_name =
       fmt::format("io.jns.webview.win/{}", texture_id_);
@@ -191,7 +196,9 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
 
 WebviewBridge::~WebviewBridge() {
   method_channel_->SetMethodCallHandler(nullptr);
-  texture_registrar_->UnregisterTexture(texture_id_);
+  if (texture_registrar_) {
+    texture_registrar_->UnregisterTexture(texture_id_);
+  }
 }
 
 void WebviewBridge::RegisterEventHandlers() {

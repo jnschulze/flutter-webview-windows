@@ -81,6 +81,8 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     });
   }
 
+  final bool headless;
+
   late Completer<void> _creatingCompleter;
   int _textureId = 0;
   bool _isDisposed = false;
@@ -137,7 +139,11 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   Stream<dynamic> get webMessage =>
       _webMessageStreamController.stream;
 
-  WebviewController() : super(WebviewValue.uninitialized());
+  WebviewController({
+    /// If [headless] is true, [WebviewController] will creates a headless webview
+    /// that runs in the background, and it can't be used for [Webview] widget.
+    this.headless = false,
+  }) : super(WebviewValue.uninitialized());
 
   /// Initializes the underlying platform view.
   Future<void> initialize() async {
@@ -147,7 +153,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     _creatingCompleter = Completer<void>();
     try {
       final reply =
-          await _pluginChannel.invokeMapMethod<String, dynamic>('initialize');
+          await _pluginChannel.invokeMapMethod<String, dynamic>('initialize', headless);
 
       _textureId = reply!['textureId'];
       _methodChannel = MethodChannel('$_pluginChannelPrefix/$_textureId');
