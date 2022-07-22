@@ -3,8 +3,6 @@ import 'dart:async';
 
 import 'package:webview_windows/webview_windows.dart';
 
-final navigatorKey = GlobalKey<NavigatorState>();
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
