@@ -103,6 +103,7 @@ class Webview {
   typedef std::function<void(const HCURSOR)> CursorChangedCallback;
   typedef std::function<void(bool)> FocusChangedCallback;
   typedef std::function<void(bool)> ScriptExecutedCallback;
+  typedef std::function<void(bool, std::string&)> AddScriptToExecuteOnDocumentCreatedCallback;
   typedef std::function<void(const std::string&)> WebMessageReceivedCallback;
   typedef std::function<void(WebviewPermissionState state)>
       WebviewPermissionRequestedCompleter;
@@ -135,6 +136,9 @@ class Webview {
   bool Reload();
   bool GoBack();
   bool GoForward();
+  void AddScriptToExecuteOnDocumentCreated(const std::string& script,
+                                           AddScriptToExecuteOnDocumentCreatedCallback callback);
+  void RemoveScriptToExecuteOnDocumentCreated(const std::string& script_id);
   void ExecuteScript(const std::string& script,
                      ScriptExecutedCallback callback);
   bool PostWebMessage(const std::string& json);

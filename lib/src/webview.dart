@@ -19,6 +19,8 @@ typedef PermissionRequestedDelegate
     = FutureOr<WebviewPermissionDecision> Function(
         String url, WebviewPermissionKind permissionKind, bool isUserInitiated);
 
+typedef ScriptID = String;
+
 /// Attempts to translate a button constant such as [kPrimaryMouseButton]
 /// to a [PointerButton]
 PointerButton getButton(int value) {
@@ -304,6 +306,33 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     }
     assert(value.isInitialized);
     return _methodChannel.invokeMethod('goForward');
+  }
+
+  /// Add the provided JavaScript to a list of scripts that should be run after the global
+  /// object has been created, but before the HTML document has been parsed and before any
+  /// other script included by the HTML document is run.
+  ///
+  /// Returns a [ScriptID] when succefully which can be used for [removeScriptToExecuteOnDocumentCreated].
+  ///
+  /// see https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.1264.42#addscripttoexecuteondocumentcreated
+  Future<ScriptID?> addScriptToExecuteOnDocumentCreated(String script) async {
+    if (_isDisposed) {
+      return null;
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod<String?>('addScriptToExecuteOnDocumentCreated', script);
+  }
+
+  /// Remove the corresponding JavaScript added using [addScriptToExecuteOnDocumentCreated]
+  /// with the specified script ID.
+  ///
+  /// see https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.1264.42#removescripttoexecuteondocumentcreated
+  Future<void> removeScriptToExecuteOnDocumentCreated(ScriptID scriptID) async {
+    if (_isDisposed) {
+      return null;
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod('removeScriptToExecuteOnDocumentCreated', scriptID);
   }
 
   /// Executes the given [script].
