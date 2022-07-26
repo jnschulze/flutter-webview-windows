@@ -101,9 +101,14 @@ class WebviewController extends ValueNotifier<WebviewValue> {
 
   final StreamController<LoadingState> _loadingStateStreamController =
       StreamController<LoadingState>();
+  final StreamController<WebErrorStatus> _onLoadErrorStreamController =
+      StreamController<WebErrorStatus>();
 
   /// A stream reflecting the current loading state.
   Stream<LoadingState> get loadingState => _loadingStateStreamController.stream;
+
+  /// A stream reflecting the navigation error when navigation completed with an error.
+  Stream<WebErrorStatus> get onLoadError => _onLoadErrorStreamController.stream;
 
   final StreamController<HistoryChanged> _historyChangedStreamController =
       StreamController<HistoryChanged>();
@@ -158,6 +163,10 @@ class WebviewController extends ValueNotifier<WebviewValue> {
         switch (map['type']) {
           case 'urlChanged':
             _urlStreamController.add(map['value']);
+            break;
+          case 'onLoadError':
+            final value = WebErrorStatus.values[map['value']];
+            _onLoadErrorStreamController.add(value);
             break;
           case 'loadingStateChanged':
             final value = LoadingState.values[map['value']];

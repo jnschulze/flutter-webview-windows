@@ -204,6 +204,16 @@ void WebviewBridge::RegisterEventHandlers() {
     EmitEvent(event);
   });
 
+  webview_->OnLoadError([this](COREWEBVIEW2_WEB_ERROR_STATUS web_status) {
+    const auto event = flutter::EncodableValue(flutter::EncodableMap{
+        {flutter::EncodableValue(kEventType),
+         flutter::EncodableValue("onLoadError")},
+        {flutter::EncodableValue(kEventValue),
+         flutter::EncodableValue(static_cast<int>(web_status))},
+    });
+    EmitEvent(event);
+  });
+
   webview_->OnLoadingStateChanged([this](WebviewLoadingState state) {
     const auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),

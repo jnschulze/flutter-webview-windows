@@ -94,6 +94,7 @@ class Webview {
 
   typedef std::function<void(const std::string&)> UrlChangedCallback;
   typedef std::function<void(WebviewLoadingState)> LoadingStateChangedCallback;
+  typedef std::function<void(COREWEBVIEW2_WEB_ERROR_STATUS)> OnLoadErrorCallback;
   typedef std::function<void(WebviewHistoryChanged)> HistoryChangedCallback;
   typedef std::function<void(const std::string&)> DevtoolsProtocolEventCallback;
   typedef std::function<void(const std::string&)> DocumentTitleChangedCallback;
@@ -156,6 +157,10 @@ class Webview {
     url_changed_callback_ = std::move(callback);
   }
 
+  void OnLoadError(OnLoadErrorCallback callback) {
+    on_load_error_callback_ = std::move(callback);
+  }
+
   void OnLoadingStateChanged(LoadingStateChangedCallback callback) {
     loading_state_changed_callback_ = std::move(callback);
   }
@@ -216,6 +221,7 @@ class Webview {
 
   UrlChangedCallback url_changed_callback_;
   LoadingStateChangedCallback loading_state_changed_callback_;
+  OnLoadErrorCallback on_load_error_callback_;
   HistoryChangedCallback history_changed_callback_;
   DocumentTitleChangedCallback document_title_changed_callback_;
   SurfaceSizeChangedCallback surface_size_changed_callback_;
