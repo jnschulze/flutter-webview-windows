@@ -649,8 +649,9 @@ void Webview::AddScriptToExecuteOnDocumentCreated(const std::string& script,
   webview_->AddScriptToExecuteOnDocumentCreated(
           get_utf16(script, CP_UTF8).c_str(),
           Callback<ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
-              [callback](HRESULT result, LPCWSTR script_id) -> HRESULT {
-                callback(SUCCEEDED(result), script_id);
+              [callback](HRESULT result, LPCWSTR wsid) -> HRESULT {
+                std::string sid = CW2A(wsid, CP_UTF8);
+                callback(SUCCEEDED(result), sid);
                 return S_OK;
               })
               .Get());

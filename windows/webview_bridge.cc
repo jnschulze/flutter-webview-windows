@@ -486,10 +486,9 @@ void WebviewBridge::HandleMethodCall(
       std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
           shared_result = std::move(result);
 
-      webview_->AddScriptToExecuteOnDocumentCreated(*script, [shared_result](bool success, LPCWSTR script_id) {
+      webview_->AddScriptToExecuteOnDocumentCreated(*script, [shared_result](bool success, std::string& script_id) {
         if (success) {
-          std::string sid = CW2A(script_id, CP_UTF8);
-          shared_result->Success(sid);
+          shared_result->Success(script_id);
         } else {
           shared_result->Error(kScriptFailed, "Executing script failed.");
         }
