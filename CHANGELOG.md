@@ -1,3 +1,11 @@
+## 0.2.1
+
+* Add `WebviewController.addScriptToExecuteOnDocumentCreated` and `WebviewController.removeScriptToExecuteOnDocumentCreated`
+* Add `WebviewController.onLoadError` stream
+* Change `WebviewController.webMessage` stream type from `Map<dynamic, dynamic>` to `dynamic`
+* Add virtual hostname mapping support 
+* Add multi-touch support
+
 ## 0.2.0
 
 * Fix Flutter 3.0 null safety warning in example
