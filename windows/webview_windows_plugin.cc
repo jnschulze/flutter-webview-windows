@@ -5,6 +5,7 @@
 #include <flutter/standard_method_codec.h>
 #include <fmt/core.h>
 #include <windows.h>
+#include <atlstr.h>
 
 #include <memory>
 #include <string>
@@ -22,6 +23,7 @@ namespace {
 constexpr auto kMethodInitialize = "initialize";
 constexpr auto kMethodDispose = "dispose";
 constexpr auto kMethodInitializeEnvironment = "initializeEnvironment";
+constexpr auto kMethodGetWebViewVersion = "getWebViewVersion";
 
 constexpr auto kErrorCodeInvalidId = "invalid_id";
 constexpr auto kErrorCodeEnvironmentCreationFailed =
@@ -139,6 +141,17 @@ void WebviewWindowsPlugin::HandleMethodCall(
     }
 
     return result->Success();
+  }
+
+  if (method_call.method_name().compare(kMethodGetWebViewVersion) == 0) {
+    wil::unique_cotaskmem_string version_info;
+    auto hr = GetAvailableCoreWebView2BrowserVersionString(nullptr, &version_info);
+    if (SUCCEEDED(hr) && version_info != nullptr) {
+      std::string version_result = CW2A(version_info.get(), CP_UTF8);
+      return result->Success(flutter::EncodableValue(version_result));
+    } else {
+      return result->Success();
+    }
   }
 
   if (method_call.method_name().compare(kMethodInitialize) == 0) {
