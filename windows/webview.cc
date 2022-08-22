@@ -569,29 +569,19 @@ void Webview::SendScroll(double delta, bool horizontal) {
 
   auto offset = static_cast<short>(delta * kScrollMultiplier);
 
-  // TODO Remove this workaround
-  //
-  // For some reason, the composition controller only handles mousewheel events
-  // if a mouse button is down.
-  // -> Emulate a down button while sending the wheel event (a virtual key
-  //    doesn't work)
-  composition_controller_->SendMouseInput(
-      COREWEBVIEW2_MOUSE_EVENT_KIND_X_BUTTON_DOWN,
-      COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE, 0, last_cursor_pos_);
+  POINT point;
+  point.x = 0;
+  point.y = 0;
 
   if (horizontal) {
     composition_controller_->SendMouseInput(
         COREWEBVIEW2_MOUSE_EVENT_KIND_HORIZONTAL_WHEEL, virtual_keys_.state(),
-        offset, last_cursor_pos_);
+        offset, point);
   } else {
     composition_controller_->SendMouseInput(COREWEBVIEW2_MOUSE_EVENT_KIND_WHEEL,
                                             virtual_keys_.state(), offset,
-                                            last_cursor_pos_);
+                                            point);
   }
-
-  composition_controller_->SendMouseInput(
-      COREWEBVIEW2_MOUSE_EVENT_KIND_X_BUTTON_UP,
-      COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE, 0, last_cursor_pos_);
 }
 
 void Webview::SetScrollDelta(double delta_x, double delta_y) {
