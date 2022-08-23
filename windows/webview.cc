@@ -599,7 +599,7 @@ void Webview::SetScrollDelta(double delta_x, double delta_y) {
 
 void Webview::LoadUrl(const std::string& url) {
   if (IsValid()) {
-    webview_->Navigate(towstring(url).c_str());
+    webview_->Navigate(get_utf16(url, CP_UTF8).c_str());
   }
 }
 
