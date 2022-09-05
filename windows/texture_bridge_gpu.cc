@@ -45,6 +45,7 @@ void TextureBridgeGpu::EnsureSurface(uint32_t width, uint32_t height) {
     dstDesc.SampleDesc.Quality = 0;
     dstDesc.Usage = D3D11_USAGE_DEFAULT;
 
+    surface_ = nullptr;
     if (!SUCCEEDED(graphics_context_->d3d_device()->CreateTexture2D(
             &dstDesc, nullptr, surface_.put()))) {
       std::cerr << "Creating intermediate texture failed" << std::endl;
