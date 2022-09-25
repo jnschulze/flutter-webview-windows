@@ -1,16 +1,16 @@
 cmake_minimum_required(VERSION 3.15)
 set(PROJECT_NAME "webview_windows")
 
-set(WIL_VERSION "1.0.220201.1")
+set(WIL_VERSION "1.0.220914.1")
 set(WEBVIEW_VERSION "1.0.1210.39")
+
+message("CMake system version is ${CMAKE_SYSTEM_VERSION} (using SDK ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION})")
 
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 # This value is used when generating builds using this plugin, so it must
 # not be changed
 set(PLUGIN_NAME "webview_windows_plugin")
-
-add_subdirectory(third_party/fmt)
 
 set(NUGET_URL https://dist.nuget.org/win-x86-commandline/v5.10.0/nuget.exe)
 set(NUGET_SHA256 852b71cc8c8c2d40d09ea49d321ff56fd2397b9d6ea9f96e532530307bbbafd3)
@@ -48,6 +48,7 @@ add_library(${PLUGIN_NAME} SHARED
   "graphics_context.cc"
   "util/direct3d11.interop.cc"
   "util/rohelper.cc"
+  "util/string_converter.cc"
 )
 
 if(FLUTTER_WEBVIEW_WINDOWS_USE_D3D_TEXTURE)
@@ -71,6 +72,13 @@ else()
 endif()
 
 apply_standard_settings(${PLUGIN_NAME})
+if (MSVC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.29.30129 AND CMAKE_VERSION VERSION_GREATER 3.20.3)
+  # CMake 3.20.4+
+  target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_23) # ensure /std:c++latest for std::format
+else()
+  target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_20) # ensure /std:c++latest for std::format
+endif()
+
 set_target_properties(${PLUGIN_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE ${CMAKE_BINARY_DIR}/packages/Microsoft.Web.WebView2/build/native/Microsoft.Web.WebView2.targets)
@@ -79,11 +87,8 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE ${CMAKE_BINARY_DIR}/packages/Micros
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  )
+)
 
-target_include_directories(${PLUGIN_NAME} PRIVATE "third_party/fmt/include")
-
-target_link_libraries(${PLUGIN_NAME} PRIVATE fmt::fmt)
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 
 set(webview_windows_bundled_libraries
