@@ -2,10 +2,8 @@
 
 #include <flutter/event_stream_handler_functions.h>
 #include <flutter/method_result_functions.h>
-#include <fmt/core.h>
 
-#include <atlstr.h>
-#include <iostream>
+#include <format>
 
 #ifdef HAVE_FLUTTER_D3D_TEXTURE
 #include "texture_bridge_gpu.h"
@@ -22,8 +20,10 @@ constexpr auto kMethodReload = "reload";
 constexpr auto kMethodStop = "stop";
 constexpr auto kMethodGoBack = "goBack";
 constexpr auto kMethodGoForward = "goForward";
-constexpr auto kMethodAddScriptToExecuteOnDocumentCreated = "addScriptToExecuteOnDocumentCreated";
-constexpr auto kMethodRemoveScriptToExecuteOnDocumentCreated = "removeScriptToExecuteOnDocumentCreated";
+constexpr auto kMethodAddScriptToExecuteOnDocumentCreated =
+    "addScriptToExecuteOnDocumentCreated";
+constexpr auto kMethodRemoveScriptToExecuteOnDocumentCreated =
+    "removeScriptToExecuteOnDocumentCreated";
 constexpr auto kMethodExecuteScript = "executeScript";
 constexpr auto kMethodPostWebMessage = "postWebMessage";
 constexpr auto kMethodSetSize = "setSize";
@@ -37,13 +37,13 @@ constexpr auto kMethodOpenDevTools = "openDevTools";
 constexpr auto kMethodSuspend = "suspend";
 constexpr auto kMethodResume = "resume";
 constexpr auto kMethodSetVirtualHostNameMapping = "setVirtualHostNameMapping";
-constexpr auto kMethodClearVirtualHostNameMapping = "clearVirtualHostNameMapping";
+constexpr auto kMethodClearVirtualHostNameMapping =
+    "clearVirtualHostNameMapping";
 constexpr auto kMethodClearCookies = "clearCookies";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
 constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
 constexpr auto kMethodSetFpsLimit = "setFpsLimit";
-
 
 constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
@@ -159,7 +159,7 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
   //});
 
   const auto method_channel_name =
-      fmt::format("io.jns.webview.win/{}", texture_id_);
+      std::format("io.jns.webview.win/{}", texture_id_);
   method_channel_ =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
           messenger, method_channel_name,
@@ -169,7 +169,7 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
   });
 
   const auto event_channel_name =
-      fmt::format("io.jns.webview.win/{}/events", texture_id_);
+      std::format("io.jns.webview.win/{}/events", texture_id_);
   event_channel_ =
       std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
           messenger, event_channel_name,
@@ -333,11 +333,11 @@ void WebviewBridge::HandleMethodCall(
     return result->Error(kErrorInvalidArgs);
   }
 
-  // setPointerUpdate: 
+  // setPointerUpdate:
   // [int pointer, int event, double x, double y, double size, double pressure]
   if (method_name.compare(kMethodSetPointerUpdate) == 0) {
-      const flutter::EncodableList* list =
-      std::get_if<flutter::EncodableList>(method_call.arguments());
+    const flutter::EncodableList* list =
+        std::get_if<flutter::EncodableList>(method_call.arguments());
     if (!list || list->size() != 6) {
       return result->Error(kErrorInvalidArgs);
     }
@@ -350,7 +350,9 @@ void WebviewBridge::HandleMethodCall(
     const auto pressure = std::get_if<double>(&(*list)[5]);
 
     if (pointer && event && x && y && size && pressure) {
-      webview_->SetPointerUpdate(*pointer, static_cast<WebviewPointerEventKind>(*event), *x, *y, *size, *pressure);
+      webview_->SetPointerUpdate(*pointer,
+                                 static_cast<WebviewPointerEventKind>(*event),
+                                 *x, *y, *size, *pressure);
       return result->Success();
     }
     return result->Error(kErrorInvalidArgs);
@@ -465,7 +467,7 @@ void WebviewBridge::HandleMethodCall(
   // setVirtualHostNameMapping [string hostName, string path, int accessKind]
   if (method_name.compare(kMethodSetVirtualHostNameMapping) == 0) {
     const flutter::EncodableList* list =
-    std::get_if<flutter::EncodableList>(method_call.arguments());
+        std::get_if<flutter::EncodableList>(method_call.arguments());
     if (!list || list->size() != 3) {
       return result->Error(kErrorInvalidArgs);
     }
@@ -475,7 +477,9 @@ void WebviewBridge::HandleMethodCall(
     const auto accessKind = std::get_if<int32_t>(&(*list)[2]);
 
     if (hostName && path && accessKind) {
-      webview_->SetVirtualHostNameMapping(*hostName, *path, static_cast<WebviewHostResourceAccessKind>(*accessKind));
+      webview_->SetVirtualHostNameMapping(
+          *hostName, *path,
+          static_cast<WebviewHostResourceAccessKind>(*accessKind));
       return result->Success();
     }
     return result->Error(kErrorInvalidArgs);
@@ -483,9 +487,10 @@ void WebviewBridge::HandleMethodCall(
 
   // clearVirtualHostNameMapping: string
   if (method_name.compare(kMethodClearVirtualHostNameMapping) == 0) {
-    if (const auto hostName = std::get_if<std::string>(method_call.arguments())) {
+    if (const auto hostName =
+            std::get_if<std::string>(method_call.arguments())) {
       if (webview_->ClearVirtualHostNameMapping(*hostName)) {
-      return result->Success();
+        return result->Success();
       }
     }
     return result->Error(kErrorInvalidArgs);
@@ -496,20 +501,22 @@ void WebviewBridge::HandleMethodCall(
       std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
           shared_result = std::move(result);
 
-      webview_->AddScriptToExecuteOnDocumentCreated(*script, [shared_result](bool success, std::string& script_id) {
-        if (success) {
-          shared_result->Success(script_id);
-        } else {
-          shared_result->Error(kScriptFailed, "Executing script failed.");
-        }
-      });
+      webview_->AddScriptToExecuteOnDocumentCreated(
+          *script, [shared_result](bool success, std::string& script_id) {
+            if (success) {
+              shared_result->Success(script_id);
+            } else {
+              shared_result->Error(kScriptFailed, "Executing script failed.");
+            }
+          });
       return;
     }
     return result->Error(kErrorInvalidArgs);
   }
 
   if (method_name.compare(kMethodRemoveScriptToExecuteOnDocumentCreated) == 0) {
-    if (const auto script_id = std::get_if<std::string>(method_call.arguments())) {
+    if (const auto script_id =
+            std::get_if<std::string>(method_call.arguments())) {
       std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
           shared_result = std::move(result);
 

@@ -3,7 +3,6 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
-#include <fmt/core.h>
 #include <windows.h>
 
 #include <memory>
@@ -188,7 +187,7 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
           if (error) {
             return shared_result->Error(
                 kErrorCodeWebviewCreationFailed,
-                fmt::format(
+                std::format(
                     "Creating the webview failed: {} (HRESULT: {:#010x})",
                     error->message, error->hr));
           }

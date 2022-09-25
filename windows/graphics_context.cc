@@ -1,7 +1,5 @@
 #include "graphics_context.h"
 
-#include <iostream>
-
 #include "util/d3dutil.h"
 #include "util/direct3d11.interop.h"
 
