@@ -358,6 +358,19 @@ void Webview::RegisterEventHandlers() {
           })
           .Get(),
       &event_registrations_.new_windows_requested_token_);
+
+  webview_->add_ContainsFullScreenElementChanged(
+      Callback<ICoreWebView2ContainsFullScreenElementChangedEventHandler>(
+          [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+            BOOL flag = FALSE;
+            if (contains_fullscreen_element_changed_callback_ &&
+                SUCCEEDED(sender->get_ContainsFullScreenElement(&flag))) {
+              contains_fullscreen_element_changed_callback_(flag);
+            }
+            return S_OK;
+          })
+          .Get(),
+      &event_registrations_.contains_fullscreen_element_changed_token_);
 }
 
 void Webview::SetSurfaceSize(size_t width, size_t height) {

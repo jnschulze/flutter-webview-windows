@@ -12,6 +12,7 @@ dependencies:
 
   webview_windows:
     path: ../
+  window_manager: ^0.2.7
 
 dev_dependencies:
   flutter_test:
