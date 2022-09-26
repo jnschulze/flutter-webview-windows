@@ -4,7 +4,7 @@ set(PROJECT_NAME "webview_windows")
 set(WIL_VERSION "1.0.220914.1")
 set(WEBVIEW_VERSION "1.0.1210.39")
 
-message("CMake system version is ${CMAKE_SYSTEM_VERSION} (using SDK ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION})")
+message(VERBOSE "CMake system version is ${CMAKE_SYSTEM_VERSION} (using SDK ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION})")
 
 project(${PROJECT_NAME} LANGUAGES CXX)
 
@@ -51,7 +51,7 @@ add_library(${PLUGIN_NAME} SHARED
   "util/string_converter.cc"
 )
 
-if(FLUTTER_WEBVIEW_WINDOWS_USE_D3D_TEXTURE)
+if(NOT FLUTTER_WEBVIEW_WINDOWS_USE_TEXTURE_FALLBACK)
   message(STATUS "Building with D3D texture support.")
   target_compile_definitions("${PLUGIN_NAME}" PRIVATE
     HAVE_FLUTTER_D3D_TEXTURE
