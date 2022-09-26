@@ -288,6 +288,16 @@ void WebviewBridge::RegisterEventHandlers() {
              Webview::WebviewPermissionRequestedCompleter completer) {
         OnPermissionRequested(url, kind, is_user_initiated, completer);
       });
+
+  webview_->OnContainsFullScreenElementChanged(
+      [this](bool contains_fullscreen_element) {
+        const auto event = flutter::EncodableValue(flutter::EncodableMap{
+            {flutter::EncodableValue(kEventType),
+             flutter::EncodableValue("containsFullScreenElementChanged")},
+            {flutter::EncodableValue(kEventValue),
+             contains_fullscreen_element}});
+        EmitEvent(event);
+      });
 }
 
 void WebviewBridge::OnPermissionRequested(

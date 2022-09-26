@@ -86,6 +86,7 @@ struct EventRegistrations {
   EventRegistrationToken permission_requested_token_{};
   EventRegistrationToken devtools_protocol_event_token_{};
   EventRegistrationToken new_windows_requested_token_{};
+  EventRegistrationToken contains_fullscreen_element_changed_token_{};
 };
 
 class Webview {
@@ -113,6 +114,8 @@ class Webview {
                              bool is_user_initiated,
                              WebviewPermissionRequestedCompleter completer)>
       PermissionRequestedCallback;
+  typedef std::function<void(bool contains_fullscreen_element)>
+      ContainsFullScreenElementChangedCallback;
 
   ~Webview();
 
@@ -200,6 +203,11 @@ class Webview {
     devtools_protocol_event_callback_ = std::move(callback);
   }
 
+  void OnContainsFullScreenElementChanged(
+      ContainsFullScreenElementChangedCallback callback) {
+    contains_fullscreen_element_changed_callback_ = std::move(callback);
+  }
+
  private:
   HWND hwnd_;
   bool owns_window_;
@@ -233,6 +241,8 @@ class Webview {
   WebMessageReceivedCallback web_message_received_callback_;
   PermissionRequestedCallback permission_requested_callback_;
   DevtoolsProtocolEventCallback devtools_protocol_event_callback_;
+  ContainsFullScreenElementChangedCallback
+      contains_fullscreen_element_changed_callback_;
 
   Webview(
       wil::com_ptr<ICoreWebView2CompositionController> composition_controller,
