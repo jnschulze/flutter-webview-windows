@@ -502,7 +502,7 @@ void WebviewBridge::HandleMethodCall(
           shared_result = std::move(result);
 
       webview_->AddScriptToExecuteOnDocumentCreated(
-          *script, [shared_result](bool success, std::string& script_id) {
+          *script, [shared_result](bool success, const std::string& script_id) {
             if (success) {
               shared_result->Success(script_id);
             } else {
@@ -533,13 +533,15 @@ void WebviewBridge::HandleMethodCall(
       std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
           shared_result = std::move(result);
 
-      webview_->ExecuteScript(*script, [shared_result](bool success) {
-        if (success) {
-          shared_result->Success();
-        } else {
-          shared_result->Error(kScriptFailed, "Executing script failed.");
-        }
-      });
+      webview_->ExecuteScript(
+          *script,
+          [shared_result](bool success, const std::string& json_result) {
+            if (success) {
+              shared_result->Success(json_result);
+            } else {
+              shared_result->Error(kScriptFailed, "Executing script failed.");
+            }
+          });
       return;
     }
     return result->Error(kErrorInvalidArgs);

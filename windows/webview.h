@@ -94,7 +94,8 @@ class Webview {
 
   typedef std::function<void(const std::string&)> UrlChangedCallback;
   typedef std::function<void(WebviewLoadingState)> LoadingStateChangedCallback;
-  typedef std::function<void(COREWEBVIEW2_WEB_ERROR_STATUS)> OnLoadErrorCallback;
+  typedef std::function<void(COREWEBVIEW2_WEB_ERROR_STATUS)>
+      OnLoadErrorCallback;
   typedef std::function<void(WebviewHistoryChanged)> HistoryChangedCallback;
   typedef std::function<void(const std::string&)> DevtoolsProtocolEventCallback;
   typedef std::function<void(const std::string&)> DocumentTitleChangedCallback;
@@ -102,8 +103,9 @@ class Webview {
       SurfaceSizeChangedCallback;
   typedef std::function<void(const HCURSOR)> CursorChangedCallback;
   typedef std::function<void(bool)> FocusChangedCallback;
-  typedef std::function<void(bool)> ScriptExecutedCallback;
-  typedef std::function<void(bool, std::string&)> AddScriptToExecuteOnDocumentCreatedCallback;
+  typedef std::function<void(bool, const std::string&)>
+      AddScriptToExecuteOnDocumentCreatedCallback;
+  typedef std::function<void(bool, const std::string&)> ScriptExecutedCallback;
   typedef std::function<void(const std::string&)> WebMessageReceivedCallback;
   typedef std::function<void(WebviewPermissionState state)>
       WebviewPermissionRequestedCompleter;
@@ -122,12 +124,8 @@ class Webview {
 
   void SetSurfaceSize(size_t width, size_t height);
   void SetCursorPos(double x, double y);
-  void SetPointerUpdate(int32_t pointer,
-                        WebviewPointerEventKind eventKind,
-                        double x,
-                        double y,
-                        double size,
-                        double pressure);
+  void SetPointerUpdate(int32_t pointer, WebviewPointerEventKind eventKind,
+                        double x, double y, double size, double pressure);
   void SetPointerButtonState(WebviewPointerButton button, bool isDown);
   void SetScrollDelta(double delta_x, double delta_y);
   void LoadUrl(const std::string& url);
@@ -136,8 +134,9 @@ class Webview {
   bool Reload();
   bool GoBack();
   bool GoForward();
-  void AddScriptToExecuteOnDocumentCreated(const std::string& script,
-                                           AddScriptToExecuteOnDocumentCreatedCallback callback);
+  void AddScriptToExecuteOnDocumentCreated(
+      const std::string& script,
+      AddScriptToExecuteOnDocumentCreatedCallback callback);
   void RemoveScriptToExecuteOnDocumentCreated(const std::string& script_id);
   void ExecuteScript(const std::string& script,
                      ScriptExecutedCallback callback);
