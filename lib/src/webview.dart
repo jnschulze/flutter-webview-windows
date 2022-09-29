@@ -102,7 +102,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   Stream<String> get url => _urlStreamController.stream;
 
   final StreamController<LoadingState> _loadingStateStreamController =
-      StreamController<LoadingState>();
+      StreamController<LoadingState>.broadcast();
   final StreamController<WebErrorStatus> _onLoadErrorStreamController =
       StreamController<WebErrorStatus>();
 
