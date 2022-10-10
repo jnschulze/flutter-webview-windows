@@ -86,6 +86,7 @@ struct EventRegistrations {
   EventRegistrationToken permission_requested_token_{};
   EventRegistrationToken devtools_protocol_event_token_{};
   EventRegistrationToken new_windows_requested_token_{};
+  EventRegistrationToken contains_fullscreen_element_changed_token_{};
 };
 
 class Webview {
@@ -94,7 +95,8 @@ class Webview {
 
   typedef std::function<void(const std::string&)> UrlChangedCallback;
   typedef std::function<void(WebviewLoadingState)> LoadingStateChangedCallback;
-  typedef std::function<void(COREWEBVIEW2_WEB_ERROR_STATUS)> OnLoadErrorCallback;
+  typedef std::function<void(COREWEBVIEW2_WEB_ERROR_STATUS)>
+      OnLoadErrorCallback;
   typedef std::function<void(WebviewHistoryChanged)> HistoryChangedCallback;
   typedef std::function<void(const std::string&)> DevtoolsProtocolEventCallback;
   typedef std::function<void(const std::string&)> DocumentTitleChangedCallback;
@@ -102,8 +104,9 @@ class Webview {
       SurfaceSizeChangedCallback;
   typedef std::function<void(const HCURSOR)> CursorChangedCallback;
   typedef std::function<void(bool)> FocusChangedCallback;
-  typedef std::function<void(bool)> ScriptExecutedCallback;
-  typedef std::function<void(bool, std::string&)> AddScriptToExecuteOnDocumentCreatedCallback;
+  typedef std::function<void(bool, const std::string&)>
+      AddScriptToExecuteOnDocumentCreatedCallback;
+  typedef std::function<void(bool, const std::string&)> ScriptExecutedCallback;
   typedef std::function<void(const std::string&)> WebMessageReceivedCallback;
   typedef std::function<void(WebviewPermissionState state)>
       WebviewPermissionRequestedCompleter;
@@ -111,6 +114,8 @@ class Webview {
                              bool is_user_initiated,
                              WebviewPermissionRequestedCompleter completer)>
       PermissionRequestedCallback;
+  typedef std::function<void(bool contains_fullscreen_element)>
+      ContainsFullScreenElementChangedCallback;
 
   ~Webview();
 
@@ -122,12 +127,8 @@ class Webview {
 
   void SetSurfaceSize(size_t width, size_t height);
   void SetCursorPos(double x, double y);
-  void SetPointerUpdate(int32_t pointer,
-                        WebviewPointerEventKind eventKind,
-                        double x,
-                        double y,
-                        double size,
-                        double pressure);
+  void SetPointerUpdate(int32_t pointer, WebviewPointerEventKind eventKind,
+                        double x, double y, double size, double pressure);
   void SetPointerButtonState(WebviewPointerButton button, bool isDown);
   void SetScrollDelta(double delta_x, double delta_y);
   void LoadUrl(const std::string& url);
@@ -136,8 +137,9 @@ class Webview {
   bool Reload();
   bool GoBack();
   bool GoForward();
-  void AddScriptToExecuteOnDocumentCreated(const std::string& script,
-                                           AddScriptToExecuteOnDocumentCreatedCallback callback);
+  void AddScriptToExecuteOnDocumentCreated(
+      const std::string& script,
+      AddScriptToExecuteOnDocumentCreatedCallback callback);
   void RemoveScriptToExecuteOnDocumentCreated(const std::string& script_id);
   void ExecuteScript(const std::string& script,
                      ScriptExecutedCallback callback);
@@ -201,6 +203,11 @@ class Webview {
     devtools_protocol_event_callback_ = std::move(callback);
   }
 
+  void OnContainsFullScreenElementChanged(
+      ContainsFullScreenElementChangedCallback callback) {
+    contains_fullscreen_element_changed_callback_ = std::move(callback);
+  }
+
  private:
   HWND hwnd_;
   bool owns_window_;
@@ -234,6 +241,8 @@ class Webview {
   WebMessageReceivedCallback web_message_received_callback_;
   PermissionRequestedCallback permission_requested_callback_;
   DevtoolsProtocolEventCallback devtools_protocol_event_callback_;
+  ContainsFullScreenElementChangedCallback
+      contains_fullscreen_element_changed_callback_;
 
   Webview(
       wil::com_ptr<ICoreWebView2CompositionController> composition_controller,

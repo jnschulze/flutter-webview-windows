@@ -109,7 +109,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   Stream<String> get url => _urlStreamController.stream;
 
   final StreamController<LoadingState> _loadingStateStreamController =
-      StreamController<LoadingState>();
+      StreamController<LoadingState>.broadcast();
   final StreamController<WebErrorStatus> _onLoadErrorStreamController =
       StreamController<WebErrorStatus>();
 
@@ -148,8 +148,15 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   final StreamController<dynamic> _webMessageStreamController =
       StreamController<dynamic>();
 
-  Stream<dynamic> get webMessage =>
-      _webMessageStreamController.stream;
+  Stream<dynamic> get webMessage => _webMessageStreamController.stream;
+
+  final StreamController<bool>
+      _containsFullScreenElementChangedStreamController =
+      StreamController<bool>.broadcast();
+
+  /// A stream reflecting whether the document currently contains full-screen elements.
+  Stream<bool> get containsFullScreenElementChanged =>
+      _containsFullScreenElementChangedStreamController.stream;
 
   WebviewController() : super(WebviewValue.uninitialized());
 
@@ -202,6 +209,10 @@ class WebviewController extends ValueNotifier<WebviewValue> {
             } catch (ex) {
               _webMessageStreamController.addError(ex);
             }
+            break;
+          case 'containsFullScreenElementChanged':
+            _containsFullScreenElementChangedStreamController.add(map['value']);
+            break;
         }
       });
 
@@ -315,11 +326,11 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('goForward');
   }
 
-  /// Add the provided JavaScript to a list of scripts that should be run after the global
+  /// Adds the provided JavaScript [script] to a list of scripts that should be run after the global
   /// object has been created, but before the HTML document has been parsed and before any
   /// other script included by the HTML document is run.
   ///
-  /// Returns a [ScriptID] when succefully which can be used for [removeScriptToExecuteOnDocumentCreated].
+  /// Returns a [ScriptID] on success which can be used for [removeScriptToExecuteOnDocumentCreated].
   ///
   /// see https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.1264.42#addscripttoexecuteondocumentcreated
   Future<ScriptID?> addScriptToExecuteOnDocumentCreated(String script) async {
@@ -327,28 +338,35 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       return null;
     }
     assert(value.isInitialized);
-    return _methodChannel.invokeMethod<String?>('addScriptToExecuteOnDocumentCreated', script);
+    return _methodChannel.invokeMethod<String?>(
+        'addScriptToExecuteOnDocumentCreated', script);
   }
 
-  /// Remove the corresponding JavaScript added using [addScriptToExecuteOnDocumentCreated]
-  /// with the specified script ID.
+  /// Removes the script identified by [scriptId] from the list of registered scripts.
   ///
   /// see https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.1264.42#removescripttoexecuteondocumentcreated
-  Future<void> removeScriptToExecuteOnDocumentCreated(ScriptID scriptID) async {
+  Future<void> removeScriptToExecuteOnDocumentCreated(ScriptID scriptId) async {
     if (_isDisposed) {
       return null;
     }
     assert(value.isInitialized);
-    return _methodChannel.invokeMethod('removeScriptToExecuteOnDocumentCreated', scriptID);
+    return _methodChannel.invokeMethod(
+        'removeScriptToExecuteOnDocumentCreated', scriptId);
   }
 
-  /// Executes the given [script].
-  Future<void> executeScript(String script) async {
+  /// Runs the JavaScript [script] in the current top-level document rendered in
+  /// the WebView and returns its result.
+  ///
+  /// see https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.1264.42#executescript
+  Future<dynamic> executeScript(String script) async {
     if (_isDisposed) {
       return;
     }
     assert(value.isInitialized);
-    return _methodChannel.invokeMethod('executeScript', script);
+
+    final data = await _methodChannel.invokeMethod('executeScript', script);
+    if (data == null) return null;
+    return jsonDecode(data as String);
   }
 
   /// Posts the given JSON-formatted message to the current document.

@@ -1,3 +1,9 @@
+## 0.2.2
+
+* Remove `libfmt` dependency in favor of C++20 `std::format`
+* Enable D3D texture bridge by default
+* Make `executeScript` return the script's result
+
 ## 0.2.1
 
 * Add `WebviewController.addScriptToExecuteOnDocumentCreated` and `WebviewController.removeScriptToExecuteOnDocumentCreated`

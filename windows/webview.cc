@@ -1,35 +1,23 @@
 #include "webview.h"
 
-#include <atlstr.h>
-#include <fmt/core.h>
 #include <wrl.h>
 
+#include <format>
 #include <iostream>
 
 #include "util/composition.desktop.interop.h"
+#include "util/string_converter.h"
 #include "webview_host.h"
 
 using namespace Microsoft::WRL;
 
 namespace {
 
-inline auto towstring(std::string_view str) {
-  return std::wstring(str.begin(), str.end());
-}
-
 inline void ConvertColor(COREWEBVIEW2_COLOR& webview_color, int32_t color) {
   webview_color.B = color & 0xFF;
   webview_color.G = (color >> 8) & 0xFF;
   webview_color.R = (color >> 16) & 0xFF;
   webview_color.A = (color >> 24) & 0xFF;
-}
-
-std::wstring get_utf16(const std::string& str, int codepage) {
-  if (str.empty()) return std::wstring();
-  int sz = MultiByteToWideChar(codepage, 0, &str[0], (int)str.size(), 0, 0);
-  std::wstring res(sz, 0);
-  MultiByteToWideChar(codepage, 0, &str[0], (int)str.size(), &res[0], sz);
-  return res;
 }
 
 inline WebviewPermissionKind CW2PermissionKindToPermissionKind(
@@ -168,7 +156,7 @@ void Webview::EnableSecurityUpdates() {
               if (devtools_protocol_event_callback_) {
                 wil::unique_cotaskmem_string json_args;
                 if (args->get_ParameterObjectAsJson(&json_args) == S_OK) {
-                  std::string json = CW2A(json_args.get(), CP_UTF8);
+                  std::string json = util::Utf8FromUtf16(json_args.get());
                   devtools_protocol_event_callback_(json.c_str());
                 }
               }
@@ -199,7 +187,8 @@ void Webview::RegisterEventHandlers() {
 
   webview_->add_NavigationCompleted(
       Callback<ICoreWebView2NavigationCompletedEventHandler>(
-          [this](ICoreWebView2* sender, ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT {
+          [this](ICoreWebView2* sender,
+                 ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT {
             BOOL is_success;
             args->get_IsSuccess(&is_success);
             if (!is_success && on_load_error_callback_) {
@@ -239,7 +228,7 @@ void Webview::RegisterEventHandlers() {
           [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
             LPWSTR wurl;
             if (url_changed_callback_ && webview_->get_Source(&wurl) == S_OK) {
-              std::string url = CW2A(wurl, CP_UTF8);
+              std::string url = util::Utf8FromUtf16(wurl);
               url_changed_callback_(url);
             }
 
@@ -254,7 +243,7 @@ void Webview::RegisterEventHandlers() {
             LPWSTR wtitle;
             if (document_title_changed_callback_ &&
                 webview_->get_DocumentTitle(&wtitle) == S_OK) {
-              std::string title = CW2A(wtitle, CP_UTF8);
+              std::string title = util::Utf8FromUtf16(wtitle);
               document_title_changed_callback_(title);
             }
 
@@ -306,7 +295,7 @@ void Webview::RegisterEventHandlers() {
             wil::unique_cotaskmem_string wmessage;
             if (web_message_received_callback_ &&
                 args->get_WebMessageAsJson(&wmessage) == S_OK) {
-              const std::string message = CW2A(wmessage.get(), CP_UTF8);
+              const std::string message = util::Utf8FromUtf16(wmessage.get());
               web_message_received_callback_(message);
             }
 
@@ -334,7 +323,7 @@ void Webview::RegisterEventHandlers() {
               wil::com_ptr<ICoreWebView2Deferral> deferral;
               args->GetDeferral(deferral.put());
 
-              const std::string uri = CW2A(wuri.get(), CP_UTF8);
+              const std::string uri = util::Utf8FromUtf16(wuri.get());
               permission_requested_callback_(
                   uri, CW2PermissionKindToPermissionKind(kind),
                   is_user_initiated == TRUE,
@@ -369,6 +358,19 @@ void Webview::RegisterEventHandlers() {
           })
           .Get(),
       &event_registrations_.new_windows_requested_token_);
+
+  webview_->add_ContainsFullScreenElementChanged(
+      Callback<ICoreWebView2ContainsFullScreenElementChangedEventHandler>(
+          [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+            BOOL flag = FALSE;
+            if (contains_fullscreen_element_changed_callback_ &&
+                SUCCEEDED(sender->get_ContainsFullScreenElement(&flag))) {
+              contains_fullscreen_element_changed_callback_(flag);
+            }
+            return S_OK;
+          })
+          .Get(),
+      &event_registrations_.contains_fullscreen_element_changed_token_);
 }
 
 void Webview::SetSurfaceSize(size_t width, size_t height) {
@@ -423,9 +425,9 @@ bool Webview::SetCacheDisabled(bool disabled) {
   if (!IsValid()) {
     return false;
   }
-  std::string json = fmt::format("{{\"disableCache\":{}}}", disabled);
+  std::string json = std::format("{{\"disableCache\":{}}}", disabled);
   return webview_->CallDevToolsProtocolMethod(L"Network.setCacheDisabled",
-                                              towstring(json).c_str(),
+                                              util::Utf16FromUtf8(json).c_str(),
                                               nullptr) == S_OK;
 }
 
@@ -435,7 +437,8 @@ void Webview::SetPopupWindowPolicy(WebviewPopupWindowPolicy policy) {
 
 bool Webview::SetUserAgent(const std::string& user_agent) {
   if (settings2_) {
-    return settings2_->put_UserAgent(towstring(user_agent).c_str()) == S_OK;
+    return settings2_->put_UserAgent(util::Utf16FromUtf8(user_agent).c_str()) ==
+           S_OK;
   }
   return false;
 }
@@ -473,20 +476,24 @@ void Webview::SetCursorPos(double x, double y) {
       virtual_keys_.state(), 0, point);
 }
 
-void Webview::SetPointerUpdate(int32_t pointer, WebviewPointerEventKind eventKind, double x, double y, double size, double pressure) {
+void Webview::SetPointerUpdate(int32_t pointer,
+                               WebviewPointerEventKind eventKind, double x,
+                               double y, double size, double pressure) {
   if (!IsValid()) {
     return;
   }
 
-  COREWEBVIEW2_POINTER_EVENT_KIND event = COREWEBVIEW2_POINTER_EVENT_KIND_UPDATE;
+  COREWEBVIEW2_POINTER_EVENT_KIND event =
+      COREWEBVIEW2_POINTER_EVENT_KIND_UPDATE;
   UINT32 pointerFlags = POINTER_FLAG_NONE;
   switch (eventKind) {
     case WebviewPointerEventKind::Activate:
       event = COREWEBVIEW2_POINTER_EVENT_KIND_ACTIVATE;
       break;
     case WebviewPointerEventKind::Down:
-    event = COREWEBVIEW2_POINTER_EVENT_KIND_DOWN;
-      pointerFlags = POINTER_FLAG_DOWN | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
+      event = COREWEBVIEW2_POINTER_EVENT_KIND_DOWN;
+      pointerFlags =
+          POINTER_FLAG_DOWN | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
       break;
     case WebviewPointerEventKind::Enter:
       event = COREWEBVIEW2_POINTER_EVENT_KIND_ENTER;
@@ -500,7 +507,8 @@ void Webview::SetPointerUpdate(int32_t pointer, WebviewPointerEventKind eventKin
       break;
     case WebviewPointerEventKind::Update:
       event = COREWEBVIEW2_POINTER_EVENT_KIND_UPDATE;
-      pointerFlags = POINTER_FLAG_UPDATE | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
+      pointerFlags =
+          POINTER_FLAG_UPDATE | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
       break;
   }
 
@@ -514,23 +522,25 @@ void Webview::SetPointerUpdate(int32_t pointer, WebviewPointerEventKind eventKin
   rect.top = point.y - 2;
   rect.bottom = point.y + 2;
 
- host_->CreateWebViewPointerInfo([this, pointer, event, pointerFlags, point, rect, pressure](
-           wil::com_ptr<ICoreWebView2PointerInfo> pointerInfo,
-           std::unique_ptr<WebviewCreationError> error) {
-             if (pointerInfo) {
-               ICoreWebView2PointerInfo *pInfo = pointerInfo.get();
-               pInfo->put_PointerId(pointer);
-               pInfo->put_PointerKind(PT_TOUCH);
-               pInfo->put_PointerFlags(pointerFlags);
-               pInfo->put_TouchFlags(TOUCH_FLAG_NONE);
-               pInfo->put_TouchMask(TOUCH_MASK_CONTACTAREA | TOUCH_MASK_PRESSURE);
-               pInfo->put_TouchPressure(std::clamp((UINT32)(pressure == 0.0 ? 1024 : 1024 * pressure), (UINT32) 0, (UINT32) 1024));
-               pInfo->put_PixelLocationRaw(point);
-               pInfo->put_TouchContactRaw(rect);
-               composition_controller_->SendPointerInput(event, pInfo);
-               return;
-             }
-           });
+  host_->CreateWebViewPointerInfo(
+      [this, pointer, event, pointerFlags, point, rect, pressure](
+          wil::com_ptr<ICoreWebView2PointerInfo> pointerInfo,
+          std::unique_ptr<WebviewCreationError> error) {
+        if (pointerInfo) {
+          ICoreWebView2PointerInfo* pInfo = pointerInfo.get();
+          pInfo->put_PointerId(pointer);
+          pInfo->put_PointerKind(PT_TOUCH);
+          pInfo->put_PointerFlags(pointerFlags);
+          pInfo->put_TouchFlags(TOUCH_FLAG_NONE);
+          pInfo->put_TouchMask(TOUCH_MASK_CONTACTAREA | TOUCH_MASK_PRESSURE);
+          pInfo->put_TouchPressure(
+              std::clamp((UINT32)(pressure == 0.0 ? 1024 : 1024 * pressure),
+                         (UINT32)0, (UINT32)1024));
+          pInfo->put_PixelLocationRaw(point);
+          pInfo->put_TouchContactRaw(rect);
+          composition_controller_->SendPointerInput(event, pInfo);
+        }
+      });
 }
 
 void Webview::SetPointerButtonState(WebviewPointerButton button, bool is_down) {
@@ -569,29 +579,19 @@ void Webview::SendScroll(double delta, bool horizontal) {
 
   auto offset = static_cast<short>(delta * kScrollMultiplier);
 
-  // TODO Remove this workaround
-  //
-  // For some reason, the composition controller only handles mousewheel events
-  // if a mouse button is down.
-  // -> Emulate a down button while sending the wheel event (a virtual key
-  //    doesn't work)
-  composition_controller_->SendMouseInput(
-      COREWEBVIEW2_MOUSE_EVENT_KIND_X_BUTTON_DOWN,
-      COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE, 0, last_cursor_pos_);
+  POINT point;
+  point.x = 0;
+  point.y = 0;
 
   if (horizontal) {
     composition_controller_->SendMouseInput(
         COREWEBVIEW2_MOUSE_EVENT_KIND_HORIZONTAL_WHEEL, virtual_keys_.state(),
-        offset, last_cursor_pos_);
+        offset, point);
   } else {
     composition_controller_->SendMouseInput(COREWEBVIEW2_MOUSE_EVENT_KIND_WHEEL,
                                             virtual_keys_.state(), offset,
-                                            last_cursor_pos_);
+                                            point);
   }
-
-  composition_controller_->SendMouseInput(
-      COREWEBVIEW2_MOUSE_EVENT_KIND_X_BUTTON_UP,
-      COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE, 0, last_cursor_pos_);
 }
 
 void Webview::SetScrollDelta(double delta_x, double delta_y) {
@@ -609,13 +609,13 @@ void Webview::SetScrollDelta(double delta_x, double delta_y) {
 
 void Webview::LoadUrl(const std::string& url) {
   if (IsValid()) {
-    webview_->Navigate(towstring(url).c_str());
+    webview_->Navigate(util::Utf16FromUtf8(url).c_str());
   }
 }
 
 void Webview::LoadStringContent(const std::string& content) {
   if (IsValid()) {
-    webview_->NavigateToString(get_utf16(content, CP_UTF8).c_str());
+    webview_->NavigateToString(util::Utf16FromUtf8(content).c_str());
   }
 }
 
@@ -648,39 +648,17 @@ bool Webview::GoForward() {
   return SUCCEEDED(webview_->GoForward());
 }
 
-void Webview::AddScriptToExecuteOnDocumentCreated(const std::string& script,
-                                                  AddScriptToExecuteOnDocumentCreatedCallback callback) {
-  if (!IsValid()) {
-    return;
-  }
-
-  webview_->AddScriptToExecuteOnDocumentCreated(
-          get_utf16(script, CP_UTF8).c_str(),
-          Callback<ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
-              [callback](HRESULT result, LPCWSTR wsid) -> HRESULT {
-                std::string sid = CW2A(wsid, CP_UTF8);
-                callback(SUCCEEDED(result), sid);
-                return S_OK;
-              })
-              .Get());
-}
-
-void Webview::RemoveScriptToExecuteOnDocumentCreated(const std::string& script_id) {
-  if (!IsValid()) {
-    return;
-  }
-
-  webview_->RemoveScriptToExecuteOnDocumentCreated(get_utf16(script_id, CP_UTF8).c_str());
-}
-
-void Webview::ExecuteScript(const std::string& script,
-                            ScriptExecutedCallback callback) {
+void Webview::AddScriptToExecuteOnDocumentCreated(
+    const std::string& script,
+    AddScriptToExecuteOnDocumentCreatedCallback callback) {
   if (IsValid()) {
-    if (SUCCEEDED(webview_->ExecuteScript(
-            get_utf16(script, CP_UTF8).c_str(),
-            Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
-                [callback](HRESULT result, PCWSTR _) {
-                  callback(SUCCEEDED(result));
+    if (SUCCEEDED(webview_->AddScriptToExecuteOnDocumentCreated(
+            util::Utf16FromUtf8(script).c_str(),
+            Callback<
+                ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
+                [callback](HRESULT result, LPCWSTR wsid) -> HRESULT {
+                  std::string sid = util::Utf8FromUtf16(wsid);
+                  callback(SUCCEEDED(result), sid);
                   return S_OK;
                 })
                 .Get()))) {
@@ -688,14 +666,42 @@ void Webview::ExecuteScript(const std::string& script,
     }
   }
 
-  callback(false);
+  callback(false, std::string());
+}
+
+void Webview::RemoveScriptToExecuteOnDocumentCreated(
+    const std::string& script_id) {
+  if (IsValid()) {
+    webview_->RemoveScriptToExecuteOnDocumentCreated(
+        util::Utf16FromUtf8(script_id).c_str());
+  }
+}
+
+void Webview::ExecuteScript(const std::string& script,
+                            ScriptExecutedCallback callback) {
+  if (IsValid()) {
+    if (SUCCEEDED(webview_->ExecuteScript(
+            util::Utf16FromUtf8(script).c_str(),
+            Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
+                [callback](HRESULT result, LPCWSTR json_result_object) {
+                  callback(SUCCEEDED(result),
+                           util::Utf8FromUtf16(json_result_object));
+                  return S_OK;
+                })
+                .Get()))) {
+      return;
+    }
+  }
+
+  callback(false, std::string());
 }
 
 bool Webview::PostWebMessage(const std::string& json) {
   if (!IsValid()) {
     return false;
   }
-  return webview_->PostWebMessageAsJson(towstring(json).c_str()) == S_OK;
+  return webview_->PostWebMessageAsJson(util::Utf16FromUtf8(json).c_str()) ==
+         S_OK;
 }
 
 bool Webview::Suspend() {
@@ -733,7 +739,8 @@ bool Webview::Resume() {
 }
 
 bool Webview::SetVirtualHostNameMapping(
-  const std::string& hostName, const std::string& path, WebviewHostResourceAccessKind accessKind) {
+    const std::string& hostName, const std::string& path,
+    WebviewHostResourceAccessKind accessKind) {
   if (!IsValid()) {
     return false;
   }
@@ -744,7 +751,8 @@ bool Webview::SetVirtualHostNameMapping(
     return false;
   }
 
-  COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND accessKindIntValue = COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY;
+  COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND accessKindIntValue =
+      COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY;
   switch (accessKind) {
     case WebviewHostResourceAccessKind::Allow:
       accessKindIntValue = COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_ALLOW;
@@ -757,9 +765,9 @@ bool Webview::SetVirtualHostNameMapping(
       break;
   }
 
-  return webview->SetVirtualHostNameToFolderMapping(towstring(hostName).c_str(),
-                                                    towstring(path).c_str(),
-                                                    accessKindIntValue);
+  return webview->SetVirtualHostNameToFolderMapping(
+      util::Utf16FromUtf8(hostName).c_str(), util::Utf16FromUtf8(path).c_str(),
+      accessKindIntValue);
 }
 
 bool Webview::ClearVirtualHostNameMapping(const std::string& hostName) {
@@ -773,5 +781,6 @@ bool Webview::ClearVirtualHostNameMapping(const std::string& hostName) {
     return false;
   }
 
-  return webview->ClearVirtualHostNameToFolderMapping(towstring(hostName).c_str());
+  return webview->ClearVirtualHostNameToFolderMapping(
+      util::Utf16FromUtf8(hostName).c_str());
 }

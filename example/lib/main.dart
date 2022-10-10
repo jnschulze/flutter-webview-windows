@@ -3,10 +3,15 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 
 import 'package:webview_windows/webview_windows.dart';
+import 'package:window_manager/window_manager.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
+void main() async {
+  // For full-screen example
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+
   runApp(MyApp());
 }
 
@@ -25,6 +30,7 @@ class ExampleBrowser extends StatefulWidget {
 class _ExampleBrowser extends State<ExampleBrowser> {
   final _controller = WebviewController();
   final _textController = TextEditingController();
+  final List<StreamSubscription> _subscriptions = [];
   bool _isWebviewSuspended = false;
 
   @override
@@ -43,9 +49,15 @@ class _ExampleBrowser extends State<ExampleBrowser> {
 
     try {
       await _controller.initialize();
-      _controller.url.listen((url) {
+      _subscriptions.add(_controller.url.listen((url) {
         _textController.text = url;
-      });
+      }));
+
+      _subscriptions
+          .add(_controller.containsFullScreenElementChanged.listen((flag) {
+        debugPrint('Contains fullscreen element: $flag');
+        windowManager.setFullScreen(flag);
+      }));
 
       await _controller.setBackgroundColor(Colors.transparent);
       await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
@@ -210,5 +222,11 @@ class _ExampleBrowser extends State<ExampleBrowser> {
     );
 
     return decision ?? WebviewPermissionDecision.none;
+  }
+
+  @override
+  void dispose() {
+    _subscriptions.forEach((s) => s.cancel());
+    super.dispose();
   }
 }
