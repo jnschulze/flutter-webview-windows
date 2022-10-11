@@ -7,7 +7,8 @@ A [Flutter](https://flutter.dev/) WebView plugin for Windows built on [Microsoft
 
 
 ### Target platform requirements
-- [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
+- [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)  
+  Before initializing the webview, call `getWebViewVersion()` to check whether the required **WebView2 Runtime** is installed or not on the current system. If `getWebViewVersion()` returns null, guide your user to install **WebView2 Runtime** from this [page](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
 - Windows 10 1809+
 
 ### Development platform requirements

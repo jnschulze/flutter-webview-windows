@@ -12,6 +12,7 @@
 #include "webview_bridge.h"
 #include "webview_host.h"
 #include "webview_platform.h"
+#include "util/string_converter.h"
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -21,6 +22,7 @@ namespace {
 constexpr auto kMethodInitialize = "initialize";
 constexpr auto kMethodDispose = "dispose";
 constexpr auto kMethodInitializeEnvironment = "initializeEnvironment";
+constexpr auto kMethodGetWebViewVersion = "getWebViewVersion";
 
 constexpr auto kErrorCodeInvalidId = "invalid_id";
 constexpr auto kErrorCodeEnvironmentCreationFailed =
@@ -138,6 +140,16 @@ void WebviewWindowsPlugin::HandleMethodCall(
     }
 
     return result->Success();
+  }
+
+  if (method_call.method_name().compare(kMethodGetWebViewVersion) == 0) {
+    LPWSTR version_info = nullptr;
+    auto hr = GetAvailableCoreWebView2BrowserVersionString(nullptr, &version_info);
+    if (SUCCEEDED(hr) && version_info != nullptr) {
+      return result->Success(flutter::EncodableValue(util::Utf8FromUtf16(version_info)));
+    } else {
+      return result->Success();
+    }
   }
 
   if (method_call.method_name().compare(kMethodInitialize) == 0) {

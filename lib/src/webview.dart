@@ -83,6 +83,13 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     });
   }
 
+  /// Get the browser version info including channel name if it is not the
+  /// WebView2 Runtime.
+  /// Returns [null] if the webview2 runtime is not installed.
+  static Future<String?> getWebViewVersion() async {
+    return _pluginChannel.invokeMethod<String>('getWebViewVersion');
+  }
+
   late Completer<void> _creatingCompleter;
   int _textureId = 0;
   bool _isDisposed = false;
