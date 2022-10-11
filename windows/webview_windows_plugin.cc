@@ -4,7 +4,6 @@
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
 #include <windows.h>
-#include <atlstr.h>
 
 #include <memory>
 #include <string>
@@ -13,6 +12,7 @@
 #include "webview_bridge.h"
 #include "webview_host.h"
 #include "webview_platform.h"
+#include "util/string_converter.h"
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -143,11 +143,10 @@ void WebviewWindowsPlugin::HandleMethodCall(
   }
 
   if (method_call.method_name().compare(kMethodGetWebViewVersion) == 0) {
-    wil::unique_cotaskmem_string version_info;
+    LPWSTR version_info = nullptr;
     auto hr = GetAvailableCoreWebView2BrowserVersionString(nullptr, &version_info);
     if (SUCCEEDED(hr) && version_info != nullptr) {
-      std::string version_result = CW2A(version_info.get(), CP_UTF8);
-      return result->Success(flutter::EncodableValue(version_result));
+      return result->Success(flutter::EncodableValue(util::Utf8FromUtf16(version_info)));
     } else {
       return result->Success();
     }
