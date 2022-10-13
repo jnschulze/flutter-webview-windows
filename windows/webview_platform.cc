@@ -59,7 +59,7 @@ bool WebviewPlatform::IsGraphicsCaptureSessionSupported() {
   return !!is_supported;
 }
 
-std::optional<std::string> WebviewPlatform::GetDefaultDataDirectory() {
+std::optional<std::wstring> WebviewPlatform::GetDefaultDataDirectory() {
   PWSTR path_tmp;
   if (!SUCCEEDED(
           SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path_tmp))) {
@@ -73,5 +73,5 @@ std::optional<std::string> WebviewPlatform::GetDefaultDataDirectory() {
   path /= "flutter_webview_windows";
   path /= std::filesystem::path(filename).stem();
 
-  return path.string();
+  return path.wstring();
 }
