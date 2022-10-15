@@ -11,8 +11,8 @@ using namespace Microsoft::WRL;
 
 // static
 std::unique_ptr<WebviewHost> WebviewHost::Create(
-    WebviewPlatform* platform, std::optional<std::string> user_data_directory,
-    std::optional<std::string> browser_exe_path,
+    WebviewPlatform* platform, std::optional<std::wstring> user_data_directory,
+    std::optional<std::wstring> browser_exe_path,
     std::optional<std::string> arguments) {
   wil::com_ptr<CoreWebView2EnvironmentOptions> opts;
   if (arguments.has_value()) {
@@ -21,23 +21,11 @@ std::unique_ptr<WebviewHost> WebviewHost::Create(
     opts->put_AdditionalBrowserArguments(warguments.c_str());
   }
 
-  std::optional<std::wstring> user_data_dir;
-  if (user_data_directory.has_value()) {
-    user_data_dir =
-        std::wstring(user_data_directory->begin(), user_data_directory->end());
-  }
-
-  std::optional<std::wstring> browser_path;
-  if (browser_exe_path.has_value()) {
-    browser_path =
-        std::wstring(browser_exe_path->begin(), browser_exe_path->end());
-  }
-
   std::promise<HRESULT> result_promise;
   wil::com_ptr<ICoreWebView2Environment> env;
   auto result = CreateCoreWebView2EnvironmentWithOptions(
-      browser_path.has_value() ? browser_path->c_str() : nullptr,
-      user_data_dir.has_value() ? user_data_dir->c_str() : nullptr, opts.get(),
+      browser_exe_path.has_value() ? browser_exe_path->c_str() : nullptr,
+      user_data_directory.has_value() ? user_data_directory->c_str() : nullptr, opts.get(),
       Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
           [&promise = result_promise, &ptr = env](
               HRESULT r, ICoreWebView2Environment* env) -> HRESULT {

@@ -121,20 +121,27 @@ void WebviewWindowsPlugin::HandleMethodCall(
 
     const auto& map = std::get<flutter::EncodableMap>(*method_call.arguments());
 
+    std::optional<std::wstring> browser_exe_wpath = std::nullopt;
     std::optional<std::string> browser_exe_path =
         GetOptionalValue<std::string>(map, "browserExePath");
+    if (browser_exe_path) {
+      browser_exe_wpath = util::Utf16FromUtf8(*browser_exe_path);
+    }
 
+    std::optional<std::wstring> user_data_wpath = std::nullopt;
     std::optional<std::string> user_data_path =
         GetOptionalValue<std::string>(map, "userDataPath");
-    if (!user_data_path) {
-      user_data_path = platform_->GetDefaultDataDirectory();
+    if (user_data_path) {
+      user_data_wpath = util::Utf16FromUtf8(*user_data_path);
+    } else {
+      user_data_wpath = platform_->GetDefaultDataDirectory();
     }
 
     std::optional<std::string> additional_args =
         GetOptionalValue<std::string>(map, "additionalArguments");
 
     webview_host_ = std::move(WebviewHost::Create(
-        platform_.get(), user_data_path, browser_exe_path, additional_args));
+        platform_.get(), user_data_wpath, browser_exe_wpath, additional_args));
     if (!webview_host_) {
       return result->Error(kErrorCodeEnvironmentCreationFailed);
     }

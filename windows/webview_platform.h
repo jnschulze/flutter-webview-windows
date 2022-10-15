@@ -13,7 +13,7 @@ class WebviewPlatform {
  public:
   WebviewPlatform();
   bool IsSupported() { return valid_; }
-  std::optional<std::string> GetDefaultDataDirectory();
+  std::optional<std::wstring> GetDefaultDataDirectory();
   bool IsGraphicsCaptureSessionSupported();
   GraphicsContext* graphics_context() const {
     return graphics_context_.get();
