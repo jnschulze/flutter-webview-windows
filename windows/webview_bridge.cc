@@ -67,6 +67,22 @@ static const std::optional<std::pair<double, double>> GetPointFromArgs(
   return std::make_pair(*x, *y);
 }
 
+static const std::optional<std::tuple<double, double, double>> GetPointAnScaleFactorFromArgs(
+    const flutter::EncodableValue* args) {
+  const flutter::EncodableList* list =
+      std::get_if<flutter::EncodableList>(args);
+  if (!list || list->size() != 3) {
+    return std::nullopt;
+  }
+  const auto x = std::get_if<double>(&(*list)[0]);
+  const auto y = std::get_if<double>(&(*list)[1]);
+  const auto z = std::get_if<double>(&(*list)[2]);
+  if (!x || !y || !z) {
+    return std::nullopt;
+  }
+  return std::make_tuple(*x, *y, *z);
+}
+
 static const std::string& GetCursorName(const HCURSOR cursor) {
   // The cursor names correspond to the Flutter Engine names:
   // in shell/platform/windows/flutter_window_win32.cc
@@ -396,12 +412,13 @@ void WebviewBridge::HandleMethodCall(
     return result->Error(kErrorInvalidArgs);
   }
 
-  // setSize: [double width, double height]
+  // setSize: [double width, double height, float scale_factor]
   if (method_name.compare(kMethodSetSize) == 0) {
-    auto size = GetPointFromArgs(method_call.arguments());
-    if (size) {
-      webview_->SetSurfaceSize(static_cast<size_t>(size->first),
-                               static_cast<size_t>(size->second));
+    auto tuple = GetPointAnScaleFactorFromArgs(method_call.arguments());
+    if (tuple.has_value()) {
+      webview_->SetSurfaceSize(static_cast<size_t>(std::get<0>(tuple.value())),
+                               static_cast<size_t>(std::get<1>(tuple.value())),
+                               static_cast<float>(std::get<2>(tuple.value())));
 
       texture_bridge_->Start();
       return result->Success();

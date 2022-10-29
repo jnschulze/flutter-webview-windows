@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -548,7 +549,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       return;
     }
     assert(value.isInitialized);
-    return _methodChannel.invokeMethod('setSize', [size.width, size.height]);
+    return _methodChannel.invokeMethod('setSize', [size.width, size.height, window.devicePixelRatio]);
   }
 }
 
