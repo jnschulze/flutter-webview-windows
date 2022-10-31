@@ -67,7 +67,7 @@ static const std::optional<std::pair<double, double>> GetPointFromArgs(
   return std::make_pair(*x, *y);
 }
 
-static const std::optional<std::tuple<double, double, double>> GetPointAnScaleFactorFromArgs(
+static const std::optional<std::tuple<double, double, double>> GetPointAndScaleFactorFromArgs(
     const flutter::EncodableValue* args) {
   const flutter::EncodableList* list =
       std::get_if<flutter::EncodableList>(args);
@@ -414,7 +414,7 @@ void WebviewBridge::HandleMethodCall(
 
   // setSize: [double width, double height, float scale_factor]
   if (method_name.compare(kMethodSetSize) == 0) {
-    auto tuple = GetPointAnScaleFactorFromArgs(method_call.arguments());
+    auto tuple = GetPointAndScaleFactorFromArgs(method_call.arguments());
     if (tuple.has_value()) {
       webview_->SetSurfaceSize(static_cast<size_t>(std::get<0>(tuple.value())),
                                static_cast<size_t>(std::get<1>(tuple.value())),
