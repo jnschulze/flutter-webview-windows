@@ -22,6 +22,7 @@ add_library(${PLUGIN_NAME} SHARED
   "graphics_context.cc"
   "util/direct3d11.interop.cc"
   "util/rohelper.cc"
+  "util/string_converter.cc"
 )
 
 if(FLUTTER_WEBVIEW_WINDOWS_USE_D3D_TEXTURE)
