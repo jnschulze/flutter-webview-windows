@@ -84,13 +84,6 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     });
   }
 
-  /// Get the browser version info including channel name if it is not the
-  /// WebView2 Runtime.
-  /// Returns [null] if the webview2 runtime is not installed.
-  static Future<String?> getWebViewVersion() async {
-    return _pluginChannel.invokeMethod<String>('getWebViewVersion');
-  }
-
   late Completer<void> _creatingCompleter;
   int _textureId = 0;
   bool _isDisposed = false;
@@ -110,7 +103,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   Stream<String> get url => _urlStreamController.stream;
 
   final StreamController<LoadingState> _loadingStateStreamController =
-      StreamController<LoadingState>.broadcast();
+      StreamController<LoadingState>();
   final StreamController<WebErrorStatus> _onLoadErrorStreamController =
       StreamController<WebErrorStatus>();
 
@@ -150,14 +143,6 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       StreamController<dynamic>();
 
   Stream<dynamic> get webMessage => _webMessageStreamController.stream;
-
-  final StreamController<bool>
-      _containsFullScreenElementChangedStreamController =
-      StreamController<bool>.broadcast();
-
-  /// A stream reflecting whether the document currently contains full-screen elements.
-  Stream<bool> get containsFullScreenElementChanged =>
-      _containsFullScreenElementChangedStreamController.stream;
 
   WebviewController() : super(WebviewValue.uninitialized());
 
@@ -210,10 +195,6 @@ class WebviewController extends ValueNotifier<WebviewValue> {
             } catch (ex) {
               _webMessageStreamController.addError(ex);
             }
-            break;
-          case 'containsFullScreenElementChanged':
-            _containsFullScreenElementChangedStreamController.add(map['value']);
-            break;
         }
       });
 

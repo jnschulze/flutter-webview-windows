@@ -122,7 +122,8 @@ class Webview {
 
   bool IsValid() { return is_valid_; }
 
-  void SetSurfaceSize(size_t width, size_t height);
+  // void SetSurfaceSize(size_t width, size_t height);
+  void SetSurfaceSize(size_t width, size_t height, float scale_factor);
   void SetCursorPos(double x, double y);
   void SetPointerUpdate(int32_t pointer, WebviewPointerEventKind eventKind,
                         double x, double y, double size, double pressure);
@@ -204,6 +205,7 @@ class Webview {
   HWND hwnd_;
   bool owns_window_;
   bool is_valid_ = false;
+  float scale_factor_ = 1.0;
   wil::com_ptr<ICoreWebView2CompositionController> composition_controller_;
   wil::com_ptr<ICoreWebView2Controller3> webview_controller_;
   wil::com_ptr<ICoreWebView2> webview_;
