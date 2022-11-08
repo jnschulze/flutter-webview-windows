@@ -381,7 +381,7 @@ void Webview::SetSurfaceSize(size_t width, size_t height, float scale_factor) {
     bounds.right = static_cast<LONG>(sw);
     bounds.bottom = static_cast<LONG>(sh);
 
-    if (webview_controller_->put_Bounds(bounds, scale_factor) != S_OK) {
+    if (webview_controller_->SetBoundsAndZoomFactor(bounds, scale_factor) != S_OK) {
       std::cerr << "Setting webview bounds failed." << std::endl;
     }
 
