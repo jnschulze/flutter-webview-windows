@@ -2,7 +2,8 @@
 
 #include <wrl.h>
 
-#include <format>
+#include <atlstr.h>
+#include <fmt/core.h>
 #include <iostream>
 
 #include "util/composition.desktop.interop.h"
@@ -358,40 +359,23 @@ void Webview::RegisterEventHandlers() {
           })
           .Get(),
       &event_registrations_.new_windows_requested_token_);
-
-  webview_->add_ContainsFullScreenElementChanged(
-      Callback<ICoreWebView2ContainsFullScreenElementChangedEventHandler>(
-          [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
-            BOOL flag = FALSE;
-            if (contains_fullscreen_element_changed_callback_ &&
-                SUCCEEDED(sender->get_ContainsFullScreenElement(&flag))) {
-              contains_fullscreen_element_changed_callback_(flag);
-            }
-            return S_OK;
-          })
-          .Get(),
-      &event_registrations_.contains_fullscreen_element_changed_token_);
 }
 
-void Webview::SetSurfaceSize(size_t width, size_t height, float scale_factor) {
+void Webview::SetSurfaceSize(size_t width, size_t height) {
   if (!IsValid()) {
     return;
   }
 
   if (surface_ && width > 0 && height > 0) {
-    // surface_->put_Size({(float)width, (float)height});
-    scale_factor_ = scale_factor;
-    auto sw = (float)width * scale_factor;
-    auto sh = (float)height * scale_factor;
-    surface_->put_Size({sw, sh});
+    surface_->put_Size({(float)width, (float)height});
 
     RECT bounds;
     bounds.left = 0;
     bounds.top = 0;
-    bounds.right = static_cast<LONG>(sw);
-    bounds.bottom = static_cast<LONG>(sh);
+    bounds.right = static_cast<LONG>(width);
+    bounds.bottom = static_cast<LONG>(height);
 
-    if (webview_controller_->SetBoundsAndZoomFactor(bounds, scale_factor) != S_OK) {
+    if (webview_controller_->put_Bounds(bounds) != S_OK) {
       std::cerr << "Setting webview bounds failed." << std::endl;
     }
 
@@ -429,7 +413,7 @@ bool Webview::SetCacheDisabled(bool disabled) {
   if (!IsValid()) {
     return false;
   }
-  std::string json = std::format("{{\"disableCache\":{}}}", disabled);
+  std::string json = fmt::format("{{\"disableCache\":{}}}", disabled);
   return webview_->CallDevToolsProtocolMethod(L"Network.setCacheDisabled",
                                               util::Utf16FromUtf8(json).c_str(),
                                               nullptr) == S_OK;
@@ -470,8 +454,8 @@ void Webview::SetCursorPos(double x, double y) {
   }
 
   POINT point;
-  point.x = static_cast<LONG>(x * scale_factor_);
-  point.y = static_cast<LONG>(y * scale_factor_);
+  point.x = static_cast<LONG>(x);
+  point.y = static_cast<LONG>(y);
   last_cursor_pos_ = point;
 
   // https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.774.44
@@ -517,8 +501,8 @@ void Webview::SetPointerUpdate(int32_t pointer,
   }
 
   POINT point;
-  point.x = static_cast<LONG>(x * scale_factor_);
-  point.y = static_cast<LONG>(y * scale_factor_);
+  point.x = static_cast<LONG>(x);
+  point.y = static_cast<LONG>(y);
 
   RECT rect;
   rect.left = point.x - 2;

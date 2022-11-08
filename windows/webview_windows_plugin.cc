@@ -3,6 +3,7 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
+#include <fmt/core.h>
 #include <windows.h>
 
 #include <memory>
@@ -12,7 +13,6 @@
 #include "webview_bridge.h"
 #include "webview_host.h"
 #include "webview_platform.h"
-#include "util/string_converter.h"
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -22,7 +22,6 @@ namespace {
 constexpr auto kMethodInitialize = "initialize";
 constexpr auto kMethodDispose = "dispose";
 constexpr auto kMethodInitializeEnvironment = "initializeEnvironment";
-constexpr auto kMethodGetWebViewVersion = "getWebViewVersion";
 
 constexpr auto kErrorCodeInvalidId = "invalid_id";
 constexpr auto kErrorCodeEnvironmentCreationFailed =
@@ -121,42 +120,25 @@ void WebviewWindowsPlugin::HandleMethodCall(
 
     const auto& map = std::get<flutter::EncodableMap>(*method_call.arguments());
 
-    std::optional<std::wstring> browser_exe_wpath = std::nullopt;
     std::optional<std::string> browser_exe_path =
         GetOptionalValue<std::string>(map, "browserExePath");
-    if (browser_exe_path) {
-      browser_exe_wpath = util::Utf16FromUtf8(*browser_exe_path);
-    }
 
-    std::optional<std::wstring> user_data_wpath = std::nullopt;
     std::optional<std::string> user_data_path =
         GetOptionalValue<std::string>(map, "userDataPath");
-    if (user_data_path) {
-      user_data_wpath = util::Utf16FromUtf8(*user_data_path);
-    } else {
-      user_data_wpath = platform_->GetDefaultDataDirectory();
+    if (!user_data_path) {
+      user_data_path = platform_->GetDefaultDataDirectory();
     }
 
     std::optional<std::string> additional_args =
         GetOptionalValue<std::string>(map, "additionalArguments");
 
     webview_host_ = std::move(WebviewHost::Create(
-        platform_.get(), user_data_wpath, browser_exe_wpath, additional_args));
+        platform_.get(), user_data_path, browser_exe_path, additional_args));
     if (!webview_host_) {
       return result->Error(kErrorCodeEnvironmentCreationFailed);
     }
 
     return result->Success();
-  }
-
-  if (method_call.method_name().compare(kMethodGetWebViewVersion) == 0) {
-    LPWSTR version_info = nullptr;
-    auto hr = GetAvailableCoreWebView2BrowserVersionString(nullptr, &version_info);
-    if (SUCCEEDED(hr) && version_info != nullptr) {
-      return result->Success(flutter::EncodableValue(util::Utf8FromUtf16(version_info)));
-    } else {
-      return result->Success();
-    }
   }
 
   if (method_call.method_name().compare(kMethodInitialize) == 0) {
@@ -206,7 +188,7 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
           if (error) {
             return shared_result->Error(
                 kErrorCodeWebviewCreationFailed,
-                std::format(
+                fmt::format(
                     "Creating the webview failed: {} (HRESULT: {:#010x})",
                     error->message, error->hr));
           }

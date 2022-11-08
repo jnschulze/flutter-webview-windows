@@ -3,7 +3,9 @@
 #include <flutter/event_stream_handler_functions.h>
 #include <flutter/method_result_functions.h>
 
-#include <format>
+#include <fmt/core.h>
+#include <atlstr.h>
+#include <iostream>
 
 #ifdef HAVE_FLUTTER_D3D_TEXTURE
 #include "texture_bridge_gpu.h"
@@ -65,22 +67,6 @@ static const std::optional<std::pair<double, double>> GetPointFromArgs(
     return std::nullopt;
   }
   return std::make_pair(*x, *y);
-}
-    
-static const std::optional<std::tuple<double, double, double>> GetPointAndScaleFactorFromArgs(
-  const flutter::EncodableValue* args) {
-  const flutter::EncodableList* list =
-      std::get_if<flutter::EncodableList>(args);
-  if (!list || list->size() != 3) {
-    return std::nullopt;
-  }
-  const auto x = std::get_if<double>(&(*list)[0]);
-  const auto y = std::get_if<double>(&(*list)[1]);
-  const auto z = std::get_if<double>(&(*list)[2]);
-  if (!x || !y || !z) {
-    return std::nullopt;
-  }
-  return std::make_tuple(*x, *y, *z);
 }
 
 static const std::string& GetCursorName(const HCURSOR cursor) {
@@ -175,7 +161,7 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
   //});
 
   const auto method_channel_name =
-      std::format("io.jns.webview.win/{}", texture_id_);
+      fmt::format("io.jns.webview.win/{}", texture_id_);
   method_channel_ =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
           messenger, method_channel_name,
@@ -185,7 +171,7 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
   });
 
   const auto event_channel_name =
-      std::format("io.jns.webview.win/{}/events", texture_id_);
+      fmt::format("io.jns.webview.win/{}/events", texture_id_);
   event_channel_ =
       std::make_unique<flutter::EventChannel<flutter::EncodableValue>>(
           messenger, event_channel_name,
@@ -304,16 +290,6 @@ void WebviewBridge::RegisterEventHandlers() {
              Webview::WebviewPermissionRequestedCompleter completer) {
         OnPermissionRequested(url, kind, is_user_initiated, completer);
       });
-
-  webview_->OnContainsFullScreenElementChanged(
-      [this](bool contains_fullscreen_element) {
-        const auto event = flutter::EncodableValue(flutter::EncodableMap{
-            {flutter::EncodableValue(kEventType),
-             flutter::EncodableValue("containsFullScreenElementChanged")},
-            {flutter::EncodableValue(kEventValue),
-             contains_fullscreen_element}});
-        EmitEvent(event);
-      });
 }
 
 void WebviewBridge::OnPermissionRequested(
@@ -412,13 +388,12 @@ void WebviewBridge::HandleMethodCall(
     return result->Error(kErrorInvalidArgs);
   }
 
-  // setSize: [double width, double height, float scale_factor]
+  // setSize: [double width, double height]
   if (method_name.compare(kMethodSetSize) == 0) {
-    auto tuple = GetPointAndScaleFactorFromArgs(method_call.arguments());
-    if (tuple.has_value()) {
-      webview_->SetSurfaceSize(static_cast<size_t>(std::get<0>(tuple.value())),
-                               static_cast<size_t>(std::get<1>(tuple.value())),
-                               static_cast<float>(std::get<2>(tuple.value())));
+    auto size = GetPointFromArgs(method_call.arguments());
+    if (size) {
+      webview_->SetSurfaceSize(static_cast<size_t>(size->first),
+                               static_cast<size_t>(size->second));
 
       texture_bridge_->Start();
       return result->Success();
