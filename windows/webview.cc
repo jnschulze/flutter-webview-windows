@@ -380,17 +380,18 @@ void Webview::SetSurfaceSize(size_t width, size_t height, float scale_factor) {
 
   if (surface_ && width > 0 && height > 0) {
     scale_factor_ = scale_factor;
-    auto sw = (float)width * scale_factor;
-    auto sh = (float)height * scale_factor;
-    surface_->put_Size({sw, sh});
+    auto scaled_width = width * scale_factor;
+    auto scaled_height = height * scale_factor;
 
     RECT bounds;
     bounds.left = 0;
     bounds.top = 0;
-    bounds.right = static_cast<LONG>(sw);
-    bounds.bottom = static_cast<LONG>(sh);
+    bounds.right = static_cast<LONG>(scaled_width);
+    bounds.bottom = static_cast<LONG>(scaled_height);
 
-    if (webview_controller_->SetBoundsAndZoomFactor(bounds, scale_factor) != S_OK) {
+    surface_->put_Size({scaled_width, scaled_height});
+    webview_controller_->put_RasterizationScale(scale_factor);
+    if (webview_controller_->put_Bounds(bounds) != S_OK) {
       std::cerr << "Setting webview bounds failed." << std::endl;
     }
 

@@ -67,8 +67,8 @@ static const std::optional<std::pair<double, double>> GetPointFromArgs(
   return std::make_pair(*x, *y);
 }
 
-static const std::optional<std::tuple<double, double, double>> GetPointAndScaleFactorFromArgs(
-    const flutter::EncodableValue* args) {
+static const std::optional<std::tuple<double, double, double>>
+GetPointAndScaleFactorFromArgs(const flutter::EncodableValue* args) {
   const flutter::EncodableList* list =
       std::get_if<flutter::EncodableList>(args);
   if (!list || list->size() != 3) {
@@ -412,13 +412,15 @@ void WebviewBridge::HandleMethodCall(
     return result->Error(kErrorInvalidArgs);
   }
 
-  // setSize: [double width, double height, float scale_factor]
+  // setSize: [double width, double height, double scale_factor]
   if (method_name.compare(kMethodSetSize) == 0) {
-    auto tuple = GetPointAndScaleFactorFromArgs(method_call.arguments());
-    if (tuple.has_value()) {
-      webview_->SetSurfaceSize(static_cast<size_t>(std::get<0>(tuple.value())),
-                               static_cast<size_t>(std::get<1>(tuple.value())),
-                               static_cast<float>(std::get<2>(tuple.value())));
+    auto size = GetPointAndScaleFactorFromArgs(method_call.arguments());
+    if (size) {
+      const auto [width, height, scale_factor] = size.value();
+
+      webview_->SetSurfaceSize(static_cast<size_t>(width),
+                               static_cast<size_t>(height),
+                               static_cast<float>(scale_factor));
 
       texture_bridge_->Start();
       return result->Success();
