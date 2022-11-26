@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -543,12 +544,13 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   }
 
   /// Sets the surface size to the provided [size].
-  Future<void> _setSize(Size size) async {
+  Future<void> _setSize(Size size, double scaleFactor) async {
     if (_isDisposed) {
       return;
     }
     assert(value.isInitialized);
-    return _methodChannel.invokeMethod('setSize', [size.width, size.height]);
+    return _methodChannel
+        .invokeMethod('setSize', [size.width, size.height, scaleFactor]);
   }
 }
 
@@ -558,12 +560,24 @@ class Webview extends StatefulWidget {
   final double? width;
   final double? height;
 
-  const Webview(
-    this.controller, {
-    this.width,
-    this.height,
-    this.permissionRequested,
-  });
+  /// An optional scale factor. Defaults to [FlutterView.devicePixelRatio] for
+  /// rendering in native resolution.
+  /// Setting this to 1.0 will disable high-DPI support.
+  /// This should only be needed to mimic old behavior before high-DPI support
+  /// was available.
+  final double? scaleFactor;
+
+  /// The [FilterQuality] used for scaling the texture's contents.
+  /// Defaults to [FilterQuality.none] as this renders in native resolution
+  /// unless specifying a [scaleFactor].
+  final FilterQuality filterQuality;
+
+  const Webview(this.controller,
+      {this.width,
+      this.height,
+      this.permissionRequested,
+      this.scaleFactor,
+      this.filterQuality = FilterQuality.none});
 
   @override
   _WebviewState createState() => _WebviewState();
@@ -687,7 +701,10 @@ class _WebviewState extends State<Webview> {
                     },
                     child: MouseRegion(
                         cursor: _cursor,
-                        child: Texture(textureId: _controller._textureId)),
+                        child: Texture(
+                          textureId: _controller._textureId,
+                          filterQuality: widget.filterQuality,
+                        )),
                   )
                 : const SizedBox()));
   }
@@ -696,7 +713,8 @@ class _WebviewState extends State<Webview> {
     final box = _key.currentContext?.findRenderObject() as RenderBox?;
     if (box != null) {
       await _controller.ready;
-      unawaited(_controller._setSize(box.size));
+      unawaited(_controller._setSize(
+          box.size, widget.scaleFactor ?? window.devicePixelRatio));
     }
   }
 
