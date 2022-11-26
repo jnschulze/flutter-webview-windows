@@ -438,6 +438,15 @@ class WebviewController extends ValueNotifier<WebviewValue> {
         'setBackgroundColor', color.value.toSigned(32));
   }
 
+  /// Sets the zoom factor.
+  Future<void> setZoomFactor(double zoomFactor) async {
+    if (_isDisposed) {
+      return;
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod('setZoomFactor', zoomFactor);
+  }
+
   /// Sets the [WebviewPopupWindowPolicy].
   Future<void> setPopupWindowPolicy(
       WebviewPopupWindowPolicy popupPolicy) async {

@@ -464,6 +464,13 @@ bool Webview::SetBackgroundColor(int32_t color) {
   return webview_controller_->put_DefaultBackgroundColor(webview_color) == S_OK;
 }
 
+bool Webview::SetZoomFactor(double factor) {
+  if (!IsValid()) {
+    return false;
+  }
+  return webview_controller_->put_ZoomFactor(factor) == S_OK;
+}
+
 void Webview::SetCursorPos(double x, double y) {
   if (!IsValid()) {
     return;

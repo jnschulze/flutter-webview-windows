@@ -151,6 +151,7 @@ class Webview {
   bool SetUserAgent(const std::string& user_agent);
   bool OpenDevTools();
   bool SetBackgroundColor(int32_t color);
+  bool SetZoomFactor(double factor);
   bool Suspend();
   bool Resume();
 
