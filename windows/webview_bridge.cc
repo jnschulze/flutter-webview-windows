@@ -33,6 +33,7 @@ constexpr auto kMethodSetPointerButton = "setPointerButton";
 constexpr auto kMethodSetScrollDelta = "setScrollDelta";
 constexpr auto kMethodSetUserAgent = "setUserAgent";
 constexpr auto kMethodSetBackgroundColor = "setBackgroundColor";
+constexpr auto kMethodSetZoomFactor = "setZoomFactor";
 constexpr auto kMethodOpenDevTools = "openDevTools";
 constexpr auto kMethodSuspend = "suspend";
 constexpr auto kMethodResume = "resume";
@@ -609,6 +610,18 @@ void WebviewBridge::HandleMethodCall(
       }
       return result->Error(kErrorNotSupported,
                            "Setting the background color failed.");
+    }
+    return result->Error(kErrorInvalidArgs);
+  }
+
+  // setZoomFactor: double
+  if (method_name.compare(kMethodSetZoomFactor) == 0) {
+    if (const auto factor = std::get_if<double>(method_call.arguments())) {
+      if (webview_->SetZoomFactor(*factor)) {
+        return result->Success();
+      }
+      return result->Error(kErrorNotSupported,
+                           "Setting the zoom factor failed.");
     }
     return result->Error(kErrorInvalidArgs);
   }
