@@ -1,3 +1,14 @@
+## 0.3.0
+
+* Add full-screen support ([#189](https://github.com/jnschulze/flutter-webview-windows/pull/189))
+* Make `loadingState` a broadcast stream ([#193](https://github.com/jnschulze/flutter-webview-windows/pull/193))
+* Add `getWebViewVersion()` method ([#197](https://github.com/jnschulze/flutter-webview-windows/pull/197))
+* Fix string casting of paths that may contains Unicode characters ([#199](https://github.com/jnschulze/flutter-webview-windows/pull/199))
+* Add high-DPI screen support ([#203](https://github.com/jnschulze/flutter-webview-windows/pull/203))
+* Add `setZoomFactor` ([#214](https://github.com/jnschulze/flutter-webview-windows/pull/214))
+* Fix example ([#215](https://github.com/jnschulze/flutter-webview-windows/pull/215))
+* Fix Visual Studio 17.6 builds ([#252](https://github.com/jnschulze/flutter-webview-windows/pull/252))
+
 ## 0.2.2
 
 * Remove `libfmt` dependency in favor of C++20 `std::format`
