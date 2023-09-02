@@ -41,6 +41,7 @@ constexpr auto kMethodSetVirtualHostNameMapping = "setVirtualHostNameMapping";
 constexpr auto kMethodClearVirtualHostNameMapping =
     "clearVirtualHostNameMapping";
 constexpr auto kMethodClearCookies = "clearCookies";
+constexpr auto kMethodGetCookies = "getCookies";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
 constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
@@ -640,6 +641,24 @@ void WebviewBridge::HandleMethodCall(
       return result->Success();
     }
     return result->Error(kMethodFailed);
+  }
+
+  // getCookies
+  if (method_name.compare(kMethodGetCookies) == 0) {
+    if (const auto url = std::get_if<std::string>(method_call.arguments())) {
+      std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
+          shared_result = std::move(result);
+      webview_->GetCookies(
+          *url, [shared_result](bool success, const std::string& cookies) {
+            if (!cookies.empty() || !success) {
+              shared_result->Success(std::move(cookies));
+            } else {
+              shared_result->Error(kScriptFailed, "getCookies failed.");
+            }
+          });
+      return;
+    }
+    return result->Error(kErrorInvalidArgs);
   }
 
   // clearCache
