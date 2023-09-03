@@ -650,8 +650,8 @@ void WebviewBridge::HandleMethodCall(
           shared_result = std::move(result);
       webview_->GetCookies(
           *url, [shared_result](bool success, const std::string& cookies) {
-            if (!cookies.empty() || !success) {
-              shared_result->Success(std::move(cookies));
+            if (success) {
+              shared_result->Success(cookies);
             } else {
               shared_result->Error(kScriptFailed, "getCookies failed.");
             }
