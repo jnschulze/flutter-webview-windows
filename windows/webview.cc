@@ -75,12 +75,11 @@ Webview::Webview(
   webview_controller_->put_ShouldDetectMonitorScaleChanges(FALSE);
   webview_controller_->put_RasterizationScale(1.0);
 
-  wil::com_ptr<ICoreWebView2Settings> settings;
-  if (SUCCEEDED(webview_->get_Settings(settings.put()))) {
-    settings2_ = settings.try_query<ICoreWebView2Settings2>();
+  if (SUCCEEDED(webview_->get_Settings(settings_.put()))) {
+    settings2_ = settings_.try_query<ICoreWebView2Settings2>();
 
-    settings->put_IsStatusBarEnabled(FALSE);
-    settings->put_AreDefaultContextMenusEnabled(FALSE);
+    settings_->put_IsStatusBarEnabled(FALSE);
+    settings_->put_AreDefaultContextMenusEnabled(FALSE);
   }
 
   EnableSecurityUpdates();
@@ -442,6 +441,14 @@ void Webview::SetPopupWindowPolicy(WebviewPopupWindowPolicy policy) {
 bool Webview::SetUserAgent(const std::string& user_agent) {
   if (settings2_) {
     return settings2_->put_UserAgent(util::Utf16FromUtf8(user_agent).c_str()) ==
+           S_OK;
+  }
+  return false;
+}
+
+bool Webview::SetAreDevToolsEnabled(bool areDevToolsEnabled) {
+ if (settings_) {
+    return settings_->put_AreDevToolsEnabled(areDevToolsEnabled) ==
            S_OK;
   }
   return false;

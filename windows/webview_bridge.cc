@@ -601,7 +601,19 @@ void WebviewBridge::HandleMethodCall(
     }
     return result->Error(kErrorInvalidArgs);
   }
-
+  
+  // setAreDevToolsEnabled: bool
+  if (method_name.compare(kMethodSetAreDevToolsEnabled) == 0) {
+    if (const auto areDevToolsEnabled  = std::get_if<bool>(method_call.arguments())) {
+      if (webview_->SetAreDevToolsEnabled(*areDevToolsEnabled)) {
+        return result->Success();
+      }
+      return result->Error(kErrorNotSupported,
+                           "Setting the setAreDevToolsEnabled failed.");
+	}
+    return result->Error(kErrorInvalidArgs);
+  }
+  
   // setBackgroundColor: int
   if (method_name.compare(kMethodSetBackgroundColor) == 0) {
     if (const auto color = std::get_if<int32_t>(method_call.arguments())) {

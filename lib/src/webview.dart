@@ -388,6 +388,16 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('setUserAgent', userAgent);
   }
 
+  /// Sets the areDevToolsEnabled value.
+  Future<void> setAreDevToolsEnabled(bool areDevToolsEnabled) async {
+    if (_isDisposed) {
+      return;
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod(
+        'put_AreDevToolsEnabled', areDevToolsEnabled);
+  }
+
   /// Clears browser cookies.
   Future<void> clearCookies() async {
     if (_isDisposed) {
