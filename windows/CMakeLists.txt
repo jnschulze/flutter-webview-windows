@@ -51,6 +51,10 @@ add_library(${PLUGIN_NAME} SHARED
   "util/string_converter.cc"
 )
 
+if(MSVC)
+    target_compile_options(${PLUGIN_NAME} PRIVATE "/await")
+endif()
+
 if(NOT FLUTTER_WEBVIEW_WINDOWS_USE_TEXTURE_FALLBACK)
   message(STATUS "Building with D3D texture support.")
   target_compile_definitions("${PLUGIN_NAME}" PRIVATE
@@ -67,7 +71,7 @@ else()
   )
   # Enable AVX2 for pixel buffer conversions
   if(MSVC)
-    target_compile_options(${PLUGIN_NAME} PRIVATE "/arch:AVX2")
+    target_compile_options(${PLUGIN_NAME} PRIVATE "/arch:AVX2" "/await")
   endif()
 endif()
 
