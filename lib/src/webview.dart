@@ -708,6 +708,10 @@ class _WebviewState extends State<Webview> {
                             -signal.scrollDelta.dx, -signal.scrollDelta.dy);
                       }
                     },
+                    onPointerPanZoomUpdate: (signal) {
+                      _controller._setScrollDelta(
+                          signal.panDelta.dx, signal.panDelta.dy);
+                    },
                     child: MouseRegion(
                         cursor: _cursor,
                         child: Texture(
