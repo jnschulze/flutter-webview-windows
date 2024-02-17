@@ -1,9 +1,14 @@
+## 0.4.0
+
+* Enable MSVC coroutine support ([#278](https://github.com/jnschulze/flutter-webview-windows/pull/278))
+* Enable scrolling with trackpad ([#274](https://github.com/jnschulze/flutter-webview-windows/pull/274))
+
 ## 0.3.0
 
 * Add full-screen support ([#189](https://github.com/jnschulze/flutter-webview-windows/pull/189))
 * Make `loadingState` a broadcast stream ([#193](https://github.com/jnschulze/flutter-webview-windows/pull/193))
 * Add `getWebViewVersion()` method ([#197](https://github.com/jnschulze/flutter-webview-windows/pull/197))
-* Fix string casting of paths that may contains Unicode characters ([#199](https://github.com/jnschulze/flutter-webview-windows/pull/199))
+* Fix string casting of paths that may contain Unicode characters ([#199](https://github.com/jnschulze/flutter-webview-windows/pull/199))
 * Add high-DPI screen support ([#203](https://github.com/jnschulze/flutter-webview-windows/pull/203))
 * Add `setZoomFactor` ([#214](https://github.com/jnschulze/flutter-webview-windows/pull/214))
 * Fix example ([#215](https://github.com/jnschulze/flutter-webview-windows/pull/215))
