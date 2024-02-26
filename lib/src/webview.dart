@@ -613,7 +613,7 @@ class _WebviewState extends State<Webview> {
     _controller._permissionRequested = widget.permissionRequested;
 
     // Report initial surface size
-    WidgetsBinding.instance.addPostFrameCallback((_) => _reportSurfaceSize());
+    WidgetsBinding?.instance.addPostFrameCallback((_) => _reportSurfaceSize());
 
     _cursorSubscription = _controller._cursor.listen((cursor) {
       setState(() {
