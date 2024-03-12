@@ -16,6 +16,21 @@ class HistoryChanged {
   const HistoryChanged(this.canGoBack, this.canGoForward);
 }
 
+class WebviewDownloadEvent {
+  final WebviewDownloadEventKind kind;
+  final String url;
+  final String resultFilePath;
+  final int bytesReceived;
+  final int totalBytesToReceive;
+  const WebviewDownloadEvent(
+    this.kind,
+    this.url,
+    this.resultFilePath,
+    this.bytesReceived,
+    this.totalBytesToReceive,
+  );
+}
+
 typedef PermissionRequestedDelegate
     = FutureOr<WebviewPermissionDecision> Function(
         String url, WebviewPermissionKind permissionKind, bool isUserInitiated);
@@ -111,11 +126,18 @@ class WebviewController extends ValueNotifier<WebviewValue> {
 
   final StreamController<LoadingState> _loadingStateStreamController =
       StreamController<LoadingState>.broadcast();
+
+  final StreamController<WebviewDownloadEvent> _downloadEventStreamController =
+      StreamController<WebviewDownloadEvent>.broadcast();
+
   final StreamController<WebErrorStatus> _onLoadErrorStreamController =
       StreamController<WebErrorStatus>();
 
   /// A stream reflecting the current loading state.
   Stream<LoadingState> get loadingState => _loadingStateStreamController.stream;
+
+  Stream<WebviewDownloadEvent> get onDownloadEvent =>
+      _downloadEventStreamController.stream;
 
   /// A stream reflecting the navigation error when navigation completed with an error.
   Stream<WebErrorStatus> get onLoadError => _onLoadErrorStreamController.stream;
@@ -188,6 +210,16 @@ class WebviewController extends ValueNotifier<WebviewValue> {
           case 'loadingStateChanged':
             final value = LoadingState.values[map['value']];
             _loadingStateStreamController.add(value);
+            break;
+          case 'downloadEvent':
+            final value = WebviewDownloadEvent(
+              WebviewDownloadEventKind.values[map['value']['kind']],
+              map['value']['url'],
+              map['value']['resultFilePath'],
+              map['value']['bytesReceived'],
+              map['value']['totalBytesToReceive'],
+            );
+            _downloadEventStreamController.add(value);
             break;
           case 'historyChanged':
             final value = HistoryChanged(

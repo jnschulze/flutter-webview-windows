@@ -6,6 +6,12 @@ enum LoadingState { none, loading, navigationCompleted }
 // Order must match WebviewPointerButton (see webview.h)
 enum PointerButton { none, primary, secondary, tertiary }
 
+enum WebviewDownloadEventKind {
+  downloadStarted,
+  downloadCompleted,
+  downloadProgress
+}
+
 /// Pointer Event kind
 // Order must match WebviewPointerEventKind (see webview.h)
 enum WebviewPointerEventKind { activate, down, enter, leave, up, update }
@@ -44,23 +50,23 @@ enum WebviewPopupWindowPolicy { allow, deny, sameWindow }
 enum WebviewHostResourceAccessKind { deny, allow, denyCors }
 
 enum WebErrorStatus {
-	WebErrorStatusUnknown,
-	WebErrorStatusCertificateCommonNameIsIncorrect,
-	WebErrorStatusCertificateExpired,
-	WebErrorStatusClientCertificateContainsErrors,
-	WebErrorStatusCertificateRevoked,
-	WebErrorStatusCertificateIsInvalid,
-	WebErrorStatusServerUnreachable,
-	WebErrorStatusTimeout,
-	WebErrorStatusErrorHTTPInvalidServerResponse,
-	WebErrorStatusConnectionAborted,
-	WebErrorStatusConnectionReset,
-	WebErrorStatusDisconnected,
-	WebErrorStatusCannotConnect,
-	WebErrorStatusHostNameNotResolved,
-	WebErrorStatusOperationCanceled,
-	WebErrorStatusRedirectFailed,
-	WebErrorStatusUnexpectedError,
-	WebErrorStatusValidAuthenticationCredentialsRequired,
-	WebErrorStatusValidProxyAuthenticationRequired,
+  WebErrorStatusUnknown,
+  WebErrorStatusCertificateCommonNameIsIncorrect,
+  WebErrorStatusCertificateExpired,
+  WebErrorStatusClientCertificateContainsErrors,
+  WebErrorStatusCertificateRevoked,
+  WebErrorStatusCertificateIsInvalid,
+  WebErrorStatusServerUnreachable,
+  WebErrorStatusTimeout,
+  WebErrorStatusErrorHTTPInvalidServerResponse,
+  WebErrorStatusConnectionAborted,
+  WebErrorStatusConnectionReset,
+  WebErrorStatusDisconnected,
+  WebErrorStatusCannotConnect,
+  WebErrorStatusHostNameNotResolved,
+  WebErrorStatusOperationCanceled,
+  WebErrorStatusRedirectFailed,
+  WebErrorStatusUnexpectedError,
+  WebErrorStatusValidAuthenticationCredentialsRequired,
+  WebErrorStatusValidProxyAuthenticationRequired,
 }

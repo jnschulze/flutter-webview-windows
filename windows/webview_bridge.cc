@@ -228,6 +228,28 @@ void WebviewBridge::RegisterEventHandlers() {
     EmitEvent(event);
   });
 
+  webview_->OnDownloadEvent([this](WebviewDownloadEvent webviewDownloadEvent) {
+    const auto event = flutter::EncodableValue(flutter::EncodableMap{
+        {flutter::EncodableValue(kEventType),
+         flutter::EncodableValue("downloadEvent")},
+        {flutter::EncodableValue(kEventValue),
+         flutter::EncodableValue(flutter::EncodableMap{
+             {flutter::EncodableValue("kind"),
+              flutter::EncodableValue(
+                  static_cast<int>(webviewDownloadEvent.kind))},
+             {flutter::EncodableValue("url"),
+              flutter::EncodableValue(webviewDownloadEvent.url)},
+             {flutter::EncodableValue("resultFilePath"),
+              flutter::EncodableValue(webviewDownloadEvent.resultFilePath)},
+             {flutter::EncodableValue("bytesReceived"),
+              flutter::EncodableValue(webviewDownloadEvent.bytesReceived)},
+             {flutter::EncodableValue("totalBytesToReceive"),
+              flutter::EncodableValue(
+                  webviewDownloadEvent.totalBytesToReceive)},
+         })}});
+    EmitEvent(event);
+  });
+
   webview_->OnHistoryChanged([this](WebviewHistoryChanged historyChanged) {
     const auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),
