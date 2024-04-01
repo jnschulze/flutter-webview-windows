@@ -417,6 +417,44 @@ bool Webview::ClearCookies() {
                                               L"{}", nullptr) == S_OK;
 }
 
+void Webview::GetCookies(const std::string& url, GetCookiesCallback callback) {
+  if (IsValid()) {
+    wil::com_ptr<ICoreWebView2CookieManager> cookieManager;
+    auto webview2 = webview_.try_query<ICoreWebView2_2>();
+    webview2->get_CookieManager(cookieManager.put());
+    if (SUCCEEDED(cookieManager->GetCookies(
+            util::Utf16FromUtf8(url).c_str(),
+            Callback<ICoreWebView2GetCookiesCompletedHandler>(
+                [this, url, callback](
+                    HRESULT error_code,
+                    ICoreWebView2CookieList* list) -> HRESULT {
+                  std::wstring result;
+
+                  UINT cookie_list_size;
+                  list->get_Count(&cookie_list_size);
+                  for (UINT i = 0; i < cookie_list_size; i++) {
+                    wil::com_ptr<ICoreWebView2Cookie> cookie;
+                    list->GetValueAtIndex(i, &cookie);
+                    LPWSTR name_ptr;
+                    cookie->get_Name(&name_ptr);
+                    LPWSTR value_ptr;
+                    cookie->get_Value(&value_ptr);
+                    result.append(name_ptr + std::wstring(L"="));
+                    result.append(value_ptr + std::wstring(L";"));
+                    // std::wcout << L"cookie:" << name_ptr << L"=" << value_ptr
+                    //           << ";\n";
+                  }
+                  // std::wcout << L"cookies:" << result;
+                  callback(SUCCEEDED(error_code), util::Utf8FromUtf16(result));
+                  return S_OK;
+                })
+                .Get()))) {
+      return;
+    }
+  }
+  callback(false, std::string());
+}
+
 bool Webview::ClearCache() {
   if (!IsValid()) {
     return false;
