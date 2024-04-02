@@ -397,13 +397,18 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('clearCookies');
   }
 
-  /// get browser Cookies.
-  Future<String?> getCookies(String url) async {
+  /// Get browser cookies as a list of maps, each representing a cookie.
+  Future<List<Map<String, dynamic>>> getCookies(String url) async {
     if (_isDisposed) {
-      return '';
+      return [];
     }
     assert(value.isInitialized);
-    return _methodChannel.invokeMethod<String>('getCookies', url);
+    final dynamic result = await _methodChannel.invokeMethod('getCookies', url);
+    if (result is List) {
+      return result.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e)).toList();
+    } else {
+      return [];
+    }
   }
 
   /// Sets browser cookies.

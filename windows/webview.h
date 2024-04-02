@@ -108,6 +108,7 @@ class Webview {
       AddScriptToExecuteOnDocumentCreatedCallback;
   typedef std::function<void(bool, const std::string&)> ScriptExecutedCallback;
   typedef std::function<void(bool, const std::string&)> GetCookiesCallback;
+  typedef std::function<void(bool success, const std::vector<std::map<std::string, std::string>>& cookies)> GetCookiesFullInfoCallback;
   typedef std::function<void(bool)> SetCookiesCallback;
   typedef std::function<void(const std::string&)> WebMessageReceivedCallback;
   typedef std::function<void(WebviewPermissionState state)>
