@@ -647,37 +647,32 @@ void WebviewBridge::HandleMethodCall(
     return result->Error(kErrorInvalidArgs);
   }
 
-  // setCookies
-// setCookies
-if (method_name.compare(kMethodSetCookies) == 0) {
-    const auto* args_map = std::get_if<flutter::EncodableMap>(method_call.arguments());
-    if (args_map) {
-        const auto url_it = args_map->find(flutter::EncodableValue("url"));
-        const auto cookies_it = args_map->find(flutter::EncodableValue("cookies"));
-        if (url_it != args_map->end() && cookies_it != args_map->end()) {
-            const auto& url = std::get<std::string>(url_it->second);
-
-            // 将 EncodableMap 转换为 std::map<std::string, std::string>
-            std::map<std::string, std::string> cookies;
-            const auto& cookiesMap = std::get<flutter::EncodableMap>(cookies_it->second);
-            for (const auto& pair : cookiesMap) {
-                const auto& key = std::get<std::string>(pair.first);
-                const auto& value = std::get<std::string>(pair.second);
-                cookies[key] = value;
-            }
-
-            webview_->SetCookies(url, cookies, [result = std::move(result)](bool success) {
-                if (success) {
-                    result->Success();
-                } else {
-                    result->Error("SetCookiesFailed", "Failed to set cookies.");
-                }
-            });
-            return;
-        }
+    void WebviewBridge::OnSetCookiesSuccess() {
+        result_->Success();
     }
-    result->Error("InvalidArguments", "Invalid arguments for 'setCookies'. Expected 'url' and 'cookies'.");
-}
+
+    if (method_name.compare(kMethodSetCookies) == 0) {
+        const auto* args_map = std::get_if<flutter::EncodableMap>(method_call.arguments());
+        if (args_map) {
+            const auto url_it = args_map->find(flutter::EncodableValue("url"));
+            const auto cookies_it = args_map->find(flutter::EncodableValue("cookies"));
+            if (url_it != args_map->end() && cookies_it != args_map->end()) {
+                const auto& url = std::get<std::string>(url_it->second);
+
+                std::map<std::string, std::string> cookies;
+                const auto& cookiesMap = std::get<flutter::EncodableMap>(cookies_it->second);
+                for (const auto& pair : cookiesMap) {
+                    const auto& key = std::get<std::string>(pair.first);
+                    const auto& value = std::get<std::string>(pair.second);
+                    cookies[key] = value;
+                }
+
+                webview_->SetCookies(url, cookies, std::bind(&WebviewBridge::OnSetCookiesSuccess, this));
+                return;
+            }
+        }
+        result->Error("InvalidArguments", "Invalid arguments for 'setCookies'. Expected 'url' and 'cookies'.");
+  }
 
   // clearCache
   if (method_name.compare(kMethodClearCache) == 0) {

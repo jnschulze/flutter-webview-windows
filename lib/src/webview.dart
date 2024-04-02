@@ -413,10 +413,8 @@ class WebviewController extends ValueNotifier<WebviewValue> {
       return;
     }
 
-    // 将 cookies Map 转换成 EncodableMap 以供 MethodChannel 使用
     final cookiesMap = cookies.map((key, value) => MapEntry(key, value));
 
-    // 调用 MethodChannel，发送 'setCookies' 方法及其参数
     await _methodChannel.invokeMethod('setCookies', {
       'url': url,
       'cookies': cookiesMap,
