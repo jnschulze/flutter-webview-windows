@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b05e2979-680e-4f42-a6bc-dbf569891e98" name="Changes" comment="feat: add setCookiesWithDomains">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/webview_windows.iml" beforeDir="false" afterPath="$PROJECT_DIR$/webview_windows.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/windows/webview.cc" beforeDir="false" afterPath="$PROJECT_DIR$/windows/webview.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/windows/webview.h" beforeDir="false" afterPath="$PROJECT_DIR$/windows/webview.h" afterDir="false" />
-    </list>
+    <list default="true" id="b05e2979-680e-4f42-a6bc-dbf569891e98" name="Changes" comment="feat: add setCookiesWithDomains" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -141,7 +136,23 @@
       <option name="project" value="LOCAL" />
       <updated>1712041636822</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="feat: add setCookiesWithDomains">
+      <option name="closed" value="true" />
+      <created>1712043126356</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1712043126356</updated>
+    </task>
+    <task id="LOCAL-00013" summary="feat: add setCookiesWithDomains">
+      <option name="closed" value="true" />
+      <created>1712043149932</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1712043149932</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="ToolWindowManager">
