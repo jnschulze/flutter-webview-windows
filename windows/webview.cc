@@ -455,8 +455,6 @@ void Webview::GetCookies(const std::string& url, GetCookiesCallback callback) {
   callback(false, std::string());
 }
 
-#include <windows.h> // 确保包含了这个头文件来使用 OutputDebugString
-
 void Webview::SetCookies(const std::string& url, const std::map<std::string, std::string>& cookies, SetCookiesCallback callback) {
   OutputDebugStringA("Attempting to set cookies.\n");
 
