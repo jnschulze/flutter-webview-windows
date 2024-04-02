@@ -664,7 +664,7 @@ void WebviewBridge::HandleMethodCall(
                 cookies[key] = value;
             }
 
-            webview_->SetCookies(url, cookies, [result](bool success) mutable {
+            webview_->SetCookies(url, cookies, [result = std::move(result)](bool success) mutable {
                 if (success) {
                     result->Success();
                 } else {
