@@ -419,6 +419,7 @@ bool Webview::ClearCookies() {
 
 void Webview::GetCookies(const std::string& url, GetCookiesFullInfoCallback callback) {
     if (IsValid()) {
+
         wil::com_ptr<ICoreWebView2CookieManager> cookieManager;
         auto webview2 = webview_.try_query<ICoreWebView2_2>();
         webview2->get_CookieManager(cookieManager.put());
