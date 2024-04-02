@@ -108,6 +108,7 @@ class Webview {
       AddScriptToExecuteOnDocumentCreatedCallback;
   typedef std::function<void(bool, const std::string&)> ScriptExecutedCallback;
   typedef std::function<void(bool, const std::string&)> GetCookiesCallback;
+  typedef std::function<void(bool)> SetCookiesCallback;
   typedef std::function<void(const std::string&)> WebMessageReceivedCallback;
   typedef std::function<void(WebviewPermissionState state)>
       WebviewPermissionRequestedCompleter;
@@ -148,6 +149,7 @@ class Webview {
   bool ClearCookies();
   void GetCookies(const std::string& url,
                             GetCookiesCallback callback);
+  void SetCookies(const std::string& url, const std::map<std::string, std::string>& cookies, SetCookiesCallback callback);
   bool ClearCache();
   bool SetCacheDisabled(bool disabled);
   void SetPopupWindowPolicy(WebviewPopupWindowPolicy policy);

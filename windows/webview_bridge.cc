@@ -38,6 +38,7 @@ constexpr auto kMethodClearVirtualHostNameMapping =
     "clearVirtualHostNameMapping";
 constexpr auto kMethodClearCookies = "clearCookies";
 constexpr auto kMethodGetCookies = "getCookies";
+constexpr auto kMethodSetCookies = "setCookies";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
 constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
@@ -644,6 +645,22 @@ void WebviewBridge::HandleMethodCall(
       return;
     }
     return result->Error(kErrorInvalidArgs);
+  }
+
+  // setCookies
+  if (method_name.compare(kMethodSetCookies) == 0) {
+      const auto* args_map = std::get_if<flutter::EncodableMap>(method_call.arguments());
+      if (args_map) {
+          const auto url_it = args_map->find(flutter::EncodableValue("url"));
+          const auto cookies_it = args_map->find(flutter::EncodableValue("cookies"));
+          if (url_it != args_map->end() && cookies_it != args_map->end()) {
+              const auto& url = std::get<std::string>(url_it->second);
+              const auto& cookiesMap = std::get<flutter::EncodableMap>(cookies_it->second);
+              SetCookies(url, cookiesMap, std::move(result));
+              return;
+          }
+      }
+      result->Error("InvalidArguments", "Invalid arguments for 'setCookies'. Expected 'url' and 'cookies'.");
   }
 
   // clearCache

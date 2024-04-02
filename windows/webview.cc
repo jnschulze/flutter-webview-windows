@@ -455,6 +455,41 @@ void Webview::GetCookies(const std::string& url, GetCookiesCallback callback) {
   callback(false, std::string());
 }
 
+void Webview::SetCookies(const std::string& url, const std::map<std::string, std::string>& cookies, std::function<void(bool)> callback) {
+  if (IsValid()) {
+    wil::com_ptr<ICoreWebView2CookieManager> cookieManager;
+    auto webview2 = webview_.try_query<ICoreWebView2_2>();
+    if (webview2) {
+      webview2->get_CookieManager(cookieManager.put());
+      if (cookieManager) {
+        HRESULT hr = S_OK;
+        for (const auto& pair : cookies) {
+          wil::com_ptr<ICoreWebView2Cookie> cookie;
+          hr = cookieManager->CreateCookie(util::Utf16FromUtf8(pair.first).c_str(), util::Utf16FromUtf8(pair.second).c_str(), util::Utf16FromUtf8(url).c_str(), L"/", &cookie);
+          if (FAILED(hr)) {
+            callback(false); // 创建cookie失败
+            return;
+          }
+
+          hr = cookieManager->AddOrUpdateCookie(cookie.get());
+          if (FAILED(hr)) {
+            callback(false); // 添加或更新cookie失败
+            return;
+          }
+        }
+
+        callback(true); // 成功添加或更新所有cookie
+      } else {
+        callback(false); // 获取cookie管理器失败
+      }
+    } else {
+      callback(false); // 查询ICoreWebView2_2失败
+    }
+  } else {
+    callback(false); // Webview不在有效状态
+  }
+}
+
 bool Webview::ClearCache() {
   if (!IsValid()) {
     return false;

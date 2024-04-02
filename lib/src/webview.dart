@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'enums.dart';
 import 'cursor.dart';
+import 'enums.dart';
 
 class HistoryChanged {
   final bool canGoBack;
@@ -404,6 +404,23 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     }
     assert(value.isInitialized);
     return _methodChannel.invokeMethod<String>('getCookies', url);
+  }
+
+  /// Sets browser cookies.
+  Future<void> setCookies(String url, Map<String, String> cookies) async {
+    assert(value.isInitialized); // 确保 WebView 已经初始化
+    if (_isDisposed) {
+      return;
+    }
+
+    // 将 cookies Map 转换成 EncodableMap 以供 MethodChannel 使用
+    final cookiesMap = cookies.map((key, value) => MapEntry(key, value));
+
+    // 调用 MethodChannel，发送 'setCookies' 方法及其参数
+    await _methodChannel.invokeMethod('setCookies', {
+      'url': url,
+      'cookies': cookiesMap,
+    });
   }
 
   /// Clears browser cache.
