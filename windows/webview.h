@@ -150,6 +150,7 @@ class Webview {
   void GetCookies(const std::string& url,
                             GetCookiesCallback callback);
   void SetCookies(const std::string& url, const std::map<std::string, std::string>& cookies, SetCookiesCallback callback);
+  std::string ExtractDomainFromUrl(const std::string& url);
   bool ClearCache();
   bool SetCacheDisabled(bool disabled);
   void SetPopupWindowPolicy(WebviewPopupWindowPolicy policy);
