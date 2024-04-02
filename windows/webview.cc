@@ -508,7 +508,7 @@ void Webview::SetCookies(const std::string& originalUrl, const std::map<std::str
 }
 
 
-std::string ExtractDomainFromUrl(const std::string& url) {
+std::string Webview::ExtractDomainFromUrl(const std::string& url) {
     auto pos = url.find("://");
     if (pos != std::string::npos) {
         pos += 3;
