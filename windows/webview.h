@@ -148,8 +148,7 @@ class Webview {
                      ScriptExecutedCallback callback);
   bool PostWebMessage(const std::string& json);
   bool ClearCookies();
-  void GetCookies(const std::string& url,
-                            GetCookiesCallback callback);
+  void GetCookies(const std::string& url,GetCookiesCallback callback);
   void SetCookiesWithDomains(const std::map<std::string, std::map<std::string, std::string>>& cookiesWithDomains, SetCookiesCallback callback);
   void SetCookies(const std::string& url, const std::map<std::string, std::string>& cookies, SetCookiesCallback callback);
   std::string ExtractDomainFromUrl(const std::string& url);

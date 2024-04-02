@@ -637,7 +637,6 @@ void WebviewBridge::HandleMethodCall(
          webview_->GetCookies(
              *url, [shared_result](bool success, const std::vector<std::map<std::string, std::string>>& cookies) {
                  if (success) {
-                     // 转换cookies数据为flutter::EncodableValue
                      flutter::EncodableList cookiesList;
                      for (const auto& cookie : cookies) {
                          flutter::EncodableMap cookieMap;

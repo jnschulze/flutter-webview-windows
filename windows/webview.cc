@@ -418,59 +418,83 @@ bool Webview::ClearCookies() {
 }
 
 void Webview::GetCookies(const std::string& url, GetCookiesFullInfoCallback callback) {
-  if (IsValid()) {
-    wil::com_ptr<ICoreWebView2CookieManager> cookieManager;
-    auto webview2 = webview_.try_query<ICoreWebView2_2>();
-    webview2->get_CookieManager(cookieManager.put());
-    if (SUCCEEDED(cookieManager->GetCookies(
-            util::Utf16FromUtf8(url).c_str(),
-            Callback<ICoreWebView2GetCookiesCompletedHandler>(
-                [this, url, callback](
-                    HRESULT error_code,
-                    ICoreWebView2CookieList* list) -> HRESULT {
-                  std::vector<std::map<std::string, std::string>> cookies;
+    if (IsValid()) {
+        wil::com_ptr<ICoreWebView2CookieManager> cookieManager;
+        auto webview2 = webview_.try_query<ICoreWebView2_2>();
+        webview2->get_CookieManager(cookieManager.put());
+        if (SUCCEEDED(cookieManager->GetCookies(
+                util::Utf16FromUtf8(url).c_str(),
+                Callback<ICoreWebView2GetCookiesCompletedHandler>(
+                    [this, url, callback](
+                        HRESULT error_code,
+                        ICoreWebView2CookieList* list) -> HRESULT {
+                        std::vector<std::map<std::string, std::string>> cookies;
 
-                  UINT cookie_list_size;
-                  list->get_Count(&cookie_list_size);
-                  for (UINT i = 0; i < cookie_list_size; ++i) {
-                    wil::com_ptr<ICoreWebView2Cookie> cookie;
-                    list->GetValueAtIndex(i, &cookie);
+                        UINT cookie_list_size;
+                        list->get_Count(&cookie_list_size);
+                        for (UINT i = 0; i < cookie_list_size; ++i) {
+                            wil::com_ptr<ICoreWebView2Cookie> cookie;
+                            list->GetValueAtIndex(i, &cookie);
 
-                    std::map<std::string, std::string> cookieDetails;
-                    // Get name
-                    wil::unique_cotaskmem_string name;
-                    cookie->get_Name(&name);
-                    cookieDetails["name"] = util::Utf8FromUtf16(name.get());
+                            std::map<std::string, std::string> cookieDetails;
 
-                    // Get value
-                    wil::unique_cotaskmem_string value;
-                    cookie->get_Value(&value);
-                    cookieDetails["value"] = util::Utf8FromUtf16(value.get());
+                            // Get name
+                            wil::unique_cotaskmem_string name;
+                            cookie->get_Name(&name);
+                            cookieDetails["name"] = util::Utf8FromUtf16(name.get());
 
-                    // Get domain
-                    wil::unique_cotaskmem_string domain;
-                    cookie->get_Domain(&domain);
-                    cookieDetails["domain"] = util::Utf8FromUtf16(domain.get());
+                            // Get value
+                            wil::unique_cotaskmem_string value;
+                            cookie->get_Value(&value);
+                            cookieDetails["value"] = util::Utf8FromUtf16(value.get());
 
-                    // Get path
-                    wil::unique_cotaskmem_string path;
-                    cookie->get_Path(&path);
-                    cookieDetails["path"] = util::Utf8FromUtf16(path.get());
+                            // Get domain
+                            wil::unique_cotaskmem_string domain;
+                            cookie->get_Domain(&domain);
+                            cookieDetails["domain"] = util::Utf8FromUtf16(domain.get());
 
-                    // Add more properties as needed...
+                            // Get path
+                            wil::unique_cotaskmem_string path;
+                            cookie->get_Path(&path);
+                            cookieDetails["path"] = util::Utf8FromUtf16(path.get());
 
-                    cookies.push_back(cookieDetails);
-                  }
+                            // Get Expires
+                            double expires;
+                            cookie->get_Expires(&expires);
+                            cookieDetails["expires"] = std::to_string(expires); // Expires is a timestamp
 
-                  callback(SUCCEEDED(error_code), cookies);
-                  return S_OK;
-                })
-                .Get()))) {
-      return;
+                            // Get IsSecure
+                            BOOL isSecure;
+                            cookie->get_IsSecure(&isSecure);
+                            cookieDetails["is_secure"] = isSecure ? "true" : "false";
+
+                            // Get IsSession
+                            BOOL isSession;
+                            cookie->get_IsSession(&isSession);
+                            cookieDetails["is_session"] = isSession ? "true" : "false";
+
+                            // Get IsHttpOnly
+                            BOOL isHttpOnly;
+                            cookie->get_IsHttpOnly(&isHttpOnly);
+                            cookieDetails["is_http_only"] = isHttpOnly ? "true" : "false";
+
+                            // Get SameSite
+                            COREWEBVIEW2_COOKIE_SAME_SITE_KIND sameSite;
+                            cookie->get_SameSite(&sameSite);
+                            cookieDetails["same_site"] = std::to_string(sameSite); // SameSite is an enum
+
+                            cookies.push_back(cookieDetails);
+                        }
+
+                        callback(SUCCEEDED(error_code), cookies);
+                        return S_OK;
+                    })
+                    .Get()))) {
+            return;
+        }
     }
-  }
-  // In case of failure or WebView not valid
-  callback(false, {});
+    // In case of failure or WebView not valid
+    callback(false, {});
 }
 
 
