@@ -656,7 +656,7 @@ void WebviewBridge::HandleMethodCall(
           if (url_it != args_map->end() && cookies_it != args_map->end()) {
               const auto& url = std::get<std::string>(url_it->second);
               const auto& cookiesMap = std::get<flutter::EncodableMap>(cookies_it->second);
-              SetCookies(url, cookiesMap, std::move(result));
+              webview_->SetCookies(url, cookiesMap, std::move(result));
               return;
           }
       }
