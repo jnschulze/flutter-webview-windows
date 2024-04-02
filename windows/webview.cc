@@ -455,9 +455,11 @@ void Webview::GetCookies(const std::string& url, GetCookiesCallback callback) {
   callback(false, std::string());
 }
 
-void Webview::SetCookies(const std::string& url, const std::map<std::string, std::string>& cookies, SetCookiesCallback callback) {
+void Webview::SetCookies(const std::string& originalUrl, const std::map<std::string, std::string>& cookies, SetCookiesCallback callback) {
   OutputDebugStringA("Attempting to set cookies.\n");
-  std::string domain = ExtractDomainFromUrl(url);
+
+  // 从原始URL中提取域名
+  std::string domain = ExtractDomainFromUrl(originalUrl);
 
   if (IsValid()) {
     OutputDebugStringA("WebView is valid.\n");
@@ -474,6 +476,7 @@ void Webview::SetCookies(const std::string& url, const std::map<std::string, std
           OutputDebugStringA(cookieInfo.c_str());
 
           wil::com_ptr<ICoreWebView2Cookie> cookie;
+          // 使用提取的域名设置cookie
           hr = cookieManager->CreateCookie(util::Utf16FromUtf8(pair.first).c_str(), util::Utf16FromUtf8(pair.second).c_str(), util::Utf16FromUtf8(domain).c_str(), L"/", &cookie);
           if (FAILED(hr)) {
             OutputDebugStringA("Failed to create a cookie.\n");
@@ -506,8 +509,9 @@ void Webview::SetCookies(const std::string& url, const std::map<std::string, std
   }
 }
 
+
+// 增加了从URL提取域名的辅助函数
 std::string ExtractDomainFromUrl(const std::string& url) {
-    // 你可以根据需要扩展这个函数来更准确地解析URL
     auto pos = url.find("://");
     if (pos != std::string::npos) {
         // 移除协议部分
