@@ -651,7 +651,8 @@ void WebviewBridge::HandleMethodCall(
   if (method_name.compare(kMethodSetCookies) == 0) {
     const auto* args_map = std::get_if<flutter::EncodableMap>(method_call.arguments());
     if (args_map) {
-        shared_result = std::move(result);
+        std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
+             shared_result = std::move(result);
         const auto url_it = args_map->find(flutter::EncodableValue("url"));
         const auto cookies_it = args_map->find(flutter::EncodableValue("cookies"));
         if (url_it != args_map->end() && cookies_it != args_map->end()) {
