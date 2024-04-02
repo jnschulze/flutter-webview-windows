@@ -455,7 +455,7 @@ void Webview::GetCookies(const std::string& url, GetCookiesCallback callback) {
   callback(false, std::string());
 }
 
-void Webview::SetCookies(const std::string& url, const std::map<std::string, std::string>& cookies, std::function<void(bool)> callback) {
+void Webview::SetCookies(const std::string& url, const std::map<std::string, std::string>& cookies, SetCookiesCallback callback) {
   if (IsValid()) {
     wil::com_ptr<ICoreWebView2CookieManager> cookieManager;
     auto webview2 = webview_.try_query<ICoreWebView2_2>();
