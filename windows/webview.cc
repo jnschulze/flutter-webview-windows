@@ -479,6 +479,7 @@ void Webview::SetCookies(const std::string& url, const std::map<std::string, std
         }
 
         callback(true);
+        return;
       } else {
         callback(false);
       }
