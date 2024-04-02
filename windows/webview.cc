@@ -455,41 +455,55 @@ void Webview::GetCookies(const std::string& url, GetCookiesCallback callback) {
   callback(false, std::string());
 }
 
+#include <windows.h> // 确保包含了这个头文件来使用 OutputDebugString
+
 void Webview::SetCookies(const std::string& url, const std::map<std::string, std::string>& cookies, SetCookiesCallback callback) {
+  OutputDebugStringA("Attempting to set cookies.\n");
+
   if (IsValid()) {
+    OutputDebugStringA("WebView is valid.\n");
     wil::com_ptr<ICoreWebView2CookieManager> cookieManager;
     auto webview2 = webview_.try_query<ICoreWebView2_2>();
     if (webview2) {
+      OutputDebugStringA("ICoreWebView2_2 interface is available.\n");
       webview2->get_CookieManager(cookieManager.put());
       if (cookieManager) {
+        OutputDebugStringA("CookieManager is obtained.\n");
         HRESULT hr = S_OK;
         for (const auto& pair : cookies) {
           wil::com_ptr<ICoreWebView2Cookie> cookie;
           hr = cookieManager->CreateCookie(util::Utf16FromUtf8(pair.first).c_str(), util::Utf16FromUtf8(pair.second).c_str(), util::Utf16FromUtf8(url).c_str(), L"/", &cookie);
           if (FAILED(hr)) {
+            OutputDebugStringA("Failed to create a cookie.\n");
             callback(false);
             return;
           }
 
           hr = cookieManager->AddOrUpdateCookie(cookie.get());
           if (FAILED(hr)) {
+            OutputDebugStringA("Failed to add or update a cookie.\n");
             callback(false);
             return;
           }
         }
 
+        OutputDebugStringA("Cookies set successfully.\n");
         callback(true);
         return;
       } else {
+        OutputDebugStringA("Failed to obtain CookieManager.\n");
         callback(false);
       }
     } else {
+      OutputDebugStringA("ICoreWebView2_2 interface is not available.\n");
       callback(false);
     }
   } else {
+    OutputDebugStringA("WebView is not valid.\n");
     callback(false);
   }
 }
+
 
 bool Webview::ClearCache() {
   if (!IsValid()) {
