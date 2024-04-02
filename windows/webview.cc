@@ -469,6 +469,9 @@ void Webview::SetCookies(const std::string& url, const std::map<std::string, std
         OutputDebugStringA("CookieManager is obtained.\n");
         HRESULT hr = S_OK;
         for (const auto& pair : cookies) {
+          std::string cookieInfo = "Setting cookie: " + pair.first + " = " + pair.second + "\n";
+          OutputDebugStringA(cookieInfo.c_str());
+
           wil::com_ptr<ICoreWebView2Cookie> cookie;
           hr = cookieManager->CreateCookie(util::Utf16FromUtf8(pair.first).c_str(), util::Utf16FromUtf8(pair.second).c_str(), util::Utf16FromUtf8(url).c_str(), L"/", &cookie);
           if (FAILED(hr)) {
