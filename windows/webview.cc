@@ -457,6 +457,7 @@ void Webview::GetCookies(const std::string& url, GetCookiesCallback callback) {
 
 void Webview::SetCookies(const std::string& url, const std::map<std::string, std::string>& cookies, SetCookiesCallback callback) {
   OutputDebugStringA("Attempting to set cookies.\n");
+  std::string domain = ExtractDomainFromUrl(url);
 
   if (IsValid()) {
     OutputDebugStringA("WebView is valid.\n");
@@ -469,11 +470,11 @@ void Webview::SetCookies(const std::string& url, const std::map<std::string, std
         OutputDebugStringA("CookieManager is obtained.\n");
         HRESULT hr = S_OK;
         for (const auto& pair : cookies) {
-          std::string cookieInfo = "Setting cookie: " + pair.first + " = " + pair.second + "\n";
+          std::string cookieInfo = "Setting cookie: " + pair.first + " = " + pair.second + " for domain: " + domain + "\n";
           OutputDebugStringA(cookieInfo.c_str());
 
           wil::com_ptr<ICoreWebView2Cookie> cookie;
-          hr = cookieManager->CreateCookie(util::Utf16FromUtf8(pair.first).c_str(), util::Utf16FromUtf8(pair.second).c_str(), util::Utf16FromUtf8(url).c_str(), L"/", &cookie);
+          hr = cookieManager->CreateCookie(util::Utf16FromUtf8(pair.first).c_str(), util::Utf16FromUtf8(pair.second).c_str(), util::Utf16FromUtf8(domain).c_str(), L"/", &cookie);
           if (FAILED(hr)) {
             OutputDebugStringA("Failed to create a cookie.\n");
             callback(false);
@@ -505,6 +506,22 @@ void Webview::SetCookies(const std::string& url, const std::map<std::string, std
   }
 }
 
+std::string ExtractDomainFromUrl(const std::string& url) {
+    // 你可以根据需要扩展这个函数来更准确地解析URL
+    auto pos = url.find("://");
+    if (pos != std::string::npos) {
+        // 移除协议部分
+        pos += 3; // 跳过"://"
+    } else {
+        pos = 0; // 没有协议部分，从头开始
+    }
+
+    // 现在找到第一个"/"，它之前的部分就是域名
+    auto endPos = url.find('/', pos);
+    std::string domain = (endPos != std::string::npos) ? url.substr(pos, endPos - pos) : url.substr(pos);
+
+    return domain;
+}
 
 bool Webview::ClearCache() {
   if (!IsValid()) {
