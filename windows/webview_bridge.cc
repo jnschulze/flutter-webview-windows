@@ -39,6 +39,7 @@ constexpr auto kMethodClearVirtualHostNameMapping =
 constexpr auto kMethodClearCookies = "clearCookies";
 constexpr auto kMethodGetCookies = "getCookies";
 constexpr auto kMethodSetCookies = "setCookies";
+constexpr auto kMethodSetCookiesWithDomains = "setCookiesWithDomains";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
 constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
@@ -676,6 +677,42 @@ void WebviewBridge::HandleMethodCall(
         }
     }
     result->Error("InvalidArguments", "Invalid arguments for 'setCookies'. Expected 'url' and 'cookies'.");
+  }
+
+  if (method_name.compare(kMethodSetCookiesWithDomains) == 0) {
+      const auto* args_map = std::get_if<flutter::EncodableMap>(method_call.arguments());
+      if (args_map) {
+          std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> shared_result = std::move(result);
+          const auto cookies_it = args_map->find(flutter::EncodableValue("cookiesWithDomains"));
+          if (cookies_it != args_map->end()) {
+              const auto& cookiesWithDomainsMap = std::get<flutter::EncodableMap>(cookies_it->second);
+              std::map<std::string, std::map<std::string, std::string>> cookiesWithDomains;
+
+              for (const auto& domainPair : cookiesWithDomainsMap) {
+                  const auto& domain = std::get<std::string>(domainPair.first);
+                  const auto& cookiesMap = std::get<flutter::EncodableMap>(domainPair.second);
+
+                  std::map<std::string, std::string> cookies;
+                  for (const auto& cookiePair : cookiesMap) {
+                      const auto& cookieName = std::get<std::string>(cookiePair.first);
+                      const auto& cookieValue = std::get<std::string>(cookiePair.second);
+                      cookies[cookieName] = cookieValue;
+                  }
+
+                  cookiesWithDomains[domain] = cookies;
+              }
+
+              webview_->SetCookiesWithDomains(cookiesWithDomains, [shared_result](bool success) {
+                  if (success) {
+                      shared_result->Success();
+                  } else {
+                      shared_result->Error("SetCookiesWithDomainsFailed", "Failed to set cookies with domains.");
+                  }
+              });
+              return;
+          }
+      }
+      result->Error("InvalidArguments", "Invalid arguments for 'setCookiesWithDomains'.");
   }
 
   // clearCache

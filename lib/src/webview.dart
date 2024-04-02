@@ -421,6 +421,18 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     });
   }
 
+  /// Sets browser cookies with specific domains.
+  Future<void> setCookiesWithDomains(Map<String, Map<String, String>> cookiesWithDomains) async {
+    assert(value.isInitialized); // 确保 WebView 已经初始化
+    if (_isDisposed) {
+      return;
+    }
+
+    await _methodChannel.invokeMethod('setCookiesWithDomains', {
+      'cookiesWithDomains': cookiesWithDomains,
+    });
+  }
+
   /// Clears browser cache.
   Future<void> clearCache() async {
     if (_isDisposed) {
