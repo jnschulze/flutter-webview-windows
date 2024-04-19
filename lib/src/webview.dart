@@ -106,8 +106,13 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   final StreamController<String> _urlStreamController =
       StreamController<String>();
 
+  final StreamController<String> _newWindowRequestedStreamController =
+  StreamController<String>();
+
+
   /// A stream reflecting the current URL.
   Stream<String> get url => _urlStreamController.stream;
+  Stream<String> get newRequestUrl => _newWindowRequestedStreamController.stream;
 
   final StreamController<LoadingState> _loadingStateStreamController =
       StreamController<LoadingState>.broadcast();
@@ -172,14 +177,22 @@ class WebviewController extends ValueNotifier<WebviewValue> {
           await _pluginChannel.invokeMapMethod<String, dynamic>('initialize');
 
       _textureId = reply!['textureId'];
+
+      print('_textureId -- $_textureId');
       _methodChannel = MethodChannel('$_pluginChannelPrefix/$_textureId');
       _eventChannel = EventChannel('$_pluginChannelPrefix/$_textureId/events');
       _eventStreamSubscription =
           _eventChannel.receiveBroadcastStream().listen((event) {
         final map = event as Map<dynamic, dynamic>;
+
+        print('event type -- $map');
         switch (map['type']) {
           case 'urlChanged':
             _urlStreamController.add(map['value']);
+            break;
+
+            case 'newTabUrl':
+              _newWindowRequestedStreamController.add(map['value']);
             break;
           case 'onLoadError':
             final value = WebErrorStatus.values[map['value']];
@@ -202,6 +215,9 @@ class WebviewController extends ValueNotifier<WebviewValue> {
             break;
           case 'cursorChanged':
             _cursorStreamController.add(getCursorByName(map['value']));
+            break;
+            case 'click':
+              _urlStreamController.add(map['value']);
             break;
           case 'webMessageReceived':
             try {

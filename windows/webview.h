@@ -94,6 +94,7 @@ class Webview {
   friend class WebviewHost;
 
   typedef std::function<void(const std::string&)> UrlChangedCallback;
+  typedef std::function<void(const std::string&)> UrlNewTabCallback;
   typedef std::function<void(WebviewLoadingState)> LoadingStateChangedCallback;
   typedef std::function<void(COREWEBVIEW2_WEB_ERROR_STATUS)>
       OnLoadErrorCallback;
@@ -164,6 +165,10 @@ class Webview {
     url_changed_callback_ = std::move(callback);
   }
 
+    void OnUrlNewTab(UrlNewTabCallback callback) {
+      url_new_tab_callback_ = std::move(callback);
+    }
+
   void OnLoadError(OnLoadErrorCallback callback) {
     on_load_error_callback_ = std::move(callback);
   }
@@ -233,6 +238,7 @@ class Webview {
   EventRegistrations event_registrations_{};
 
   UrlChangedCallback url_changed_callback_;
+  UrlNewTabCallback url_new_tab_callback_;
   LoadingStateChangedCallback loading_state_changed_callback_;
   OnLoadErrorCallback on_load_error_callback_;
   HistoryChangedCallback history_changed_callback_;

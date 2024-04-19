@@ -50,6 +50,11 @@ class _ExampleBrowser extends State<ExampleBrowser> {
     try {
       await _controller.initialize();
       _subscriptions.add(_controller.url.listen((url) {
+        print('url change -- $url');
+        _textController.text = url;
+      }));
+      _subscriptions.add(_controller.newRequestUrl.listen((url) {
+        print('newRequestUrl  -- $url');
         _textController.text = url;
       }));
 
