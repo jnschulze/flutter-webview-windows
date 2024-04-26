@@ -219,6 +219,8 @@ HRESULT RoHelper::WindowsCompareStringOrdinal(HSTRING one, HSTRING two,
   return mFpWindowsCompareStringOrdinal(one, two, result);
 }
 
+static ABI::Windows::System::IDispatcherQueueController** queueController;
+
 HRESULT RoHelper::CreateDispatcherQueueController(
     DispatcherQueueOptions options,
     ABI::Windows::System::IDispatcherQueueController**
@@ -226,7 +228,16 @@ HRESULT RoHelper::CreateDispatcherQueueController(
   if (!mWinRtAvailable) {
     return E_FAIL;
   }
-  return mFpCreateDispatcherQueueController(options, dispatcherQueueController);
+  if (queueController == nullptr || *queueController == nullptr) {
+    auto result = mFpCreateDispatcherQueueController(options, dispatcherQueueController);
+    queueController = dispatcherQueueController;
+    return result;
+  }
+  else
+  {
+    dispatcherQueueController = queueController;
+    return S_OK;
+  }
 }
 
 HRESULT RoHelper::WindowsDeleteString(HSTRING one) {
