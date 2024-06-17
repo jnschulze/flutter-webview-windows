@@ -42,7 +42,7 @@ class WebviewHost {
       std::optional<std::wstring> browser_exe_path = std::nullopt,
       std::optional<std::string> arguments = std::nullopt);
 
-  void CreateWebview(HWND hwnd, bool offscreen_only, bool owns_window,
+  void CreateWebview(HWND parentHwnd, HWND hwnd, bool offscreen_only, bool owns_window,
                      WebviewCreationCallback callback);
 
   void CreateWebViewPointerInfo(PointerInfoCreationCallback cb);

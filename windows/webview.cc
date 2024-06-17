@@ -58,7 +58,7 @@ inline COREWEBVIEW2_PERMISSION_STATE WebViewPermissionStateToCW2PermissionState(
 
 Webview::Webview(
     wil::com_ptr<ICoreWebView2CompositionController> composition_controller,
-    WebviewHost* host, HWND hwnd, bool owns_window, bool offscreen_only)
+    WebviewHost* host, HWND parentHwnd, HWND hwnd, bool owns_window, bool offscreen_only)
     : composition_controller_(std::move(composition_controller)),
       host_(host),
       hwnd_(hwnd),
@@ -74,6 +74,7 @@ Webview::Webview(
   webview_controller_->put_BoundsMode(COREWEBVIEW2_BOUNDS_MODE_USE_RAW_PIXELS);
   webview_controller_->put_ShouldDetectMonitorScaleChanges(FALSE);
   webview_controller_->put_RasterizationScale(1.0);
+  webview_controller_->put_ParentWindow(parentHwnd);
 
   wil::com_ptr<ICoreWebView2Settings> settings;
   if (SUCCEEDED(webview_->get_Settings(settings.put()))) {
