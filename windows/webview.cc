@@ -1,9 +1,11 @@
 #include "webview.h"
-
+#include <iostream>
 #include <wrl.h>
 
+#include <string>
+#include <wil/com.h>
+
 #include <format>
-#include <iostream>
 
 #include "util/composition.desktop.interop.h"
 #include "util/string_converter.h"
@@ -354,11 +356,23 @@ void Webview::RegisterEventHandlers() {
                 break;
             }
 
+              // Extract relevant information
+              // Open the URI in the default browser.
+              // Extract relevant information
+              LPWSTR wurl;
+              args->get_Uri(&wurl);
+              std::cout << "The value of myVariable is result: " << std::endl;
+
+              std::string url = util::Utf8FromUtf16(wurl);
+              url_new_tab_callback_(url);
+
             return S_OK;
           })
           .Get(),
       &event_registrations_.new_windows_requested_token_);
 
+
+//    url_new_tab_callback_(args);
   webview_->add_ContainsFullScreenElementChanged(
       Callback<ICoreWebView2ContainsFullScreenElementChangedEventHandler>(
           [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
