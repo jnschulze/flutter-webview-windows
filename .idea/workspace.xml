@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b05e2979-680e-4f42-a6bc-dbf569891e98" name="Changes" comment="feat: add setCookiesWithDomains" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
   <component name="FileEditorManager">
     <leaf>
       <file leaf-file-name="webview_windows.dart" pinned="false" current-in-tab="true">
@@ -22,24 +32,144 @@
       </file>
     </leaf>
   </component>
-  <component name="ToolWindowManager">
-    <editor active="true" />
-    <layout>
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
-    </layout>
-  </component>
   <component name="ProjectView">
-    <navigator currentView="ProjectPane" proportions="" version="1">
-    </navigator>
+    <navigator currentView="ProjectPane" proportions="" version="1" />
     <panes>
       <pane id="ProjectPane">
         <option name="show-excluded-files" value="false" />
       </pane>
     </panes>
   </component>
-  <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="dart.analysis.tool.window.force.activate" value="true" />
-    <property name="show.migrate.to.gradle.popup" value="false" />
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "main",
+    "node.js.selected.package.tslint": "(autodetect)"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task id="LOCAL-00001" summary="feat: add setCookies">
+      <option name="closed" value="true" />
+      <created>1712032984672</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1712032984672</updated>
+    </task>
+    <task id="LOCAL-00002" summary="feat: add log">
+      <option name="closed" value="true" />
+      <created>1712033684730</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1712033684730</updated>
+    </task>
+    <task id="LOCAL-00003" summary="feat: add log">
+      <option name="closed" value="true" />
+      <created>1712033915076</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1712033915076</updated>
+    </task>
+    <task id="LOCAL-00004" summary="feat: add log">
+      <option name="closed" value="true" />
+      <created>1712034831650</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1712034831650</updated>
+    </task>
+    <task id="LOCAL-00005" summary="feat: fix setCookies domain">
+      <option name="closed" value="true" />
+      <created>1712036156380</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1712036156381</updated>
+    </task>
+    <task id="LOCAL-00006" summary="feat: fix setCookies domain">
+      <option name="closed" value="true" />
+      <created>1712036709821</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1712036709821</updated>
+    </task>
+    <task id="LOCAL-00007" summary="feat: fix setCookies domain">
+      <option name="closed" value="true" />
+      <created>1712037345074</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1712037345074</updated>
+    </task>
+    <task id="LOCAL-00008" summary="feat: fix setCookies domain">
+      <option name="closed" value="true" />
+      <created>1712038254499</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1712038254499</updated>
+    </task>
+    <task id="LOCAL-00009" summary="feat: fix setCookies domain">
+      <option name="closed" value="true" />
+      <created>1712038492030</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1712038492030</updated>
+    </task>
+    <task id="LOCAL-00010" summary="feat: add setCookiesWithDomains">
+      <option name="closed" value="true" />
+      <created>1712040024402</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1712040024402</updated>
+    </task>
+    <task id="LOCAL-00011" summary="feat: add setCookiesWithDomains">
+      <option name="closed" value="true" />
+      <created>1712041636822</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1712041636822</updated>
+    </task>
+    <task id="LOCAL-00012" summary="feat: add setCookiesWithDomains">
+      <option name="closed" value="true" />
+      <created>1712043126356</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1712043126356</updated>
+    </task>
+    <task id="LOCAL-00013" summary="feat: add setCookiesWithDomains">
+      <option name="closed" value="true" />
+      <created>1712043149932</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1712043149932</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
+    <servers />
+  </component>
+  <component name="ToolWindowManager">
+    <editor active="true" />
+    <layout>
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+    </layout>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="feat: add setCookies" />
+    <MESSAGE value="feat: add log" />
+    <MESSAGE value="feat: fix setCookies domain" />
+    <MESSAGE value="feat: add setCookiesWithDomains" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: add setCookiesWithDomains" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>

@@ -463,6 +463,202 @@ bool Webview::ClearCookies() {
                                               L"{}", nullptr) == S_OK;
 }
 
+void Webview::GetCookies(const std::string& url, GetCookiesFullInfoCallback callback) {
+    if (IsValid()) {
+
+        wil::com_ptr<ICoreWebView2CookieManager> cookieManager;
+        auto webview2 = webview_.try_query<ICoreWebView2_2>();
+        webview2->get_CookieManager(cookieManager.put());
+
+        if (SUCCEEDED(cookieManager->GetCookies(
+                util::Utf16FromUtf8(url).c_str(),
+                Callback<ICoreWebView2GetCookiesCompletedHandler>(
+                    [this, url, callback](
+                        HRESULT error_code,
+                        ICoreWebView2CookieList* list) -> HRESULT {
+                        std::vector<std::map<std::string, std::string>> cookies;
+
+                        UINT cookie_list_size;
+                        list->get_Count(&cookie_list_size);
+                        for (UINT i = 0; i < cookie_list_size; ++i) {
+                            wil::com_ptr<ICoreWebView2Cookie> cookie;
+                            list->GetValueAtIndex(i, &cookie);
+
+                            std::map<std::string, std::string> cookieDetails;
+
+                            // Get name
+                            wil::unique_cotaskmem_string name;
+                            cookie->get_Name(&name);
+                            cookieDetails["name"] = util::Utf8FromUtf16(name.get());
+
+                            // Get value
+                            wil::unique_cotaskmem_string value;
+                            cookie->get_Value(&value);
+                            cookieDetails["value"] = util::Utf8FromUtf16(value.get());
+
+                            // Get domain
+                            wil::unique_cotaskmem_string domain;
+                            cookie->get_Domain(&domain);
+                            cookieDetails["domain"] = util::Utf8FromUtf16(domain.get());
+
+                            // Get path
+                            wil::unique_cotaskmem_string path;
+                            cookie->get_Path(&path);
+                            cookieDetails["path"] = util::Utf8FromUtf16(path.get());
+
+                            // Get Expires
+                            double expires;
+                            cookie->get_Expires(&expires);
+                            cookieDetails["expires"] = std::to_string(expires); // Expires is a timestamp
+
+                            // Get IsSecure
+                            BOOL isSecure;
+                            cookie->get_IsSecure(&isSecure);
+                            cookieDetails["is_secure"] = isSecure ? "true" : "false";
+
+                            // Get IsSession
+                            BOOL isSession;
+                            cookie->get_IsSession(&isSession);
+                            cookieDetails["is_session"] = isSession ? "true" : "false";
+
+                            // Get IsHttpOnly
+                            BOOL isHttpOnly;
+                            cookie->get_IsHttpOnly(&isHttpOnly);
+                            cookieDetails["is_http_only"] = isHttpOnly ? "true" : "false";
+
+                            // Get SameSite
+                            COREWEBVIEW2_COOKIE_SAME_SITE_KIND sameSite;
+                            cookie->get_SameSite(&sameSite);
+                            cookieDetails["same_site"] = std::to_string(sameSite); // SameSite is an enum
+
+                            cookies.push_back(cookieDetails);
+                        }
+
+                        callback(SUCCEEDED(error_code), cookies);
+                        return S_OK;
+                    })
+                    .Get()))) {
+            return;
+        }
+    }
+    // In case of failure or WebView not valid
+    callback(false, {});
+}
+
+
+void Webview::SetCookies(const std::string& originalUrl, const std::map<std::string, std::string>& cookies, SetCookiesCallback callback) {
+  OutputDebugStringA("Attempting to set cookies.\n");
+
+  std::string domain = ExtractDomainFromUrl(originalUrl);
+
+  if (IsValid()) {
+    OutputDebugStringA("WebView is valid.\n");
+    wil::com_ptr<ICoreWebView2CookieManager> cookieManager;
+    auto webview2 = webview_.try_query<ICoreWebView2_2>();
+    if (webview2) {
+      OutputDebugStringA("ICoreWebView2_2 interface is available.\n");
+      webview2->get_CookieManager(cookieManager.put());
+      if (cookieManager) {
+        OutputDebugStringA("CookieManager is obtained.\n");
+        HRESULT hr = S_OK;
+        for (const auto& pair : cookies) {
+          std::string cookieInfo = "Setting cookie: " + pair.first + " = " + pair.second + " for domain: " + domain + "\n";
+          OutputDebugStringA(cookieInfo.c_str());
+
+          wil::com_ptr<ICoreWebView2Cookie> cookie;
+          hr = cookieManager->CreateCookie(util::Utf16FromUtf8(pair.first).c_str(), util::Utf16FromUtf8(pair.second).c_str(), util::Utf16FromUtf8(domain).c_str(), L"/", &cookie);
+          if (FAILED(hr)) {
+            OutputDebugStringA("Failed to create a cookie.\n");
+            callback(false);
+            return;
+          }
+
+          hr = cookieManager->AddOrUpdateCookie(cookie.get());
+          if (FAILED(hr)) {
+            OutputDebugStringA("Failed to add or update a cookie.\n");
+            callback(false);
+            return;
+          }
+        }
+
+        OutputDebugStringA("Cookies set successfully.\n");
+        callback(true);
+        return;
+      } else {
+        OutputDebugStringA("Failed to obtain CookieManager.\n");
+        callback(false);
+      }
+    } else {
+      OutputDebugStringA("ICoreWebView2_2 interface is not available.\n");
+      callback(false);
+    }
+  } else {
+    OutputDebugStringA("WebView is not valid.\n");
+    callback(false);
+  }
+}
+
+void Webview::SetCookiesWithDomains(const std::map<std::string, std::map<std::string, std::string>>& cookiesWithDomains, SetCookiesCallback callback) {
+  if (!IsValid()) {
+    OutputDebugStringA("WebView is not valid.\n");
+    callback(false);
+    return;
+  }
+
+  wil::com_ptr<ICoreWebView2CookieManager> cookieManager;
+  auto webview2 = webview_.try_query<ICoreWebView2_2>();
+  if (!webview2) {
+    OutputDebugStringA("ICoreWebView2_2 interface is not available.\n");
+    callback(false);
+    return;
+  }
+
+  webview2->get_CookieManager(cookieManager.put());
+  if (!cookieManager) {
+    OutputDebugStringA("Failed to obtain CookieManager.\n");
+    callback(false);
+    return;
+  }
+
+  HRESULT hr = S_OK;
+  for (const auto& domainAndCookies : cookiesWithDomains) {
+    const std::string& domain = domainAndCookies.first;
+    for (const auto& nameAndValue : domainAndCookies.second) {
+      wil::com_ptr<ICoreWebView2Cookie> cookie;
+      hr = cookieManager->CreateCookie(util::Utf16FromUtf8(nameAndValue.first).c_str(), util::Utf16FromUtf8(nameAndValue.second).c_str(), util::Utf16FromUtf8(domain).c_str(), L"/", &cookie);
+      if (FAILED(hr)) {
+        OutputDebugStringA(("Failed to create a cookie for domain: " + domain + "\n").c_str());
+        callback(false);
+        return;
+      }
+
+      hr = cookieManager->AddOrUpdateCookie(cookie.get());
+      if (FAILED(hr)) {
+        OutputDebugStringA(("Failed to add or update a cookie for domain: " + domain + "\n").c_str());
+        callback(false);
+        return;
+      }
+    }
+  }
+
+  OutputDebugStringA("Cookies set successfully for multiple domains.\n");
+  callback(true);
+}
+
+std::string Webview::ExtractDomainFromUrl(const std::string& url) {
+    auto pos = url.find("://");
+    if (pos != std::string::npos) {
+        pos += 3;
+    } else {
+        pos = 0;
+    }
+
+    auto endPos = url.find('/', pos);
+    std::string domain = (endPos != std::string::npos) ? url.substr(pos, endPos - pos) : url.substr(pos);
+
+    return domain;
+}
+
 bool Webview::ClearCache() {
   if (!IsValid()) {
     return false;
