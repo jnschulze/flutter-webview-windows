@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'enums.dart';
 import 'cursor.dart';
+import 'enums.dart';
 
 class HistoryChanged {
   final bool canGoBack;
@@ -741,8 +741,11 @@ class _WebviewState extends State<Webview> {
                       }
                     },
                     onPointerPanZoomUpdate: (signal) {
-                      _controller._setScrollDelta(
-                          signal.panDelta.dx, signal.panDelta.dy);
+                      if (signal.panDelta.dx.abs() > signal.panDelta.dy.abs()) {
+                        _controller._setScrollDelta(-signal.panDelta.dx, 0);
+                      } else {
+                        _controller._setScrollDelta(0, signal.panDelta.dy);
+                      }
                     },
                     child: MouseRegion(
                         cursor: _cursor,
