@@ -9,10 +9,10 @@
 #include <string>
 #include <unordered_map>
 
+#include "util/string_converter.h"
 #include "webview_bridge.h"
 #include "webview_host.h"
 #include "webview_platform.h"
-#include "util/string_converter.h"
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -151,9 +151,11 @@ void WebviewWindowsPlugin::HandleMethodCall(
 
   if (method_call.method_name().compare(kMethodGetWebViewVersion) == 0) {
     LPWSTR version_info = nullptr;
-    auto hr = GetAvailableCoreWebView2BrowserVersionString(nullptr, &version_info);
+    auto hr =
+        GetAvailableCoreWebView2BrowserVersionString(nullptr, &version_info);
     if (SUCCEEDED(hr) && version_info != nullptr) {
-      return result->Success(flutter::EncodableValue(util::Utf8FromUtf16(version_info)));
+      return result->Success(
+          flutter::EncodableValue(util::Utf8FromUtf16(version_info)));
     } else {
       return result->Success();
     }
@@ -192,9 +194,9 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
     }
   }
 
-  auto hwnd = CreateWindowEx(0, window_class_.lpszClassName, L"", 0, CW_DEFAULT,
-                             CW_DEFAULT, 0, 0, HWND_MESSAGE, nullptr,
-                             window_class_.hInstance, nullptr);
+  auto hwnd =
+      CreateWindowEx(0, window_class_.lpszClassName, L"", 0, 0, 0, 0, 0,
+                     HWND_MESSAGE, nullptr, window_class_.hInstance, nullptr);
 
   std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
       shared_result = std::move(result);
