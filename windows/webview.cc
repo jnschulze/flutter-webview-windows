@@ -631,8 +631,18 @@ void Webview::SetPointerButtonState(WebviewPointerButton button, bool is_down) {
 }
 
 void Webview::SendScroll(double delta, bool horizontal) {
-  // delta * 6 gives me a multiple of WHEEL_DELTA (120)
-  constexpr auto kScrollMultiplier = 6;
+  // clang-format off
+  //
+  // TODO:
+  // Using a fixed value here is certainly wrong. Flutter's calculation in flutter_window.cc
+  // needs to be inverted to get back the "native" value. See
+  // - https://github.com/flutter/engine/blob/82c1dfcf588c2669ca391134910d634ca31fddf1/shell/platform/windows/flutter_window.cc#L416-L426
+  // Related:
+  // - https://source.chromium.org/chromium/chromium/src/+/main:ui/events/blink/web_input_event_builders_win.cc
+  // - https://github.com/flutter/flutter/issues/107248
+  //
+  // clang-format on
+  constexpr auto kScrollMultiplier = 1.5;
 
   auto offset = static_cast<short>(delta * kScrollMultiplier);
 
