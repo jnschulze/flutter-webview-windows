@@ -37,6 +37,9 @@ constexpr auto kMethodSetVirtualHostNameMapping = "setVirtualHostNameMapping";
 constexpr auto kMethodClearVirtualHostNameMapping =
     "clearVirtualHostNameMapping";
 constexpr auto kMethodClearCookies = "clearCookies";
+constexpr auto kMethodGetCookies = "getCookies";
+constexpr auto kMethodSetCookies = "setCookies";
+constexpr auto kMethodSetCookiesWithDomains = "setCookiesWithDomains";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
 constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
@@ -647,6 +650,98 @@ void WebviewBridge::HandleMethodCall(
       return result->Success();
     }
     return result->Error(kMethodFailed);
+  }
+
+ // getCookies
+ if (method_name.compare(kMethodGetCookies) == 0) {
+     if (const auto url = std::get_if<std::string>(method_call.arguments())) {
+         std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> shared_result = std::move(result);
+         webview_->GetCookies(
+             *url, [shared_result](bool success, const std::vector<std::map<std::string, std::string>>& cookies) {
+                 if (success) {
+                     flutter::EncodableList cookiesList;
+                     for (const auto& cookie : cookies) {
+                         flutter::EncodableMap cookieMap;
+                         for (const auto& field : cookie) {
+                             cookieMap[flutter::EncodableValue(field.first)] = flutter::EncodableValue(field.second);
+                         }
+                         cookiesList.push_back(flutter::EncodableValue(cookieMap));
+                     }
+                     shared_result->Success(flutter::EncodableValue(cookiesList));
+                 } else {
+                     shared_result->Error(kScriptFailed, "getCookies failed.");
+                 }
+             });
+         return;
+     }
+     return result->Error(kErrorInvalidArgs);
+ }
+
+  // setCookies
+  if (method_name.compare(kMethodSetCookies) == 0) {
+    const auto* args_map = std::get_if<flutter::EncodableMap>(method_call.arguments());
+    if (args_map) {
+        std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
+             shared_result = std::move(result);
+        const auto url_it = args_map->find(flutter::EncodableValue("url"));
+        const auto cookies_it = args_map->find(flutter::EncodableValue("cookies"));
+        if (url_it != args_map->end() && cookies_it != args_map->end()) {
+            const auto& url = std::get<std::string>(url_it->second);
+
+            std::map<std::string, std::string> cookies;
+            const auto& cookiesMap = std::get<flutter::EncodableMap>(cookies_it->second);
+            for (const auto& pair : cookiesMap) {
+                const auto& key = std::get<std::string>(pair.first);
+                const auto& value = std::get<std::string>(pair.second);
+                cookies[key] = value;
+            }
+            webview_->SetCookies(url, cookies, [shared_result](bool success) {
+                if (success) {
+                    shared_result->Success();
+                } else {
+                    shared_result->Error("SetCookiesFailed", "Failed to set cookies.");
+                }
+            });
+            return;
+        }
+    }
+    result->Error("InvalidArguments", "Invalid arguments for 'setCookies'. Expected 'url' and 'cookies'.");
+  }
+
+  if (method_name.compare(kMethodSetCookiesWithDomains) == 0) {
+      const auto* args_map = std::get_if<flutter::EncodableMap>(method_call.arguments());
+      if (args_map) {
+          std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>> shared_result = std::move(result);
+          const auto cookies_it = args_map->find(flutter::EncodableValue("cookiesWithDomains"));
+          if (cookies_it != args_map->end()) {
+              const auto& cookiesWithDomainsMap = std::get<flutter::EncodableMap>(cookies_it->second);
+              std::map<std::string, std::map<std::string, std::string>> cookiesWithDomains;
+
+              for (const auto& domainPair : cookiesWithDomainsMap) {
+                  const auto& domain = std::get<std::string>(domainPair.first);
+                  const auto& cookiesMap = std::get<flutter::EncodableMap>(domainPair.second);
+
+                  std::map<std::string, std::string> cookies;
+                  for (const auto& cookiePair : cookiesMap) {
+                      const auto& cookieName = std::get<std::string>(cookiePair.first);
+                      const auto& cookieValue = std::get<std::string>(cookiePair.second);
+                      cookies[cookieName] = cookieValue;
+                  }
+
+                  cookiesWithDomains[domain] = cookies;
+              }
+
+              webview_->SetCookiesWithDomains(cookiesWithDomains, [shared_result](bool success) {
+                  if (success) {
+                      shared_result->Success();
+                  } else {
+                      shared_result->Error("SetCookiesWithDomainsFailed", "Failed to set cookies with domains.");
+                  }
+              });
+              return;
+          }
+      }
+      result->Error("InvalidArguments", "Invalid arguments for 'setCookiesWithDomains'.");
   }
 
   // clearCache
