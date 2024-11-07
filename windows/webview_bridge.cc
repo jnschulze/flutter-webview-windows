@@ -208,6 +208,15 @@ void WebviewBridge::RegisterEventHandlers() {
     EmitEvent(event);
   });
 
+  webview_->OnUrlNewTab([this](const std::string& url) {
+      const auto event = flutter::EncodableValue(flutter::EncodableMap{
+              {flutter::EncodableValue(kEventType),
+                                                     flutter::EncodableValue("newTabUrl")},
+              {flutter::EncodableValue(kEventValue), flutter::EncodableValue(url)},
+      });
+      EmitEvent(event);
+  });
+
   webview_->OnLoadError([this](COREWEBVIEW2_WEB_ERROR_STATUS web_status) {
     const auto event = flutter::EncodableValue(flutter::EncodableMap{
         {flutter::EncodableValue(kEventType),
