@@ -429,6 +429,15 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('clearCookies');
   }
 
+  /// get browser Cookies.
+  Future<String?> getCookies(String url) async {
+    if (_isDisposed) {
+      return '';
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod<String>('getCookies', url);
+  }
+
   /// Clears browser cache.
   Future<void> clearCache() async {
     if (_isDisposed) {
