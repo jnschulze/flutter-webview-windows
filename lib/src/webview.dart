@@ -429,6 +429,47 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('clearCookies');
   }
 
+  /// Get browser cookies as a list of maps, each representing a cookie.
+  Future<List<Map<String, dynamic>>> getCookies(String url) async {
+    if (_isDisposed) {
+      return [];
+    }
+    assert(value.isInitialized);
+    final dynamic result = await _methodChannel.invokeMethod('getCookies', url);
+    if (result is List) {
+      return result.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e)).toList();
+    } else {
+      return [];
+    }
+  }
+
+  /// Sets browser cookies.
+  Future<void> setCookies(String url, Map<String, String> cookies) async {
+    assert(value.isInitialized); // 确保 WebView 已经初始化
+    if (_isDisposed) {
+      return;
+    }
+
+    final cookiesMap = cookies.map((key, value) => MapEntry(key, value));
+
+    await _methodChannel.invokeMethod('setCookies', {
+      'url': url,
+      'cookies': cookiesMap,
+    });
+  }
+
+  /// Sets browser cookies with specific domains.
+  Future<void> setCookiesWithDomains(Map<String, Map<String, String>> cookiesWithDomains) async {
+    assert(value.isInitialized); // 确保 WebView 已经初始化
+    if (_isDisposed) {
+      return;
+    }
+
+    await _methodChannel.invokeMethod('setCookiesWithDomains', {
+      'cookiesWithDomains': cookiesWithDomains,
+    });
+  }
+
   /// Clears browser cache.
   Future<void> clearCache() async {
     if (_isDisposed) {
