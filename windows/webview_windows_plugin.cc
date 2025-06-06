@@ -55,7 +55,12 @@ class WebviewWindowsPlugin : public flutter::Plugin {
   virtual ~WebviewWindowsPlugin();
 
  private:
-  std::unique_ptr<WebviewPlatform> platform_;
+  // CreateDispatcherQueueController can only be called once per thread. 
+  // In the desktop_mult_window plugin, the plugin creates multiple instances, 
+  // which can cause issues due to this constraint
+  // Therefore, we made it a singleton
+  static std::unique_ptr<WebviewPlatform> platform_; 
+  static int plugin_count_ = 0;
   std::unique_ptr<WebviewHost> webview_host_;
   std::unordered_map<int64_t, std::unique_ptr<WebviewBridge>> instances_;
 
@@ -72,6 +77,8 @@ class WebviewWindowsPlugin : public flutter::Plugin {
       const flutter::MethodCall<flutter::EncodableValue>& method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 };
+
+std::unique_ptr<WebviewPlatform> WebviewWindowsPlugin::platform_;
 
 // static
 void WebviewWindowsPlugin::RegisterWithRegistrar(
@@ -97,12 +104,20 @@ WebviewWindowsPlugin::WebviewWindowsPlugin(flutter::TextureRegistrar* textures,
     : textures_(textures), messenger_(messenger) {
   window_class_.lpszClassName = L"FlutterWebviewMessage";
   window_class_.lpfnWndProc = &DefWindowProc;
-  RegisterClass(&window_class_);
+  plugin_count_ ++;
+  if (plugin_count_ == 1){
+    RegisterClass(&window_class_);
+  }
 }
 
 WebviewWindowsPlugin::~WebviewWindowsPlugin() {
   instances_.clear();
-  UnregisterClass(window_class_.lpszClassName, nullptr);
+  plugin_count_ --;
+  // To prevent the accidental creation of other windows caused by deregistration 
+  // in multi-plugin-instance environments like desktop_mult_window 
+  if (plugin_count_ == 0){
+    UnregisterClass(window_class_.lpszClassName, nullptr);
+  }
 }
 
 void WebviewWindowsPlugin::HandleMethodCall(
