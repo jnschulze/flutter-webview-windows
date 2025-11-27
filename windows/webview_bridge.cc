@@ -155,9 +155,12 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
   texture_id_ = texture_registrar->RegisterTexture(flutter_texture_.get());
   texture_bridge_->SetOnFrameAvailable(
       [this]() { texture_registrar_->MarkTextureFrameAvailable(texture_id_); });
-  // texture_bridge_->SetOnSurfaceSizeChanged([this](Size size) {
-  //  webview_->SetSurfaceSize(size.width, size.height);
-  //});
+
+  // use negtive location to hide webview in desktop
+  // this is a workaround for https://github.com/MicrosoftEdge/WebView2Feedback/issues/4829
+  webview_->SetSurfaceOffset(-71, -71, 1.0f);
+  webview_->SetSurfaceSize(71, 71, 1.0f);
+
 
   const auto method_channel_name =
       std::format("io.jns.webview.win/{}", texture_id_);
