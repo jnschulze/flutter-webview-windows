@@ -60,7 +60,6 @@ class _ExampleBrowser extends State<ExampleBrowser> {
       }));
 
       await _controller.setBackgroundColor(Colors.transparent);
-      await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
       await _controller.loadUrl('https://flutter.dev');
 
       if (!mounted) return;
@@ -146,10 +145,12 @@ class _ExampleBrowser extends State<ExampleBrowser> {
                     clipBehavior: Clip.antiAliasWithSaveLayer,
                     child: Stack(
                       children: [
-                        Webview(
-                          _controller,
-                          permissionRequested: _onPermissionRequested,
-                        ),
+                        Webview(_controller,
+                            permissionRequested: _onPermissionRequested,
+                            newWindowRequested: (details) {
+                          print(details.toString());
+                          return WebviewPopupWindowPolicy.deny;
+                        }),
                         StreamBuilder<LoadingState>(
                             stream: _controller.loadingState,
                             builder: (context, snapshot) {

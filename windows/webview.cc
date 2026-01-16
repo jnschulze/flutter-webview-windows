@@ -344,14 +344,81 @@ void Webview::RegisterEventHandlers() {
       Callback<ICoreWebView2NewWindowRequestedEventHandler>(
           [this](ICoreWebView2* sender,
                  ICoreWebView2NewWindowRequestedEventArgs* args) -> HRESULT {
-            switch (popup_window_policy_) {
-              case WebviewPopupWindowPolicy::Deny:
-                args->put_Handled(TRUE);
-                break;
-              case WebviewPopupWindowPolicy::ShowInSameWindow:
-                args->put_NewWindow(webview_.get());
-                args->put_Handled(TRUE);
-                break;
+            if (!new_window_requested_callback_) {
+              return S_OK;
+            }
+
+            wil::unique_cotaskmem_string wuri;
+            if (args->get_Uri(&wuri) == S_OK) {
+              wil::com_ptr<ICoreWebView2Deferral> deferral;
+              args->GetDeferral(deferral.put());
+
+              WebviewNewWindowRequestedArgs request_args;
+              request_args.uri = util::Utf8FromUtf16(wuri.get());
+
+              BOOL is_user_initiated = FALSE;
+              if (args->get_IsUserInitiated(&is_user_initiated) == S_OK) {
+                request_args.is_user_initiated = is_user_initiated;
+              }
+
+              // Name is available in ICoreWebView2NewWindowRequestedEventArgs2
+              // wil::com_ptr<ICoreWebView2NewWindowRequestedEventArgs2> args2;
+              // if (SUCCEEDED(args->QueryInterface(IID_PPV_ARGS(&args2)))) {
+              //   wil::unique_cotaskmem_string wname;
+              //   if (args2->get_Name(&wname) == S_OK) {
+              //     request_args.name = util::Utf8FromUtf16(wname.get());
+              //   }
+              // }
+
+              wil::com_ptr<ICoreWebView2WindowFeatures> window_features;
+              if (args->get_WindowFeatures(&window_features) == S_OK) {
+                UINT32 height = 0;
+                UINT32 width = 0;
+                BOOL has_position = FALSE;
+                BOOL has_size = FALSE;
+                UINT32 left = 0;
+                UINT32 top = 0;
+                BOOL should_display_menu_bar = FALSE;
+                BOOL should_display_status = FALSE;
+                BOOL should_display_toolbar = FALSE;
+                BOOL should_display_scroll_bars = FALSE;
+
+                window_features->get_Height(&height);
+                window_features->get_Width(&width);
+                window_features->get_HasPosition(&has_position);
+                window_features->get_HasSize(&has_size);
+                window_features->get_Left(&left);
+                window_features->get_Top(&top);
+                window_features->get_ShouldDisplayMenuBar(&should_display_menu_bar);
+                window_features->get_ShouldDisplayStatus(&should_display_status);
+                window_features->get_ShouldDisplayToolbar(&should_display_toolbar);
+                window_features->get_ShouldDisplayScrollBars(&should_display_scroll_bars);
+
+                request_args.window_features.height = height;
+                request_args.window_features.width = width;
+                request_args.window_features.hasPosition = has_position;
+                request_args.window_features.hasSize = has_size;
+                request_args.window_features.left = left;
+                request_args.window_features.top = top;
+                request_args.window_features.shouldDisplayMenuBar = should_display_menu_bar;
+                request_args.window_features.shouldDisplayStatus = should_display_status;
+                request_args.window_features.shouldDisplayToolbar = should_display_toolbar;
+                request_args.window_features.shouldDisplayScrollBars = should_display_scroll_bars;
+              }
+
+              new_window_requested_callback_(
+                  request_args,
+                  [deferral = std::move(deferral),
+                   args = std::move(args)](WebviewPopupWindowPolicy policy) {
+                    if (policy == WebviewPopupWindowPolicy::Deny) {
+                      args->put_Handled(TRUE);
+                    } else if (policy == WebviewPopupWindowPolicy::ShowInSameWindow) {
+                      args->put_NewWindow(nullptr);
+                      args->put_Handled(TRUE);
+                    }
+                    // Allow: do nothing, let the default behavior happen
+                    deferral->Complete();
+                  });
             }
 
             return S_OK;
@@ -479,10 +546,6 @@ bool Webview::SetCacheDisabled(bool disabled) {
   return webview_->CallDevToolsProtocolMethod(L"Network.setCacheDisabled",
                                               util::Utf16FromUtf8(json).c_str(),
                                               nullptr) == S_OK;
-}
-
-void Webview::SetPopupWindowPolicy(WebviewPopupWindowPolicy policy) {
-  popup_window_policy_ = policy;
 }
 
 bool Webview::SetUserAgent(const std::string& user_agent) {

@@ -51,6 +51,26 @@ struct WebviewDownloadEvent {
   INT64 totalBytesToReceive;
 };
 
+struct WebviewWindowFeatures {
+  UINT32 height;
+  UINT32 width;
+  BOOL hasPosition;
+  BOOL hasSize;
+  UINT32 left;
+  UINT32 top;
+  BOOL shouldDisplayMenuBar;
+  BOOL shouldDisplayStatus;
+  BOOL shouldDisplayToolbar;
+  BOOL shouldDisplayScrollBars;
+};
+
+struct WebviewNewWindowRequestedArgs {
+  std::string uri;
+  BOOL is_user_initiated;
+  // std::string name;
+  WebviewWindowFeatures window_features;
+};
+
 struct VirtualKeyState {
  public:
   inline void set_isLeftButtonDown(bool is_down) {
@@ -131,6 +151,9 @@ class Webview {
                              bool is_user_initiated,
                              WebviewPermissionRequestedCompleter completer)>
       PermissionRequestedCallback;
+  typedef std::function<void(WebviewPopupWindowPolicy policy)> 
+      WebviewNewWindowRequestedCompleter;
+  typedef std::function<void(const WebviewNewWindowRequestedArgs& args, WebviewNewWindowRequestedCompleter completer)> NewWindowRequestedCallback;
   typedef std::function<void(bool contains_fullscreen_element)>
       ContainsFullScreenElementChangedCallback;
   typedef std::function<void(WebviewDownloadEvent)> DownloadEventCallback;
@@ -165,7 +188,6 @@ class Webview {
   bool ClearCookies();
   bool ClearCache();
   bool SetCacheDisabled(bool disabled);
-  void SetPopupWindowPolicy(WebviewPopupWindowPolicy policy);
   bool SetUserAgent(const std::string& user_agent);
   bool OpenDevTools();
   bool SetBackgroundColor(int32_t color);
@@ -224,6 +246,10 @@ class Webview {
     permission_requested_callback_ = std::move(callback);
   }
 
+  void OnNewWindowRequested(NewWindowRequestedCallback callback) {
+    new_window_requested_callback_ = std::move(callback);
+  }
+
   void OnDevtoolsProtocolEvent(DevtoolsProtocolEventCallback callback) {
     devtools_protocol_event_callback_ = std::move(callback);
   }
@@ -246,8 +272,6 @@ class Webview {
   wil::com_ptr<ICoreWebView2Settings2> settings2_;
   POINT last_cursor_pos_ = {0, 0};
   VirtualKeyState virtual_keys_;
-  WebviewPopupWindowPolicy popup_window_policy_ =
-      WebviewPopupWindowPolicy::Allow;
 
   winrt::com_ptr<ABI::Windows::UI::Composition::IVisual> surface_;
   winrt::com_ptr<ABI::Windows::UI::Composition::Desktop::IDesktopWindowTarget>
@@ -267,6 +291,7 @@ class Webview {
   FocusChangedCallback focus_changed_callback_;
   WebMessageReceivedCallback web_message_received_callback_;
   PermissionRequestedCallback permission_requested_callback_;
+  NewWindowRequestedCallback new_window_requested_callback_;
   DevtoolsProtocolEventCallback devtools_protocol_event_callback_;
   ContainsFullScreenElementChangedCallback
       contains_fullscreen_element_changed_callback_;

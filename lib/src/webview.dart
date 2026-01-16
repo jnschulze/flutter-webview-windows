@@ -31,9 +31,50 @@ class WebviewDownloadEvent {
   );
 }
 
+class WebviewWindowFeatures {
+  final int height;
+  final int width;
+  final bool hasPosition;
+  final bool hasSize;
+  final int left;
+  final int top;
+  final bool shouldDisplayMenuBar;
+  final bool shouldDisplayStatus;
+  final bool shouldDisplayToolbar;
+  final bool shouldDisplayScrollBars;
+  const WebviewWindowFeatures(
+    this.height,
+    this.width,
+    this.hasPosition,
+    this.hasSize,
+    this.left,
+    this.top,
+    this.shouldDisplayMenuBar,
+    this.shouldDisplayStatus,
+    this.shouldDisplayToolbar,
+    this.shouldDisplayScrollBars,
+  );
+}
+
+class WebviewNewWindowRequestedArgs {
+  final String uri;
+  final bool isUserInitiated;
+  // final String name;
+  final WebviewWindowFeatures windowFeatures;
+  const WebviewNewWindowRequestedArgs(
+    this.uri,
+    this.isUserInitiated,
+    // this.name,
+    this.windowFeatures,
+  );
+}
+
 typedef PermissionRequestedDelegate
     = FutureOr<WebviewPermissionDecision> Function(
         String url, WebviewPermissionKind permissionKind, bool isUserInitiated);
+
+typedef NewWindowRequestedDelegate = FutureOr<WebviewPopupWindowPolicy>
+    Function(WebviewNewWindowRequestedArgs args);
 
 typedef ScriptID = String;
 
@@ -113,6 +154,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   Future<void> get ready => _creatingCompleter.future;
 
   PermissionRequestedDelegate? _permissionRequested;
+  NewWindowRequestedDelegate? _newWindowRequested;
 
   late MethodChannel _methodChannel;
   late EventChannel _eventChannel;
@@ -255,6 +297,10 @@ class WebviewController extends ValueNotifier<WebviewValue> {
               call.arguments as Map<dynamic, dynamic>);
         }
 
+        if (call.method == 'newWindowRequested') {
+          return _onNewWindowRequested(call.arguments as Map<dynamic, dynamic>);
+        }
+
         throw MissingPluginException('Unknown method ${call.method}');
       });
 
@@ -292,6 +338,50 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     }
 
     return null;
+  }
+
+  Future<int> _onNewWindowRequested(Map<dynamic, dynamic> args) async {
+    if (_newWindowRequested == null) {
+      return WebviewPopupWindowPolicy.allow.index;
+    }
+
+    final uri = args['uri'] as String?;
+    final isUserInitiated = args['isUserInitiated'] as bool? ?? false;
+    // final name = args['name'] as String? ?? '';
+    final windowFeaturesMap = args['windowFeatures'] as Map<dynamic, dynamic>?;
+
+    if (uri != null) {
+      WebviewWindowFeatures? windowFeatures;
+      if (windowFeaturesMap != null) {
+        windowFeatures = WebviewWindowFeatures(
+          windowFeaturesMap['height'] as int? ?? 0,
+          windowFeaturesMap['width'] as int? ?? 0,
+          windowFeaturesMap['hasPosition'] as bool? ?? false,
+          windowFeaturesMap['hasSize'] as bool? ?? false,
+          windowFeaturesMap['left'] as int? ?? 0,
+          windowFeaturesMap['top'] as int? ?? 0,
+          windowFeaturesMap['shouldDisplayMenuBar'] as bool? ?? false,
+          windowFeaturesMap['shouldDisplayStatus'] as bool? ?? false,
+          windowFeaturesMap['shouldDisplayToolbar'] as bool? ?? false,
+          windowFeaturesMap['shouldDisplayScrollBars'] as bool? ?? false,
+        );
+      } else {
+        windowFeatures = const WebviewWindowFeatures(
+            0, 0, false, false, 0, 0, false, false, false, false);
+      }
+
+      final requestArgs = WebviewNewWindowRequestedArgs(
+        uri,
+        isUserInitiated,
+        // name,
+        windowFeatures,
+      );
+
+      final decision = await _newWindowRequested!(requestArgs);
+      return decision.index;
+    }
+
+    return WebviewPopupWindowPolicy.allow.index;
   }
 
   @override
@@ -479,17 +569,6 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('setZoomFactor', zoomFactor);
   }
 
-  /// Sets the [WebviewPopupWindowPolicy].
-  Future<void> setPopupWindowPolicy(
-      WebviewPopupWindowPolicy popupPolicy) async {
-    if (_isDisposed) {
-      return;
-    }
-    assert(value.isInitialized);
-    return _methodChannel.invokeMethod(
-        'setPopupWindowPolicy', popupPolicy.index);
-  }
-
   /// Suspends the web view.
   Future<void> suspend() async {
     if (_isDisposed) {
@@ -598,6 +677,7 @@ class WebviewController extends ValueNotifier<WebviewValue> {
 class Webview extends StatefulWidget {
   final WebviewController controller;
   final PermissionRequestedDelegate? permissionRequested;
+  final NewWindowRequestedDelegate? newWindowRequested;
   final double? width;
   final double? height;
 
@@ -617,6 +697,7 @@ class Webview extends StatefulWidget {
       {this.width,
       this.height,
       this.permissionRequested,
+      this.newWindowRequested,
       this.scaleFactor,
       this.filterQuality = FilterQuality.none});
 
@@ -643,6 +724,7 @@ class _WebviewState extends State<Webview> {
     // TODO: Refactor callback and event handling and
     // remove this line
     _controller._permissionRequested = widget.permissionRequested;
+    _controller._newWindowRequested = widget.newWindowRequested;
 
     // Report initial surface size
     WidgetsBinding.instance.addPostFrameCallback((_) => _reportSurfaceSize());

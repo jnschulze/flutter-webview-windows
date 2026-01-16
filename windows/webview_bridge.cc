@@ -6,6 +6,7 @@
 #include <format>
 
 #include "texture_bridge_gpu.h"
+#include "webview.h"
 
 namespace {
 constexpr auto kErrorInvalidArgs = "invalidArguments";
@@ -39,7 +40,6 @@ constexpr auto kMethodClearVirtualHostNameMapping =
 constexpr auto kMethodClearCookies = "clearCookies";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
-constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
 constexpr auto kMethodSetFpsLimit = "setFpsLimit";
 
 constexpr auto kEventType = "type";
@@ -312,6 +312,12 @@ void WebviewBridge::RegisterEventHandlers() {
         OnPermissionRequested(url, kind, is_user_initiated, completer);
       });
 
+  webview_->OnNewWindowRequested(
+    [this](const WebviewNewWindowRequestedArgs& args, Webview::WebviewNewWindowRequestedCompleter completer) {
+      OnNewWindowRequested(args, completer);
+    }
+  );
+
   webview_->OnContainsFullScreenElementChanged(
       [this](bool contains_fullscreen_element) {
         const auto event = flutter::EncodableValue(flutter::EncodableMap{
@@ -350,6 +356,64 @@ void WebviewBridge::OnPermissionRequested(
             completer(WebviewPermissionState::Default);
           },
           [completer]() { completer(WebviewPermissionState::Default); }));
+}
+
+void WebviewBridge::OnNewWindowRequested(
+    const WebviewNewWindowRequestedArgs& args, 
+    Webview::WebviewNewWindowRequestedCompleter completer) {
+  auto encodable_args = std::make_unique<flutter::EncodableValue>(flutter::EncodableMap{
+    {"uri", args.uri},
+    {"isUserInitiated", static_cast<bool>(args.is_user_initiated)},
+    // {"name", args.name},
+    {"windowFeatures", flutter::EncodableMap{
+      {"height", static_cast<int32_t>(args.window_features.height)},
+      {"width", static_cast<int32_t>(args.window_features.width)},
+      {"hasPosition", static_cast<bool>(args.window_features.hasPosition)},
+      {"hasSize", static_cast<bool>(args.window_features.hasSize)},
+      {"left", static_cast<int32_t>(args.window_features.left)},
+      {"top", static_cast<int32_t>(args.window_features.top)},
+      {"shouldDisplayMenuBar", static_cast<bool>(args.window_features.shouldDisplayMenuBar)},
+      {"shouldDisplayStatus", static_cast<bool>(args.window_features.shouldDisplayStatus)},
+      {"shouldDisplayToolbar", static_cast<bool>(args.window_features.shouldDisplayToolbar)},
+      {"shouldDisplayScrollBars", static_cast<bool>(args.window_features.shouldDisplayScrollBars)},
+    }},
+  });
+  
+  method_channel_->InvokeMethod(
+    "newWindowRequested", std::move(encodable_args),
+    std::make_unique<flutter::MethodResultFunctions<flutter::EncodableValue>>(
+      [completer](const flutter::EncodableValue* result) {
+        auto policy = std::get_if<int>(result);
+
+        if (policy != nullptr) {
+          switch (*policy) {
+            case 1: {
+              completer(WebviewPopupWindowPolicy::Deny);
+              break;
+            }
+            case 2: {
+              completer(WebviewPopupWindowPolicy::ShowInSameWindow);
+              break;
+            }
+            default: {
+              completer(WebviewPopupWindowPolicy::Allow);
+              break;
+            }
+          }
+        } else {
+          completer(WebviewPopupWindowPolicy::Allow);
+        }
+      },
+      [completer](const std::string& error_code,
+                  const std::string& error_message,
+                  const flutter::EncodableValue* error_details) {
+        completer(WebviewPopupWindowPolicy::Allow);
+      },
+      [completer]() { 
+        completer(WebviewPopupWindowPolicy::Allow); 
+      }
+    )
+  );
 }
 
 void WebviewBridge::HandleMethodCall(
@@ -663,26 +727,6 @@ void WebviewBridge::HandleMethodCall(
       if (webview_->SetCacheDisabled(*disabled)) {
         return result->Success();
       }
-    }
-    return result->Error(kErrorInvalidArgs);
-  }
-
-  // setPopupWindowPolicy: int
-  if (method_name.compare(kMethodSetPopupWindowPolicy) == 0) {
-    if (const auto index = std::get_if<int32_t>(method_call.arguments())) {
-      switch (*index) {
-        case 1:
-          webview_->SetPopupWindowPolicy(WebviewPopupWindowPolicy::Deny);
-          break;
-        case 2:
-          webview_->SetPopupWindowPolicy(
-              WebviewPopupWindowPolicy::ShowInSameWindow);
-          break;
-        default:
-          webview_->SetPopupWindowPolicy(WebviewPopupWindowPolicy::Allow);
-          break;
-      }
-      return result->Success();
     }
     return result->Error(kErrorInvalidArgs);
   }

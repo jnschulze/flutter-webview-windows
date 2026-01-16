@@ -52,4 +52,6 @@ class WebviewBridge {
       const std::string& url, WebviewPermissionKind permissionKind,
       bool is_user_initiated,
       Webview::WebviewPermissionRequestedCompleter completer);
+
+  void OnNewWindowRequested(const WebviewNewWindowRequestedArgs& args, Webview::WebviewNewWindowRequestedCompleter completer);
 };
