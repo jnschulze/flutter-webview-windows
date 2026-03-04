@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:webview_windows/src/render_webview.dart';
 
 import 'cursor.dart';
 import 'enums.dart';
@@ -625,7 +626,6 @@ class Webview extends StatefulWidget {
 }
 
 class _WebviewState extends State<Webview> {
-  final GlobalKey _key = GlobalKey();
   final _downButtons = <int, PointerButton>{};
 
   PointerDeviceKind _pointerKind = PointerDeviceKind.unknown;
@@ -636,6 +636,8 @@ class _WebviewState extends State<Webview> {
 
   StreamSubscription? _cursorSubscription;
 
+  int _updateSizeRequestId = 0;
+
   @override
   void initState() {
     super.initState();
@@ -643,9 +645,6 @@ class _WebviewState extends State<Webview> {
     // TODO: Refactor callback and event handling and
     // remove this line
     _controller._permissionRequested = widget.permissionRequested;
-
-    // Report initial surface size
-    WidgetsBinding.instance.addPostFrameCallback((_) => _reportSurfaceSize());
 
     _cursorSubscription = _controller._cursor.listen((cursor) {
       setState(() {
@@ -656,114 +655,112 @@ class _WebviewState extends State<Webview> {
 
   @override
   Widget build(BuildContext context) {
-    return (widget.height != null && widget.width != null)
-        ? SizedBox(
-            key: _key,
-            width: widget.width,
-            height: widget.height,
-            child: _buildInner())
-        : SizedBox.expand(key: _key, child: _buildInner());
+    return SizedBox(
+        width: widget.width ?? double.infinity,
+        height: widget.height ?? double.infinity,
+        child: _buildInner());
   }
 
   Widget _buildInner() {
-    return NotificationListener<SizeChangedLayoutNotification>(
-        onNotification: (notification) {
-          _reportSurfaceSize();
-          return true;
+    if (!_controller.value.isInitialized) {
+      return const SizedBox.shrink();
+    }
+
+    return Listener(
+        onPointerHover: (ev) {
+          // ev.kind is for whatever reason not set to touch
+          // even on touch input
+          if (_pointerKind == PointerDeviceKind.touch) {
+            // Ignoring hover events on touch for now
+            return;
+          }
+          _controller._setCursorPos(ev.localPosition);
         },
-        child: SizeChangedLayoutNotifier(
-            child: _controller.value.isInitialized
-                ? Listener(
-                    onPointerHover: (ev) {
-                      // ev.kind is for whatever reason not set to touch
-                      // even on touch input
-                      if (_pointerKind == PointerDeviceKind.touch) {
-                        // Ignoring hover events on touch for now
-                        return;
-                      }
-                      _controller._setCursorPos(ev.localPosition);
-                    },
-                    onPointerDown: (ev) {
-                      _pointerKind = ev.kind;
-                      if (ev.kind == PointerDeviceKind.touch) {
-                        _controller._setPointerUpdate(
-                            WebviewPointerEventKind.down,
-                            ev.pointer,
-                            ev.localPosition,
-                            ev.size,
-                            ev.pressure);
-                        return;
-                      }
-                      final button = getButton(ev.buttons);
-                      _downButtons[ev.pointer] = button;
-                      _controller._setPointerButtonState(button, true);
-                    },
-                    onPointerUp: (ev) {
-                      _pointerKind = ev.kind;
-                      if (ev.kind == PointerDeviceKind.touch) {
-                        _controller._setPointerUpdate(
-                            WebviewPointerEventKind.up,
-                            ev.pointer,
-                            ev.localPosition,
-                            ev.size,
-                            ev.pressure);
-                        return;
-                      }
-                      final button = _downButtons.remove(ev.pointer);
-                      if (button != null) {
-                        _controller._setPointerButtonState(button, false);
-                      }
-                    },
-                    onPointerCancel: (ev) {
-                      _pointerKind = ev.kind;
-                      final button = _downButtons.remove(ev.pointer);
-                      if (button != null) {
-                        _controller._setPointerButtonState(button, false);
-                      }
-                    },
-                    onPointerMove: (ev) {
-                      _pointerKind = ev.kind;
-                      if (ev.kind == PointerDeviceKind.touch) {
-                        _controller._setPointerUpdate(
-                            WebviewPointerEventKind.update,
-                            ev.pointer,
-                            ev.localPosition,
-                            ev.size,
-                            ev.pressure);
-                      } else {
-                        _controller._setCursorPos(ev.localPosition);
-                      }
-                    },
-                    onPointerSignal: (signal) {
-                      if (signal is PointerScrollEvent) {
-                        _controller._setScrollDelta(
-                            -signal.scrollDelta.dx, -signal.scrollDelta.dy);
-                      }
-                    },
-                    onPointerPanZoomUpdate: (signal) {
-                      if (signal.panDelta.dx.abs() > signal.panDelta.dy.abs()) {
-                        _controller._setScrollDelta(-signal.panDelta.dx, 0);
-                      } else {
-                        _controller._setScrollDelta(0, signal.panDelta.dy);
-                      }
-                    },
-                    child: MouseRegion(
-                        cursor: _cursor,
-                        child: Texture(
-                          textureId: _controller._textureId,
-                          filterQuality: widget.filterQuality,
-                        )),
-                  )
-                : const SizedBox()));
+        onPointerDown: (ev) {
+          _pointerKind = ev.kind;
+          if (ev.kind == PointerDeviceKind.touch) {
+            _controller._setPointerUpdate(WebviewPointerEventKind.down,
+                ev.pointer, ev.localPosition, ev.size, ev.pressure);
+            return;
+          }
+          final button = getButton(ev.buttons);
+          _downButtons[ev.pointer] = button;
+          _controller._setPointerButtonState(button, true);
+        },
+        onPointerUp: (ev) {
+          _pointerKind = ev.kind;
+          if (ev.kind == PointerDeviceKind.touch) {
+            _controller._setPointerUpdate(WebviewPointerEventKind.up,
+                ev.pointer, ev.localPosition, ev.size, ev.pressure);
+            return;
+          }
+          final button = _downButtons.remove(ev.pointer);
+          if (button != null) {
+            _controller._setPointerButtonState(button, false);
+          }
+        },
+        onPointerCancel: (ev) {
+          _pointerKind = ev.kind;
+          final button = _downButtons.remove(ev.pointer);
+          if (button != null) {
+            _controller._setPointerButtonState(button, false);
+          }
+        },
+        onPointerMove: (ev) {
+          _pointerKind = ev.kind;
+          if (ev.kind == PointerDeviceKind.touch) {
+            _controller._setPointerUpdate(WebviewPointerEventKind.update,
+                ev.pointer, ev.localPosition, ev.size, ev.pressure);
+          } else {
+            _controller._setCursorPos(ev.localPosition);
+          }
+        },
+        onPointerSignal: (signal) {
+          if (signal is PointerScrollEvent) {
+            _controller._setScrollDelta(
+                -signal.scrollDelta.dx, -signal.scrollDelta.dy);
+          }
+        },
+        onPointerPanZoomUpdate: (signal) {
+          if (signal.panDelta.dx.abs() > signal.panDelta.dy.abs()) {
+            _controller._setScrollDelta(-signal.panDelta.dx, 0);
+          } else {
+            _controller._setScrollDelta(0, signal.panDelta.dy);
+          }
+        },
+        child: MouseRegion(
+          cursor: _cursor,
+          child: RenderWebview(
+            textureId: _controller._textureId,
+            filterQuality: widget.filterQuality,
+            onSizeChanged: _updateSurfaceSize,
+          ),
+        ));
   }
 
-  void _reportSurfaceSize() async {
-    final box = _key.currentContext?.findRenderObject() as RenderBox?;
-    if (box != null) {
-      await _controller.ready;
-      unawaited(_controller._setSize(
-          box.size, widget.scaleFactor ?? window.devicePixelRatio));
+  void _updateSurfaceSize(Size size) {
+    _updateSizeRequestId++;
+
+    if (!_controller._creatingCompleter.isCompleted) {
+      final requestId = _updateSizeRequestId;
+
+      _controller.ready.then((_) {
+        if (!mounted) {
+          return;
+        }
+
+        if (requestId != _updateSizeRequestId) {
+          return;
+        }
+
+        _updateSurfaceSize(size);
+      });
     }
+
+    _controller._setSize(
+      size,
+      widget.scaleFactor ?? window.devicePixelRatio,
+    );
   }
 
   @override

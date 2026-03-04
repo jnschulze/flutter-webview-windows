@@ -13,19 +13,45 @@ TextureBridgeGpu::TextureBridgeGpu(
       kFlutterDesktopPixelFormatNone;  // no format required for DXGI surfaces
 }
 
-void TextureBridgeGpu::ProcessFrame(
-    winrt::com_ptr<ID3D11Texture2D> src_texture) {
+void TextureBridgeGpu::ProcessFrame(winrt::com_ptr<ID3D11Texture2D> src_texture,
+                                    size_t requested_width,
+                                    size_t requested_height) {
   D3D11_TEXTURE2D_DESC desc;
   src_texture->GetDesc(&desc);
 
-  const auto width = desc.Width;
-  const auto height = desc.Height;
+  auto effective_width =
+      (std::min)(last_content_size_.width, static_cast<size_t>(desc.Width));
+  auto effective_height =
+      (std::min)(last_content_size_.height, static_cast<size_t>(desc.Height));
 
-  EnsureSurface(width, height);
+  EnsureSurface(static_cast<uint32_t>(requested_width),
+                static_cast<uint32_t>(requested_height));
 
   auto device_context = graphics_context_->d3d_device_context();
 
-  device_context->CopyResource(surface_.get(), src_texture.get());
+  // If the requested size is the same as the texture size, copy the texture
+  // directly to the surface.
+  if (effective_width == requested_width &&
+      effective_height == requested_height && desc.Width == requested_width &&
+      desc.Height == requested_height) {
+    device_context->CopyResource(surface_.get(), src_texture.get());
+  } else {
+    D3D11_BOX src_box = {};
+    src_box.right =
+        static_cast<UINT>((std::min)(effective_width, requested_width));
+    src_box.bottom =
+        static_cast<UINT>((std::min)(effective_height, requested_height));
+    src_box.back = 1;
+
+    if (src_box.right > 0 && src_box.bottom > 0) {
+      // Since we're not copying the entire texture (due to it being larger than
+      // the requested size), we need to copy a subset of the texture to the
+      // surface.
+      device_context->CopySubresourceRegion(surface_.get(), 0, 0, 0, 0,
+                                            src_texture.get(), 0, &src_box);
+    }
+  }
+
   device_context->Flush();
 }
 
@@ -79,7 +105,7 @@ TextureBridgeGpu::GetSurfaceDescriptor(size_t width, size_t height) {
   }
 
   if (last_frame_) {
-    ProcessFrame(last_frame_);
+    ProcessFrame(last_frame_, width, height);
   }
 
   if (surface_) {

@@ -155,9 +155,6 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
   texture_id_ = texture_registrar->RegisterTexture(flutter_texture_.get());
   texture_bridge_->SetOnFrameAvailable(
       [this]() { texture_registrar_->MarkTextureFrameAvailable(texture_id_); });
-  // texture_bridge_->SetOnSurfaceSizeChanged([this](Size size) {
-  //  webview_->SetSurfaceSize(size.width, size.height);
-  //});
 
   const auto method_channel_name =
       std::format("io.jns.webview.win/{}", texture_id_);
@@ -324,8 +321,7 @@ void WebviewBridge::RegisterEventHandlers() {
 }
 
 void WebviewBridge::OnPermissionRequested(
-    const std::string& url,
-    WebviewPermissionKind permissionKind,
+    const std::string& url, WebviewPermissionKind permissionKind,
     bool isUserInitiated,
     Webview::WebviewPermissionRequestedCompleter completer) {
   auto args = std::make_unique<flutter::EncodableValue>(flutter::EncodableMap{
@@ -431,6 +427,14 @@ void WebviewBridge::HandleMethodCall(
                                static_cast<float>(scale_factor));
 
       texture_bridge_->Start();
+
+      // Immediately notify the Flutter engine that the texture has changed.
+      // While no frame has been captured yet, this triggers the engine to call
+      // the `GetSurfaceDescriptor` callback which leads to the texture being
+      // resized immediately instead of it being delayed until after the first
+      // frame at the new size is captured.
+      texture_registrar_->MarkTextureFrameAvailable(texture_id_);
+
       return result->Success();
     }
     return result->Error(kErrorInvalidArgs);
