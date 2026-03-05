@@ -429,11 +429,12 @@ void Webview::SetSurfaceSize(size_t width, size_t height, float scale_factor) {
     auto scaled_width = width * scale_factor;
     auto scaled_height = height * scale_factor;
 
+    const LONG kBoundsOffset = -32000;
     RECT bounds;
-    bounds.left = 0;
-    bounds.top = 0;
-    bounds.right = static_cast<LONG>(scaled_width);
-    bounds.bottom = static_cast<LONG>(scaled_height);
+    bounds.left = kBoundsOffset;
+    bounds.top = kBoundsOffset;
+    bounds.right = kBoundsOffset + static_cast<LONG>(scaled_width);
+    bounds.bottom = kBoundsOffset + static_cast<LONG>(scaled_height);
 
     surface_->put_Size({scaled_width, scaled_height});
     webview_controller_->put_RasterizationScale(scale_factor);
