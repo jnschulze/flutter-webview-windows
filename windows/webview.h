@@ -124,6 +124,8 @@ class Webview {
   typedef std::function<void(bool, const std::string&)>
       AddScriptToExecuteOnDocumentCreatedCallback;
   typedef std::function<void(bool, const std::string&)> ScriptExecutedCallback;
+  typedef std::function<void(bool, const std::string&)>
+      DevToolsProtocolResultCallback;
   typedef std::function<void(const std::string&)> WebMessageReceivedCallback;
   typedef std::function<void(WebviewPermissionState state)>
       WebviewPermissionRequestedCompleter;
@@ -162,6 +164,10 @@ class Webview {
   void ExecuteScript(const std::string& script,
                      ScriptExecutedCallback callback);
   bool PostWebMessage(const std::string& json);
+  void CallDevToolsProtocolMethod(const std::string& method,
+                                  const std::string& parameters_as_json,
+                                  DevToolsProtocolResultCallback callback);
+
   bool ClearCookies();
   bool ClearCache();
   bool SetCacheDisabled(bool disabled);

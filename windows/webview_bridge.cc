@@ -36,6 +36,8 @@ constexpr auto kMethodResume = "resume";
 constexpr auto kMethodSetVirtualHostNameMapping = "setVirtualHostNameMapping";
 constexpr auto kMethodClearVirtualHostNameMapping =
     "clearVirtualHostNameMapping";
+constexpr auto kMethodCallDevToolsProtocolMethod =
+    "callDevToolsProtocolMethod";
 constexpr auto kMethodClearCookies = "clearCookies";
 constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
@@ -639,6 +641,48 @@ void WebviewBridge::HandleMethodCall(
       return result->Success();
     }
     return result->Error(kMethodFailed);
+  }
+
+  // callDevToolsProtocolMethod: {"method": String, "parametersAsJson": String}
+  if (method_name.compare(kMethodCallDevToolsProtocolMethod) == 0) {
+    const auto* args =
+        std::get_if<flutter::EncodableMap>(method_call.arguments());
+    if (!args) {
+      return result->Error(kErrorInvalidArgs);
+    }
+
+    const auto method_it = args->find(flutter::EncodableValue("method"));
+    if (method_it == args->end()) {
+      return result->Error(kErrorInvalidArgs);
+    }
+    const auto* cdp_method = std::get_if<std::string>(&method_it->second);
+    if (!cdp_method) {
+      return result->Error(kErrorInvalidArgs);
+    }
+
+    std::string params = "{}";
+    const auto params_it =
+        args->find(flutter::EncodableValue("parametersAsJson"));
+    if (params_it != args->end()) {
+      if (const auto* p = std::get_if<std::string>(&params_it->second)) {
+        params = *p;
+      }
+    }
+
+    std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>
+        shared_result = std::move(result);
+
+    webview_->CallDevToolsProtocolMethod(
+        *cdp_method, params,
+        [shared_result](bool success, const std::string& json_result) {
+          if (success) {
+            shared_result->Success(flutter::EncodableValue(json_result));
+          } else {
+            shared_result->Error(kMethodFailed,
+                                 "Calling DevTools protocol method failed.");
+          }
+        });
+    return;
   }
 
   // clearCookies

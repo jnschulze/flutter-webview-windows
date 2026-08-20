@@ -420,6 +420,31 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('setUserAgent', userAgent);
   }
 
+  /// Invokes an arbitrary Chrome DevTools Protocol [method] on this WebView
+  /// and returns the raw JSON result object (or null if the call failed).
+  ///
+  /// [parametersAsJson] must be a JSON object string; it defaults to `{}`.
+  ///
+  /// This plugin surfaces no cookie API, so CDP is currently the only route
+  /// to operations such as `Storage.getCookies` / `Storage.setCookies`.
+  /// [clearCookies] is itself implemented this way - this is the general
+  /// form, and unlike the fire-and-forget helpers it hands back the result.
+  ///
+  /// see https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2#calldevtoolsprotocolmethod
+  Future<String?> callDevToolsProtocolMethod(
+    String method, [
+    String parametersAsJson = '{}',
+  ]) async {
+    if (_isDisposed) {
+      return null;
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod<String>('callDevToolsProtocolMethod', {
+      'method': method,
+      'parametersAsJson': parametersAsJson,
+    });
+  }
+
   /// Clears browser cookies.
   Future<void> clearCookies() async {
     if (_isDisposed) {

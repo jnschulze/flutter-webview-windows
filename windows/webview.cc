@@ -455,6 +455,35 @@ bool Webview::OpenDevTools() {
   return true;
 }
 
+// Invokes an arbitrary Chrome DevTools Protocol method on this WebView and
+// returns the raw JSON result object.
+//
+// This plugin surfaces no cookie API, so CDP is currently the only route to
+// operations such as Storage.getCookies/Storage.setCookies. ClearCookies()
+// below already went through CallDevToolsProtocolMethod for exactly that
+// reason; this simply exposes the general form, including the result, which
+// the fire-and-forget helpers discard.
+void Webview::CallDevToolsProtocolMethod(
+    const std::string& method, const std::string& parameters_as_json,
+    DevToolsProtocolResultCallback callback) {
+  if (IsValid()) {
+    if (SUCCEEDED(webview_->CallDevToolsProtocolMethod(
+            util::Utf16FromUtf8(method).c_str(),
+            util::Utf16FromUtf8(parameters_as_json).c_str(),
+            Callback<ICoreWebView2CallDevToolsProtocolMethodCompletedHandler>(
+                [callback](HRESULT result, LPCWSTR return_object_as_json) {
+                  callback(SUCCEEDED(result),
+                           util::Utf8FromUtf16(return_object_as_json));
+                  return S_OK;
+                })
+                .Get()))) {
+      return;
+    }
+  }
+
+  callback(false, std::string());
+}
+
 bool Webview::ClearCookies() {
   if (!IsValid()) {
     return false;

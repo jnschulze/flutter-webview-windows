@@ -1,3 +1,7 @@
+## Unreleased
+
+* Add `callDevToolsProtocolMethod` for invoking arbitrary Chrome DevTools Protocol methods
+
 ## 0.4.0
 
 * Enable MSVC coroutine support ([#278](https://github.com/jnschulze/flutter-webview-windows/pull/278))
