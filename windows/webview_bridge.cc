@@ -5,6 +5,7 @@
 
 #include <format>
 
+#include "engine_availability.h"
 #include "texture_bridge_gpu.h"
 
 namespace {
@@ -153,8 +154,13 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
           }));
 
   texture_id_ = texture_registrar->RegisterTexture(flutter_texture_.get());
-  texture_bridge_->SetOnFrameAvailable(
-      [this]() { texture_registrar_->MarkTextureFrameAvailable(texture_id_); });
+  // Fires from the capture thread, so it can race engine teardown: take the
+  // messenger lock so the engine either skips the call or stays alive for
+  // its duration (BandBinder #2657).
+  texture_bridge_->SetOnFrameAvailable([this]() {
+    webview_windows::IfEngineAvailableLocked(
+        [this]() { texture_registrar_->MarkTextureFrameAvailable(texture_id_); });
+  });
   // texture_bridge_->SetOnSurfaceSizeChanged([this](Size size) {
   //  webview_->SetSurfaceSize(size.width, size.height);
   //});
@@ -194,8 +200,27 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
 }
 
 WebviewBridge::~WebviewBridge() {
-  method_channel_->SetMethodCallHandler(nullptr);
-  texture_registrar_->UnregisterTexture(texture_id_);
+  // During engine teardown these two calls dereference a messenger whose
+  // engine pointer is already null (flutter/flutter#118611): plugin
+  // destruction runs from FlutterWindowsEngine::Stop(), AFTER the engine's
+  // destructor cleared it. Skipping them then is safe - the dying engine is
+  // discarding every channel handler and texture anyway. On a mid-session
+  // dispose (the "dispose" method call) the engine is alive and both
+  // unregistrations run exactly as before. The WebView2 COM objects
+  // (webview_, texture_bridge_) are members, so they are released on BOTH
+  // paths and playback/audio stops with the bridge.
+  if (webview_windows::PluginAlive() && webview_windows::EngineAvailable()) {
+    method_channel_->SetMethodCallHandler(nullptr);
+    texture_registrar_->UnregisterTexture(texture_id_);
+  }
+  // Quiesce the capture thread before ~Webview closes the WebView2
+  // controller (member destruction runs webview_ before texture_bridge_,
+  // so without this the capture keeps pulling frames from a surface whose
+  // browser is mid-Close). Stop() joins the capture session under the
+  // bridge's own mutex; the frame callback is already engine-lock guarded.
+  if (texture_bridge_) {
+    texture_bridge_->Stop();
+  }
 }
 
 void WebviewBridge::RegisterEventHandlers() {

@@ -7,6 +7,7 @@
 
 #include <memory>
 
+#include "engine_availability.h"
 #include "graphics_context.h"
 #include "texture_bridge.h"
 #include "webview.h"
@@ -43,7 +44,10 @@ class WebviewBridge {
 
   template <typename T>
   void EmitEvent(const T& value) {
-    if (event_sink_) {
+    // WebView2 event callbacks are posted to the platform thread, so they
+    // cannot interleave with the engine destructor - but a queued one could
+    // in principle observe a dying plugin. Belt and braces (#2657).
+    if (event_sink_ && webview_windows::PluginAlive()) {
       event_sink_->Success(value);
     }
   }

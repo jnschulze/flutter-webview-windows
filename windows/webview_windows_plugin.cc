@@ -5,10 +5,12 @@
 #include <flutter/standard_method_codec.h>
 #include <windows.h>
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <unordered_map>
 
+#include "engine_availability.h"
 #include "util/string_converter.h"
 #include "webview_bridge.h"
 #include "webview_host.h"
@@ -98,9 +100,11 @@ WebviewWindowsPlugin::WebviewWindowsPlugin(flutter::TextureRegistrar* textures,
   window_class_.lpszClassName = L"FlutterWebviewMessage";
   window_class_.lpfnWndProc = &DefWindowProc;
   RegisterClass(&window_class_);
+  webview_windows::SetPluginAlive(true);
 }
 
 WebviewWindowsPlugin::~WebviewWindowsPlugin() {
+  webview_windows::SetPluginAlive(false);
   instances_.clear();
   UnregisterClass(window_class_.lpszClassName, nullptr);
 }
@@ -204,6 +208,14 @@ void WebviewWindowsPlugin::CreateWebviewInstance(
       hwnd, true, true,
       [shared_result, this](std::unique_ptr<Webview> webview,
                             std::unique_ptr<WebviewCreationError> error) {
+        // A completion that fires during/after engine teardown (the user
+        // closed the window while the webview was still being created) must
+        // drop everything: `this` may be freed, and answering the result
+        // would call into a messenger whose engine is gone.
+        if (!webview_windows::PluginAlive() ||
+            !webview_windows::EngineAvailable()) {
+          return;
+        }
         if (!webview) {
           if (error) {
             return shared_result->Error(
@@ -242,6 +254,8 @@ bool WebviewWindowsPlugin::InitPlatform() {
 
 void WebviewWindowsPluginRegisterWithRegistrar(
     FlutterDesktopPluginRegistrarRef registrar) {
+  webview_windows::CaptureMessengerForAvailabilityChecks(
+      FlutterDesktopPluginRegistrarGetMessenger(registrar));
   WebviewWindowsPlugin::RegisterWithRegistrar(
       flutter::PluginRegistrarManager::GetInstance()
           ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));

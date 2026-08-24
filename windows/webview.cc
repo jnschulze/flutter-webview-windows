@@ -90,6 +90,19 @@ Webview::Webview(
 }
 
 Webview::~Webview() {
+  // WebView2's teardown contract: the controller's owner must call Close()
+  // (learn.microsoft.com, ICoreWebView2Controller.Close). This class
+  // registers 16 event handlers with the browser process (plus per-download
+  // handlers it stores no removal tokens for) and never removes any of
+  // them; without Close() the browser host keeps delivering callbacks into
+  // this dying object while the app tears down - observed as intermittent
+  // STATUS_HEAP_CORRUPTION (ntdll 0xc0000374) on close with media playing
+  // (BandBinder #2681). Close() synchronously stops all event delivery and
+  // shuts the browser reference down; the remaining com_ptr members then
+  // release inertly.
+  if (webview_controller_) {
+    webview_controller_->Close();
+  }
   if (owns_window_) {
     DestroyWindow(hwnd_);
   }
