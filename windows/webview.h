@@ -172,6 +172,7 @@ class Webview {
   bool SetZoomFactor(double factor);
   bool Suspend();
   bool Resume();
+  bool SetMuted(bool muted);
 
   bool SetVirtualHostNameMapping(const std::string& hostName,
                                  const std::string& path,
@@ -179,6 +180,8 @@ class Webview {
   bool ClearVirtualHostNameMapping(const std::string& hostName);
 
   void UpdateDownloadProgress(ICoreWebView2DownloadOperation* download);
+
+  void ClearCallbacks();
 
   void OnUrlChanged(UrlChangedCallback callback) {
     url_changed_callback_ = std::move(callback);
@@ -279,6 +282,7 @@ class Webview {
       winrt::com_ptr<ABI::Windows::UI::Composition::ICompositor> compositor,
       HWND hwnd, bool offscreen_only);
   void RegisterEventHandlers();
+  void UnregisterEventHandlers();
   void EnableSecurityUpdates();
   void SendScroll(double offset, bool horizontal);
 };

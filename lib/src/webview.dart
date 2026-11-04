@@ -508,6 +508,15 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('resume');
   }
 
+  /// Sets the muted state of the web view.
+  Future<void> setMuted(bool muted) async {
+    if (_isDisposed) {
+      return;
+    }
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod('setMuted', muted);
+  }
+
   /// Adds a Virtual Host Name Mapping.
   ///
   /// Please refer to

@@ -3,6 +3,12 @@
 #include "util/d3dutil.h"
 #include "util/direct3d11.interop.h"
 
+// TODO: COM object leak in CreateGraphicsCaptureItemFromVisual() and
+// CreateCaptureFramePool(). The IGraphicsCaptureItemStatics and
+// IDirect3D11CaptureFramePoolStatics pointers are not released.
+// Impact: Minor memory leak (once per app launch).
+// Fix: Use winrt::com_ptr instead of raw pointers.
+
 GraphicsContext::GraphicsContext(rx::RoHelper* rohelper) : rohelper_(rohelper) {
   device_ = CreateD3DDevice();
   if (!device_) {

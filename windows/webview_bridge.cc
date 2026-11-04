@@ -41,6 +41,7 @@ constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
 constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
 constexpr auto kMethodSetFpsLimit = "setFpsLimit";
+constexpr auto kMethodSetMuted = "setMuted";
 
 constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
@@ -194,8 +195,38 @@ WebviewBridge::WebviewBridge(flutter::BinaryMessenger* messenger,
 }
 
 WebviewBridge::~WebviewBridge() {
+  std::cerr << "[WebviewBridge] ~WebviewBridge() destructor called" << std::endl;
+  OutputDebugStringA("[WebviewBridge] ~WebviewBridge() destructor called\n");
+
+  // 1. Clear Webview callbacks first (release this reference)
+  if (webview_) {
+    webview_->ClearCallbacks();
+  }
+
+  // 2. Stop texture bridge before destruction
+  // TODO: Consider clearing texture_bridge_ callbacks for defensive programming.
+  // Currently not causing issues because Stop() sets is_running_ = false.
+  if (texture_bridge_) {
+    texture_bridge_->Stop();
+  }
+
+  // 3. Clear method channel handler
   method_channel_->SetMethodCallHandler(nullptr);
+
+  // 4. Clear event sink
+  event_sink_ = nullptr;
+
+  // 5. Unregister texture
   texture_registrar_->UnregisterTexture(texture_id_);
+
+  // 6. Explicitly destroy texture_bridge_ first (before webview_)
+  texture_bridge_.reset();
+
+  // 7. webview_ destroyed last (explicit though unique_ptr auto-destructs)
+  webview_.reset();
+
+  std::cerr << "[WebviewBridge] ~WebviewBridge() destructor completed" << std::endl;
+  OutputDebugStringA("[WebviewBridge] ~WebviewBridge() destructor completed\n");
 }
 
 void WebviewBridge::RegisterEventHandlers() {
@@ -693,6 +724,17 @@ void WebviewBridge::HandleMethodCall(
                                                : std::make_optional(*value));
       return result->Success();
     }
+  }
+
+  // setMuted: bool
+  if (method_name.compare(kMethodSetMuted) == 0) {
+    if (const auto muted = std::get_if<bool>(method_call.arguments())) {
+      if (webview_->SetMuted(*muted)) {
+        return result->Success();
+      }
+      return result->Error(kMethodFailed, "Setting muted state failed.");
+    }
+    return result->Error(kErrorInvalidArgs);
   }
 
   result->NotImplemented();

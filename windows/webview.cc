@@ -90,9 +90,43 @@ Webview::Webview(
 }
 
 Webview::~Webview() {
+  std::cerr << "[WebView2] ~Webview() destructor called" << std::endl;
+  OutputDebugStringA("[WebView2] ~Webview() destructor called\n");
+
+  // 1. Unregister event handlers (to prevent callback firing)
+  UnregisterEventHandlers();
+
+  // 2. Clear callbacks (including externally set ones)
+  ClearCallbacks();
+
+  // 3. Mute before closing
+  if (webview_) {
+    std::cerr << "[WebView2] Muting before close..." << std::endl;
+    wil::com_ptr<ICoreWebView2_8> webview8;
+    if (SUCCEEDED(webview_.try_query_to(&webview8)) && webview8) {
+      webview8->put_IsMuted(TRUE);
+      std::cerr << "[WebView2] Muted successfully" << std::endl;
+    }
+  }
+
+  // 4. Close controller
+  if (webview_controller_) {
+    std::cerr << "[WebView2] Calling Close() on controller..." << std::endl;
+    HRESULT hr = webview_controller_->Close();
+    char buf[256];
+    sprintf_s(buf, "[WebView2] Close() returned HRESULT: 0x%08X\n", hr);
+    std::cerr << buf;
+    webview_controller_ = nullptr;
+    std::cerr << "[WebView2] Controller closed and released" << std::endl;
+  }
+
+  // 5. Destroy window if owned
   if (owns_window_) {
     DestroyWindow(hwnd_);
   }
+
+  std::cerr << "[WebView2] ~Webview() destructor completed" << std::endl;
+  OutputDebugStringA("[WebView2] ~Webview() destructor completed\n");
 }
 
 bool Webview::CreateSurface(
@@ -801,6 +835,33 @@ bool Webview::Resume() {
          webview_controller_->put_IsVisible(true) == S_OK;
 }
 
+bool Webview::SetMuted(bool muted) {
+  std::cerr << "[WebView2] SetMuted(" << (muted ? "true" : "false") << ") called" << std::endl;
+  if (!IsValid()) {
+    std::cerr << "[WebView2] SetMuted: WebView not valid" << std::endl;
+    OutputDebugStringA("[WebView2] SetMuted: WebView not valid\n");
+    return false;
+  }
+
+  wil::com_ptr<ICoreWebView2_8> webview8;
+  if (FAILED(webview_.try_query_to(&webview8)) || !webview8) {
+    std::cerr << "[WebView2] SetMuted: ICoreWebView2_8 not available" << std::endl;
+    OutputDebugStringA("[WebView2] SetMuted: ICoreWebView2_8 not available\n");
+    return false;
+  }
+
+  HRESULT hr = webview8->put_IsMuted(muted ? TRUE : FALSE);
+  if (SUCCEEDED(hr)) {
+    std::cerr << "[WebView2] SetMuted: " << (muted ? "Muted" : "Unmuted") << " successfully" << std::endl;
+    OutputDebugStringA(muted ? "[WebView2] SetMuted: Muted\n" : "[WebView2] SetMuted: Unmuted\n");
+    return true;
+  }
+
+  std::cerr << "[WebView2] SetMuted: Failed" << std::endl;
+  OutputDebugStringA("[WebView2] SetMuted: Failed\n");
+  return false;
+}
+
 bool Webview::SetVirtualHostNameMapping(
     const std::string& hostName, const std::string& path,
     WebviewHostResourceAccessKind accessKind) {
@@ -909,4 +970,67 @@ void Webview::UpdateDownloadProgress(ICoreWebView2DownloadOperation* download) {
           })
           .Get(),
       &event_registrations_.download_state_changed_token_);
+}
+
+void Webview::UnregisterEventHandlers() {
+  std::cerr << "[WebView2] Unregistering event handlers..." << std::endl;
+  OutputDebugStringA("[WebView2] Unregistering event handlers...\n");
+
+  if (webview_) {
+    webview_->remove_ContentLoading(event_registrations_.content_loading_token_);
+    webview_->remove_NavigationCompleted(event_registrations_.navigation_completed_token_);
+    webview_->remove_HistoryChanged(event_registrations_.history_changed_token_);
+    webview_->remove_SourceChanged(event_registrations_.source_changed_token_);
+    webview_->remove_DocumentTitleChanged(event_registrations_.document_title_changed_token_);
+    webview_->remove_WebMessageReceived(event_registrations_.web_message_received_token_);
+    webview_->remove_PermissionRequested(event_registrations_.permission_requested_token_);
+    webview_->remove_NewWindowRequested(event_registrations_.new_windows_requested_token_);
+    webview_->remove_ContainsFullScreenElementChanged(
+        event_registrations_.contains_fullscreen_element_changed_token_);
+
+    // Download events (ICoreWebView2_4)
+    auto webview24 = webview_.try_query<ICoreWebView2_4>();
+    if (webview24) {
+      webview24->remove_DownloadStarting(event_registrations_.download_starting_token_);
+    }
+  }
+
+  if (composition_controller_) {
+    composition_controller_->remove_CursorChanged(event_registrations_.cursor_changed_token_);
+  }
+
+  if (webview_controller_) {
+    webview_controller_->remove_GotFocus(event_registrations_.got_focus_token_);
+    webview_controller_->remove_LostFocus(event_registrations_.lost_focus_token_);
+  }
+
+  if (devtools_protocol_event_receiver_) {
+    devtools_protocol_event_receiver_->remove_DevToolsProtocolEventReceived(
+        event_registrations_.devtools_protocol_event_token_);
+  }
+
+  std::cerr << "[WebView2] Event handlers unregistered" << std::endl;
+  OutputDebugStringA("[WebView2] Event handlers unregistered\n");
+}
+
+void Webview::ClearCallbacks() {
+  std::cerr << "[WebView2] Clearing callbacks..." << std::endl;
+  OutputDebugStringA("[WebView2] Clearing callbacks...\n");
+
+  url_changed_callback_ = nullptr;
+  loading_state_changed_callback_ = nullptr;
+  on_load_error_callback_ = nullptr;
+  history_changed_callback_ = nullptr;
+  document_title_changed_callback_ = nullptr;
+  surface_size_changed_callback_ = nullptr;
+  cursor_changed_callback_ = nullptr;
+  focus_changed_callback_ = nullptr;
+  web_message_received_callback_ = nullptr;
+  permission_requested_callback_ = nullptr;
+  devtools_protocol_event_callback_ = nullptr;
+  contains_fullscreen_element_changed_callback_ = nullptr;
+  download_event_callback_ = nullptr;
+
+  std::cerr << "[WebView2] Callbacks cleared" << std::endl;
+  OutputDebugStringA("[WebView2] Callbacks cleared\n");
 }
