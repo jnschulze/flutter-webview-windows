@@ -7,6 +7,7 @@
 #include <winrt/base.h>
 
 #include <functional>
+#include <map>
 
 class WebviewHost;
 
@@ -115,7 +116,8 @@ class Webview {
   typedef std::function<void(COREWEBVIEW2_WEB_ERROR_STATUS)>
       OnLoadErrorCallback;
   typedef std::function<void(WebviewHistoryChanged)> HistoryChangedCallback;
-  typedef std::function<void(const std::string&)> DevtoolsProtocolEventCallback;
+  typedef std::function<void(const std::string&, const std::string&)>
+      DevtoolsProtocolEventCallback;
   typedef std::function<void(const std::string&)> DocumentTitleChangedCallback;
   typedef std::function<void(size_t width, size_t height)>
       SurfaceSizeChangedCallback;
@@ -228,6 +230,13 @@ class Webview {
     devtools_protocol_event_callback_ = std::move(callback);
   }
 
+  bool CallDevToolsProtocolMethod(const std::string& method,
+                                  const std::string& parameters,
+                                  std::function<void(HRESULT, const std::string&)>
+                                      completion);
+  bool AddDevToolsProtocolEventListener(const std::string& event_name);
+  bool RemoveDevToolsProtocolEventListener(const std::string& event_name);
+
   void OnContainsFullScreenElementChanged(
       ContainsFullScreenElementChangedCallback callback) {
     contains_fullscreen_element_changed_callback_ = std::move(callback);
@@ -268,6 +277,10 @@ class Webview {
   WebMessageReceivedCallback web_message_received_callback_;
   PermissionRequestedCallback permission_requested_callback_;
   DevtoolsProtocolEventCallback devtools_protocol_event_callback_;
+  std::map<std::string,
+           std::pair<wil::com_ptr<ICoreWebView2DevToolsProtocolEventReceiver>,
+                     EventRegistrationToken>>
+      devtools_protocol_event_listeners_;
   ContainsFullScreenElementChangedCallback
       contains_fullscreen_element_changed_callback_;
 

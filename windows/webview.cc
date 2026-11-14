@@ -157,7 +157,8 @@ void Webview::EnableSecurityUpdates() {
                 wil::unique_cotaskmem_string json_args;
                 if (args->get_ParameterObjectAsJson(&json_args) == S_OK) {
                   std::string json = util::Utf8FromUtf16(json_args.get());
-                  devtools_protocol_event_callback_(json.c_str());
+                   devtools_protocol_event_callback_(
+                       "Security.securityStateChanged", json.c_str());
                 }
               }
 
@@ -909,4 +910,59 @@ void Webview::UpdateDownloadProgress(ICoreWebView2DownloadOperation* download) {
           })
           .Get(),
       &event_registrations_.download_state_changed_token_);
+}
+
+bool Webview::CallDevToolsProtocolMethod(
+    const std::string& method, const std::string& parameters,
+    std::function<void(HRESULT, const std::string&)> completion) {
+  if (!IsValid()) return false;
+  const auto hr = webview_->CallDevToolsProtocolMethod(
+      util::Utf16FromUtf8(method).c_str(),
+      util::Utf16FromUtf8(parameters).c_str(),
+      Callback<ICoreWebView2CallDevToolsProtocolMethodCompletedHandler>(
+          [completion](HRESULT error_code, LPCWSTR json) {
+            completion(error_code, json ? util::Utf8FromUtf16(json) : "{}");
+            return S_OK;
+          })
+          .Get());
+  return SUCCEEDED(hr);
+}
+
+bool Webview::AddDevToolsProtocolEventListener(const std::string& event_name) {
+  if (!IsValid() || devtools_protocol_event_listeners_.contains(event_name)) {
+    return false;
+  }
+  wil::com_ptr<ICoreWebView2DevToolsProtocolEventReceiver> receiver;
+  if (FAILED(webview_->GetDevToolsProtocolEventReceiver(
+          util::Utf16FromUtf8(event_name).c_str(), &receiver))) {
+    return false;
+  }
+  EventRegistrationToken token{};
+  const auto hr = receiver->add_DevToolsProtocolEventReceived(
+      Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
+          [this, event_name](ICoreWebView2*,
+                             ICoreWebView2DevToolsProtocolEventReceivedEventArgs*
+                                 args) {
+            if (!devtools_protocol_event_callback_) return S_OK;
+            wil::unique_cotaskmem_string json;
+            if (SUCCEEDED(args->get_ParameterObjectAsJson(&json))) {
+              devtools_protocol_event_callback_(
+                  event_name, util::Utf8FromUtf16(json.get()));
+            }
+            return S_OK;
+          })
+          .Get(),
+      &token);
+  if (FAILED(hr)) return false;
+  devtools_protocol_event_listeners_[event_name] = {std::move(receiver), token};
+  return true;
+}
+
+bool Webview::RemoveDevToolsProtocolEventListener(
+    const std::string& event_name) {
+  const auto it = devtools_protocol_event_listeners_.find(event_name);
+  if (it == devtools_protocol_event_listeners_.end()) return false;
+  it->second.first->remove_DevToolsProtocolEventReceived(it->second.second);
+  devtools_protocol_event_listeners_.erase(it);
+  return true;
 }
