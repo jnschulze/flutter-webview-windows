@@ -41,6 +41,12 @@ constexpr auto kMethodClearCache = "clearCache";
 constexpr auto kMethodSetCacheDisabled = "setCacheDisabled";
 constexpr auto kMethodSetPopupWindowPolicy = "setPopupWindowPolicy";
 constexpr auto kMethodSetFpsLimit = "setFpsLimit";
+constexpr auto kMethodCallDevToolsProtocolMethod =
+    "callDevToolsProtocolMethod";
+constexpr auto kMethodAddDevToolsProtocolEventListener =
+    "addDevToolsProtocolEventListener";
+constexpr auto kMethodRemoveDevToolsProtocolEventListener =
+    "removeDevToolsProtocolEventListener";
 
 constexpr auto kEventType = "type";
 constexpr auto kEventValue = "value";
@@ -267,11 +273,18 @@ void WebviewBridge::RegisterEventHandlers() {
     EmitEvent(event);
   });
 
-  webview_->OnDevtoolsProtocolEvent([this](const std::string& json) {
+  webview_->OnDevtoolsProtocolEvent(
+      [this](const std::string& event_name, const std::string& json) {
+    const auto type = event_name == "Security.securityStateChanged"
+                          ? "securityStateChanged"
+                          : "devToolsProtocolEvent";
+    const auto value = type == std::string("securityStateChanged")
+                           ? json
+                           : "{\"eventName\":\"" + event_name +
+                                 "\",\"data\":" + json + "}";
     const auto event = flutter::EncodableValue(flutter::EncodableMap{
-        {flutter::EncodableValue(kEventType),
-         flutter::EncodableValue("securityStateChanged")},
-        {flutter::EncodableValue(kEventValue), flutter::EncodableValue(json)}});
+        {flutter::EncodableValue(kEventType), flutter::EncodableValue(type)},
+        {flutter::EncodableValue(kEventValue), flutter::EncodableValue(value)}});
     EmitEvent(event);
   });
 
@@ -356,6 +369,44 @@ void WebviewBridge::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue>& method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   const auto& method_name = method_call.method_name();
+
+  if (method_name == kMethodCallDevToolsProtocolMethod) {
+    const auto* args = std::get_if<flutter::EncodableMap>(method_call.arguments());
+    if (!args) return result->Error(kErrorInvalidArgs);
+    const auto method = args->find(flutter::EncodableValue("method"));
+    const auto parameters = args->find(flutter::EncodableValue("parameters"));
+    const auto method_name_value = method == args->end()
+                                       ? nullptr
+                                       : std::get_if<std::string>(&method->second);
+    const auto parameters_value = parameters == args->end()
+                                      ? nullptr
+                                      : std::get_if<std::string>(&parameters->second);
+    if (!method_name_value || !parameters_value) {
+      return result->Error(kErrorInvalidArgs);
+    }
+    auto pending_result = std::make_shared<
+        std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>>(
+        std::move(result));
+    webview_->CallDevToolsProtocolMethod(
+        *method_name_value, *parameters_value,
+        [pending_result](HRESULT error_code, const std::string& json) mutable {
+          if (SUCCEEDED(error_code)) {
+            (*pending_result)->Success(flutter::EncodableValue(json));
+          } else {
+            (*pending_result)->Error(kMethodFailed);
+          }
+        });
+    return;
+  }
+  if (method_name == kMethodAddDevToolsProtocolEventListener ||
+      method_name == kMethodRemoveDevToolsProtocolEventListener) {
+    const auto* event_name = std::get_if<std::string>(method_call.arguments());
+    if (!event_name) return result->Error(kErrorInvalidArgs);
+    const auto ok = method_name == kMethodAddDevToolsProtocolEventListener
+                        ? webview_->AddDevToolsProtocolEventListener(*event_name)
+                        : webview_->RemoveDevToolsProtocolEventListener(*event_name);
+    return ok ? result->Success() : result->Error(kMethodFailed);
+  }
 
   // setCursorPos: [double x, double y]
   if (method_name.compare(kMethodSetCursorPos) == 0) {

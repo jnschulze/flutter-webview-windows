@@ -156,6 +156,14 @@ class WebviewController extends ValueNotifier<WebviewValue> {
   Stream<String> get securityStateChanged =>
       _securityStateChangedStreamController.stream;
 
+  final StreamController<Map<String, dynamic>>
+      _devToolsProtocolEventStreamController =
+      StreamController<Map<String, dynamic>>();
+
+  /// A stream of arbitrary WebView2 CDP events registered by the caller.
+  Stream<Map<String, dynamic>> get devToolsProtocolEvent =>
+      _devToolsProtocolEventStreamController.stream;
+
   final StreamController<String> _titleStreamController =
       StreamController<String>();
 
@@ -228,6 +236,12 @@ class WebviewController extends ValueNotifier<WebviewValue> {
             break;
           case 'securityStateChanged':
             _securityStateChangedStreamController.add(map['value']);
+            break;
+          case 'devToolsProtocolEvent':
+            final value = jsonDecode(map['value'] as String) as Map;
+            _devToolsProtocolEventStreamController.add(
+              Map<String, dynamic>.from(value),
+            );
             break;
           case 'titleChanged':
             _titleStreamController.add(map['value']);
@@ -312,6 +326,39 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     }
     assert(value.isInitialized);
     return _methodChannel.invokeMethod('loadUrl', url);
+  }
+
+  /// Executes a WebView2 Chrome DevTools Protocol method and returns its JSON
+  /// result.
+  Future<dynamic> callDevToolsProtocolMethod(
+      String method, [Map<String, dynamic>? parameters]) async {
+    if (_isDisposed) return null;
+    assert(value.isInitialized);
+    final result = await _methodChannel.invokeMethod<String>(
+      'callDevToolsProtocolMethod',
+      <String, dynamic>{
+        'method': method,
+        'parameters': jsonEncode(parameters ?? const <String, dynamic>{}),
+      },
+    );
+    if (result == null || result.isEmpty) return null;
+    return jsonDecode(result);
+  }
+
+  Future<void> addDevToolsProtocolEventListener(String eventName) async {
+    if (_isDisposed) return;
+    assert(value.isInitialized);
+    await _methodChannel.invokeMethod(
+      'addDevToolsProtocolEventListener', eventName,
+    );
+  }
+
+  Future<void> removeDevToolsProtocolEventListener(String eventName) async {
+    if (_isDisposed) return;
+    assert(value.isInitialized);
+    await _methodChannel.invokeMethod(
+      'removeDevToolsProtocolEventListener', eventName,
+    );
   }
 
   /// Loads a document from the given string.
